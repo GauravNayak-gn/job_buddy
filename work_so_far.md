@@ -28,9 +28,11 @@
 - JWT via simplejwt, OTP via email, token blacklist via Redis
 - Migrations applied to auth_schema, health check confirmed: {"status":"ok","service":"auth"}
 
-## [ ] Phase 4 — profile_service (port 8002)
-- Seeker/recruiter profiles, resume upload to S3, PyMuPDF text extract
-- Schema: profile_schema
+## [DONE] Phase 4 — profile_service (port 8002)
+- Seeker/recruiter profile CRUD, skills, experience
+- Resume upload to S3, PyMuPDF text extraction, Kafka event on upload
+- JWT validated via shared secret (no auth_service call needed)
+- Migrations applied to profile_schema, health check confirmed
 
 ## [ ] Phase 5 — job_service (port 8003)
 - Job CRUD, publish/close, Kafka event on publish
