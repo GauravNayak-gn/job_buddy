@@ -11,11 +11,10 @@ CREATE SCHEMA IF NOT EXISTS match_schema;
 CREATE SCHEMA IF NOT EXISTS notification_schema;
 CREATE SCHEMA IF NOT EXISTS chat_schema;
 
--- Replace 'jobportal_user' with your actual DB user if different
-GRANT ALL ON SCHEMA auth_schema TO jobportal_user;
-GRANT ALL ON SCHEMA profile_schema TO jobportal_user;
-GRANT ALL ON SCHEMA job_schema TO jobportal_user;
-GRANT ALL ON SCHEMA app_schema TO jobportal_user;
-GRANT ALL ON SCHEMA match_schema TO jobportal_user;
-GRANT ALL ON SCHEMA notification_schema TO jobportal_user;
-GRANT ALL ON SCHEMA chat_schema TO jobportal_user;
+GRANT ALL ON SCHEMA auth_schema TO admin;
+GRANT ALL ON SCHEMA profile_schema TO admin;
+GRANT ALL ON SCHEMA job_schema TO admin;
+GRANT ALL ON SCHEMA app_schema TO admin;
+GRANT ALL ON SCHEMA match_schema TO admin;
+GRANT ALL ON SCHEMA notification_schema TO admin;
+GRANT ALL ON SCHEMA chat_schema TO admin;

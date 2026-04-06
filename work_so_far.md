@@ -14,14 +14,19 @@
 
 ---
 
-## [NEXT] Phase 2 — Database Setup (Local PostgreSQL)
-- Install PostgreSQL + pgvector on local machine
-- Create DB: jobportal_db, user: jobportal_user
-- Run init_db.sql to create all 7 schemas
+## [DONE] Phase 2 — Database Setup (Local PostgreSQL)
+- PostgreSQL 18 installed and running on port 5432
+- DB: jobportal_db, user: admin, password: job@123
+- pgvector extension enabled
+- 7 schemas created: auth_schema, profile_schema, job_schema, app_schema, match_schema, notification_schema, chat_schema
 
-## [ ] Phase 3 — auth_service (port 8001)
-- Django project, JWT auth, OTP email verify, password reset
-- Schema: auth_schema
+## [NEXT] Phase 3 — auth_service (port 8001)
+
+## [DONE] Phase 3 — auth_service (port 8001)
+- Django project, custom User model (UUID pk, role: seeker/recruiter/admin)
+- Endpoints: register, verify-otp, login, logout, token/refresh, forgot-password, reset-password, health
+- JWT via simplejwt, OTP via email, token blacklist via Redis
+- Migrations applied to auth_schema, health check confirmed: {"status":"ok","service":"auth"}
 
 ## [ ] Phase 4 — profile_service (port 8002)
 - Seeker/recruiter profiles, resume upload to S3, PyMuPDF text extract
