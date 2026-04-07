@@ -34,12 +34,15 @@
 - JWT validated via shared secret (no auth_service call needed)
 - Migrations applied to profile_schema, health check confirmed
 
-## [ ] Phase 5 — job_service (port 8003)
+## [DONE] Phase 5 — job_service (port 8003)
 - Job CRUD, publish/close, Kafka event on publish
 - Schema: job_schema
 
-## [ ] Phase 6 — application_service (port 8004)
-- Apply, stage pipeline, Jitsi interview scheduling
+## [IN PROGRESS] Phase 6 — application_service (port 8004)
+- Django project + app scaffold completed
+- Endpoints added: health, apply, my applications, job applications, detail, withdraw
+- Stage pipeline endpoints added with history tracking + Kafka event publish
+- Interview scheduling endpoint added with Jitsi link generation + Kafka event publish
 - Schema: app_schema
 
 ## [ ] Phase 7 — notification_service (port 8006)
@@ -54,9 +57,10 @@
 - Placeholder, Django Channels WebSocket stub
 - Schema: chat_schema
 
-## [ ] Phase 10 — Angular Frontend
+## [IN PROGRESS] Phase 10 — Angular Frontend
 - Single app in frontend/, all calls via Nginx /api/*
-- Pages: auth, seeker dashboard, recruiter dashboard, notifications, AI match
+- Angular app scaffold added with pages: home, jobs, login, post-job, profile
+- Next: complete recruiter dashboard, seeker dashboard, notification bell, AI match page
 
 ## [ ] Phase 11 — Integration & Testing
 - Full flow: register → apply → interview → email notification
