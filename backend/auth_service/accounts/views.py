@@ -9,7 +9,7 @@ from .serializers import (
     RegisterSerializer, LoginSerializer, OTPSerializer,
     ForgotPasswordSerializer, ResetPasswordSerializer
 )
-from .utils import generate_otp, send_otp_email, verify_otp
+from .utils import generate_otp, send_otp_email, verify_otp, publish_user_registered
 
 
 class HealthView(APIView):
@@ -24,6 +24,7 @@ class RegisterView(APIView):
         user = serializer.save()
         otp = generate_otp(user, 'verify_email')
         send_otp_email(user.email, otp, 'verify_email')
+        publish_user_registered(user)
         return Response({"message": "Registered. Check email for OTP."}, status=status.HTTP_201_CREATED)
 
 
@@ -48,6 +49,7 @@ class LoginView(APIView):
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data['user']
         refresh = RefreshToken.for_user(user)
+        refresh['role'] = user.role
         return Response({
             "access": str(refresh.access_token),
             "refresh": str(refresh),

@@ -3,7 +3,7 @@ from kafka import KafkaConsumer
 from django.conf import settings
 from django.core.management.base import BaseCommand
 
-from notifications.utils import create_notification
+from notifications.utils import create_notification, send_notification_email
 
 
 TOPICS = ['application.stage_changed', 'interview.scheduled', 'user.registered']
@@ -51,6 +51,7 @@ class Command(BaseCommand):
 
             elif topic == 'user.registered':
                 user_id = payload.get('user_id')
+                email = payload.get('email')
                 if user_id:
                     create_notification(
                         user_id=user_id,
@@ -58,4 +59,9 @@ class Command(BaseCommand):
                         title='Welcome to Job Buddy',
                         body='Your account was created successfully.',
                         payload=payload,
+                    )
+                    send_notification_email(
+                        to_email=email,
+                        subject='Welcome to Job Buddy',
+                        message='Your account was created successfully.',
                     )
