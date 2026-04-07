@@ -24,6 +24,10 @@ export class ApiService {
     return this.http.post<T>(url, body, { headers: this.headers(auth) });
   }
 
+  postForm<T>(url: string, body: FormData, auth = false): Observable<T> {
+    return this.http.post<T>(url, body, { headers: this.formHeaders(auth) });
+  }
+
   patch<T>(url: string, body: unknown, auth = false): Observable<T> {
     return this.http.patch<T>(url, body, { headers: this.headers(auth) });
   }
@@ -35,6 +39,14 @@ export class ApiService {
       headers = headers.set('Authorization', `Bearer ${this.authState.accessToken()}`);
     }
 
+    return headers;
+  }
+
+  private formHeaders(auth: boolean): HttpHeaders {
+    let headers = new HttpHeaders();
+    if (auth && this.authState.accessToken()) {
+      headers = headers.set('Authorization', `Bearer ${this.authState.accessToken()}`);
+    }
     return headers;
   }
 }

@@ -13,8 +13,13 @@ interface Category {
 interface RecruiterJob {
   id: string;
   title: string;
-  status: string;
+  description: string;
   location_type: string;
+  location_city: string;
+  experience_required: string;
+  salary_min: number | null;
+  salary_max: number | null;
+  status: string;
   created_at: string;
 }
 
@@ -41,7 +46,7 @@ interface RecruiterJob {
       } @else {
         <div class="layout">
           <article class="form-card">
-            <h2>Create a new job</h2>
+            <h2>{{ editingJobId() ? 'Edit job' : 'Create a new job' }}</h2>
             <div class="grid">
               <label>
                 <span>Title</span>
@@ -89,7 +94,14 @@ interface RecruiterJob {
               <span>Description</span>
               <textarea [(ngModel)]="form.description" rows="8"></textarea>
             </label>
-            <button type="button" (click)="createJob()">Create job</button>
+            <div class="actions">
+              @if (editingJobId()) {
+                <button type="button" (click)="updateJob()">Save changes</button>
+                <button type="button" class="secondary" (click)="cancelEdit()">Cancel</button>
+              } @else {
+                <button type="button" (click)="createJob()">Create job</button>
+              }
+            </div>
             @if (message()) {
               <div class="message">{{ message() }}</div>
             }
@@ -110,9 +122,18 @@ interface RecruiterJob {
                   <article class="job-item">
                     <div>
                       <h3>{{ job.title }}</h3>
-                      <p>{{ job.location_type }}</p>
+                      <p>{{ job.location_type }} @if (job.location_city) { · {{ job.location_city }} }</p>
                     </div>
                     <span class="status-pill">{{ job.status }}</span>
+                    <div class="actions compact">
+                      <button type="button" class="secondary" (click)="startEdit(job)">Edit</button>
+                      @if (job.status !== 'published') {
+                        <button type="button" class="secondary" (click)="publish(job.id)">Publish</button>
+                      }
+                      @if (job.status !== 'closed') {
+                        <button type="button" class="secondary" (click)="close(job.id)">Close</button>
+                      }
+                    </div>
                   </article>
                 }
               </div>
@@ -134,55 +155,22 @@ interface RecruiterJob {
     }
     .page-card,
     .form-card,
-    .list-card {
-      padding: 1.5rem;
-    }
-    .layout {
-      display: grid;
-      gap: 1rem;
-      grid-template-columns: 1.1fr 0.9fr;
-    }
-    .grid {
-      display: grid;
-      gap: 1rem;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      margin-bottom: 1rem;
-    }
+    .list-card { padding: 1.5rem; }
+    .layout { display: grid; gap: 1rem; grid-template-columns: 1.1fr 0.9fr; }
+    .grid { display: grid; gap: 1rem; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-bottom: 1rem; }
     .list-head,
     .job-item,
-    .page-head {
-      display: flex;
-      gap: 1rem;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-    }
-    .job-list {
-      display: grid;
-      gap: 0.8rem;
-    }
-    .job-item {
-      background: rgba(10, 16, 32, 0.45);
-      border-radius: 18px;
-      padding: 1rem;
-    }
+    .page-head,
+    .actions { display: flex; gap: 1rem; justify-content: space-between; align-items: center; flex-wrap: wrap; }
+    .job-list { display: grid; gap: 0.8rem; }
+    .job-item { background: rgba(10, 16, 32, 0.45); border-radius: 18px; padding: 1rem; }
+    .actions.compact { margin-top: 0.6rem; }
     .message,
-    .small {
-      margin-top: 1rem;
-      padding: 1rem;
-    }
-    .status-pill {
-      background: rgba(238, 108, 77, 0.16);
-      border-radius: 999px;
-      color: #ffd1c6;
-      padding: 0.45rem 0.8rem;
-      text-transform: capitalize;
-    }
+    .small { margin-top: 1rem; padding: 1rem; }
+    .status-pill { background: rgba(238, 108, 77, 0.16); border-radius: 999px; color: #ffd1c6; padding: 0.45rem 0.8rem; text-transform: capitalize; }
     @media (max-width: 980px) {
       .layout,
-      .grid {
-        grid-template-columns: 1fr;
-      }
+      .grid { grid-template-columns: 1fr; }
     }
   `],
 })
@@ -195,6 +183,7 @@ export class PostJobComponent implements OnInit {
   readonly jobsLoading = signal(false);
   readonly message = signal('');
   readonly isRecruiter = computed(() => this.auth.role() === 'recruiter');
+  readonly editingJobId = signal('');
 
   readonly form = {
     title: '',
@@ -235,12 +224,72 @@ export class PostJobComponent implements OnInit {
 
     this.api.post(`${this.api.jobsBase}/create/`, payload, true).subscribe({
       next: () => {
-        this.message.set('Job created successfully. It will appear as draft until published.');
+        this.message.set('Job created successfully.');
+        this.resetForm();
         this.loadMyJobs();
       },
-      error: (error) => {
-        this.message.set(this.errorMessage(error));
+      error: (error) => this.message.set(this.errorMessage(error)),
+    });
+  }
+
+  protected startEdit(job: RecruiterJob): void {
+    this.editingJobId.set(job.id);
+    this.form.title = job.title;
+    this.form.description = job.description;
+    this.form.location_type = job.location_type;
+    this.form.location_city = job.location_city;
+    this.form.salary_min = job.salary_min ?? 0;
+    this.form.salary_max = job.salary_max ?? 0;
+    this.form.experience_required = job.experience_required;
+  }
+
+  protected cancelEdit(): void {
+    this.editingJobId.set('');
+    this.resetForm();
+  }
+
+  protected updateJob(): void {
+    const jobId = this.editingJobId();
+    if (!jobId) return;
+
+    const payload = {
+      title: this.form.title,
+      description: this.form.description,
+      location_type: this.form.location_type,
+      location_city: this.form.location_city,
+      salary_min: this.form.salary_min,
+      salary_max: this.form.salary_max,
+      experience_required: this.form.experience_required,
+      skills: this.form.skill_name ? [{ skill_name: this.form.skill_name, is_required: true }] : [],
+    };
+
+    this.api.patch(`${this.api.jobsBase}/${jobId}/`, payload, true).subscribe({
+      next: () => {
+        this.message.set('Job updated.');
+        this.cancelEdit();
+        this.loadMyJobs();
       },
+      error: (error) => this.message.set(this.errorMessage(error)),
+    });
+  }
+
+  protected publish(jobId: string): void {
+    this.api.post(`${this.api.jobsBase}/${jobId}/publish/`, {}, true).subscribe({
+      next: () => {
+        this.message.set('Job published.');
+        this.loadMyJobs();
+      },
+      error: (error) => this.message.set(this.errorMessage(error)),
+    });
+  }
+
+  protected close(jobId: string): void {
+    this.api.post(`${this.api.jobsBase}/${jobId}/close/`, {}, true).subscribe({
+      next: () => {
+        this.message.set('Job closed.');
+        this.loadMyJobs();
+      },
+      error: (error) => this.message.set(this.errorMessage(error)),
     });
   }
 
@@ -258,13 +307,22 @@ export class PostJobComponent implements OnInit {
     });
   }
 
+  private resetForm(): void {
+    this.form.title = '';
+    this.form.description = '';
+    this.form.category = '';
+    this.form.location_type = 'remote';
+    this.form.location_city = '';
+    this.form.salary_min = 80000;
+    this.form.salary_max = 120000;
+    this.form.currency = 'INR';
+    this.form.experience_required = '2 years';
+    this.form.skill_name = 'Python';
+  }
+
   private errorMessage(error: { error?: unknown; message?: string }): string {
-    if (typeof error.error === 'string') {
-      return error.error;
-    }
-    if (error.error && typeof error.error === 'object') {
-      return JSON.stringify(error.error);
-    }
+    if (typeof error.error === 'string') return error.error;
+    if (error.error && typeof error.error === 'object') return JSON.stringify(error.error);
     return error.message ?? 'Request failed';
   }
 }
