@@ -1,8 +1,10 @@
 import random
+import json
 from datetime import timedelta
 from django.utils import timezone
 from django.core.mail import send_mail
 from django.conf import settings
+from kafka import KafkaProducer
 from .models import EmailOTP
 
 
@@ -32,3 +34,19 @@ def verify_otp(user, otp_code, purpose):
     otp.is_used = True
     otp.save()
     return True
+
+
+def publish_user_registered(user):
+    try:
+        producer = KafkaProducer(
+            bootstrap_servers=settings.KAFKA_BOOTSTRAP_SERVERS if hasattr(settings, 'KAFKA_BOOTSTRAP_SERVERS') else 'localhost:9092',
+            value_serializer=lambda v: json.dumps(v).encode('utf-8')
+        )
+        producer.send('user.registered', {
+            'user_id': str(user.id),
+            'email': user.email,
+            'role': user.role,
+        })
+        producer.flush()
+    except Exception:
+        pass

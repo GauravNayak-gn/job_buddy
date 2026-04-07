@@ -6,6 +6,8 @@ import { JobsComponent } from './pages/jobs.component';
 import { LoginComponent } from './pages/login.component';
 import { ProfileComponent } from './pages/profile.component';
 import { PostJobComponent } from './pages/post-job.component';
+import { NotificationsComponent } from './pages/notifications.component';
+import { MatchesComponent } from './pages/matches.component';
 
 const authGuard: CanActivateFn = () => {
   const auth = inject(AuthStateService);
@@ -19,5 +21,7 @@ export const routes: Routes = [
   { path: 'login', component: LoginComponent },
   { path: 'profile', component: ProfileComponent, canActivate: [authGuard] },
   { path: 'post-job', component: PostJobComponent, canActivate: [authGuard] },
+  { path: 'notifications', component: NotificationsComponent, canActivate: [authGuard] },
+  { path: 'matches', component: MatchesComponent, canActivate: [authGuard] },
   { path: '**', redirectTo: '' },
 ];

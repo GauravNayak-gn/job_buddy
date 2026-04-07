@@ -11,6 +11,10 @@ export class ApiService {
   readonly authBase = 'http://localhost:8001/api/auth';
   readonly profileBase = 'http://localhost:8002/api/profile';
   readonly jobsBase = 'http://localhost:8003/api/jobs';
+  readonly applicationsBase = 'http://localhost:8004/api/applications';
+  readonly matchBase = 'http://localhost:8005/api/match';
+  readonly notificationsBase = 'http://localhost:8006/api/notifications';
+  readonly chatBase = 'http://localhost:8007/api/chat';
 
   get<T>(url: string, auth = false): Observable<T> {
     return this.http.get<T>(url, { headers: this.headers(auth) });
@@ -18,6 +22,10 @@ export class ApiService {
 
   post<T>(url: string, body: unknown, auth = false): Observable<T> {
     return this.http.post<T>(url, body, { headers: this.headers(auth) });
+  }
+
+  postForm<T>(url: string, body: FormData, auth = false): Observable<T> {
+    return this.http.post<T>(url, body, { headers: this.formHeaders(auth) });
   }
 
   patch<T>(url: string, body: unknown, auth = false): Observable<T> {
@@ -31,6 +39,14 @@ export class ApiService {
       headers = headers.set('Authorization', `Bearer ${this.authState.accessToken()}`);
     }
 
+    return headers;
+  }
+
+  private formHeaders(auth: boolean): HttpHeaders {
+    let headers = new HttpHeaders();
+    if (auth && this.authState.accessToken()) {
+      headers = headers.set('Authorization', `Bearer ${this.authState.accessToken()}`);
+    }
     return headers;
   }
 }
