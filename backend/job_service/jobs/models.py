@@ -1,5 +1,6 @@
 import uuid
 from django.db import models
+from django.utils import timezone
 
 
 class JobCategory(models.Model):
@@ -28,12 +29,23 @@ class Job(models.Model):
     currency = models.CharField(max_length=10, default='INR')
     experience_required = models.CharField(max_length=50, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
+    is_archived = models.BooleanField(default=False)
+    archived_at = models.DateTimeField(null=True, blank=True)
     total_applications = models.IntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = 'jobs'
+
+    def archive(self):
+        self.is_archived = True
+        self.archived_at = timezone.now()
+        self.status = 'closed'
+
+    def restore(self):
+        self.is_archived = False
+        self.archived_at = None
 
 
 class JobSkill(models.Model):
