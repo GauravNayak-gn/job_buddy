@@ -955,3 +955,47 @@ Current backend gaps you should know before demo:
 - `seeker/skills/` supports `GET` and `POST`, but not `PATCH`.
 - Resume upload expects `resume` multipart field.
 - Profile endpoints require authentication, but current code does not strictly enforce seeker vs recruiter role separation.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+----------------------------
+`matching_service` currently works in 3 paths:
+
+1. Direct embedding APIs:
+- `POST /api/match/embed/resume/` stores seeker resume embedding.
+- `POST /api/match/embed/job/` stores job embedding.
+
+2. Query APIs:
+- `GET /api/match/jobs-for-seeker/<seeker_id>/`
+- `GET /api/match/seekers-for-job/<job_id>/`
+These return cosine-similarity ranked results.
+
+3. Kafka consumer path:
+- Listens to `resume.uploaded` and `job.published`
+- Auto-creates embeddings from events.
+
+In my E2E run, matching returned empty until embeddings existed; after explicit `embed/resume` + `embed/job`, it returned valid matches. So matching logic is working, but event-driven population needs a bit more hardening/verification in your setup.
+
+For S3: no, not just “any creds”.
+You need:
+- `AWS_ACCESS_KEY_ID`
+- `AWS_SECRET_ACCESS_KEY`
+- `AWS_STORAGE_BUCKET_NAME`
+- `AWS_S3_REGION_NAME`
+- IAM permission to `PutObject`/`GetObject` on that bucket
+- Existing bucket in that region
+
+So yes, creds are part of it, but bucket + IAM permissions must also be correct.
