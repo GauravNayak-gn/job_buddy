@@ -14,8 +14,9 @@ class JWTAuthentication(BaseAuthentication):
             decoded = jwt.decode(token, options={"verify_signature": False})
             user_id = decoded.get('user_id')
             role = decoded.get('role', '')
+            email = decoded.get('email', '')
             if not user_id:
                 raise AuthenticationFailed('Invalid token payload.')
-            return (type('User', (), {'id': user_id, 'role': role, 'is_authenticated': True})(), token)
+            return (type('User', (), {'id': user_id, 'role': role, 'email': email, 'is_authenticated': True})(), token)
         except Exception:
             raise AuthenticationFailed('Invalid or expired token.')

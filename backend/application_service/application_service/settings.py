@@ -66,6 +66,7 @@ REST_FRAMEWORK = {
 }
 
 KAFKA_BOOTSTRAP_SERVERS = config('KAFKA_BOOTSTRAP_SERVERS', default='localhost:9092')
+JOB_SERVICE_URL = config('JOB_SERVICE_URL', default='http://localhost:8003/api/jobs')
 
 CORS_ALLOW_ALL_ORIGINS = True
 STATIC_URL = '/static/'

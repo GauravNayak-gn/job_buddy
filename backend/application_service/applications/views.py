@@ -15,7 +15,15 @@ from .serializers import (
     InterviewSerializer,
     StageUpdateSerializer,
 )
-from .utils import publish_application_stage_changed, publish_interview_scheduled
+from .utils import fetch_job_details, publish_application_stage_changed, publish_interview_scheduled
+
+
+def recruiter_owns_application(application, user):
+    return request_user_is_recruiter(user) and str(application.recruiter_id) == str(user.id)
+
+
+def request_user_is_recruiter(user):
+    return getattr(user, 'role', '') == 'recruiter'
 
 
 class HealthView(APIView):
@@ -37,11 +45,22 @@ class ApplyView(APIView):
 
         job_id = serializer.validated_data['job_id']
         seeker_id = request.user.id
+        job_details = fetch_job_details(job_id)
+
+        if not job_details:
+            return Response({'error': 'Job not found.'}, status=status.HTTP_404_NOT_FOUND)
+        if job_details.get('status') != 'published' or job_details.get('is_archived'):
+            return Response({'error': 'This job is not accepting new applications.'}, status=status.HTTP_400_BAD_REQUEST)
 
         if Application.objects.filter(job_id=job_id, seeker_id=seeker_id).exists():
             return Response({'error': 'Already applied for this job.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        application = serializer.save(seeker_id=seeker_id)
+        application = serializer.save(
+            seeker_id=seeker_id,
+            seeker_email=getattr(request.user, 'email', ''),
+            recruiter_id=job_details.get('recruiter_id'),
+            job_title=job_details.get('title', ''),
+        )
         ApplicationStageHistory.objects.create(
             application=application,
             old_stage='',
@@ -64,10 +83,14 @@ class JobApplicationListView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, job_id):
-        if request.user.role != 'recruiter':
+        if not request_user_is_recruiter(request.user):
             return Response({'error': 'Only recruiters can view job applications.'}, status=status.HTTP_403_FORBIDDEN)
 
-        applications = Application.objects.filter(job_id=job_id, is_withdrawn=False).order_by('-created_at')
+        applications = Application.objects.filter(
+            job_id=job_id,
+            recruiter_id=request.user.id,
+            is_withdrawn=False,
+        ).order_by('-created_at')
         return Response(ApplicationSerializer(applications, many=True).data)
 
 
@@ -77,6 +100,8 @@ class ApplicationDetailView(APIView):
     def get(self, request, application_id):
         application = get_object_or_404(Application, id=application_id)
         if request.user.role == 'seeker' and str(application.seeker_id) != str(request.user.id):
+            return Response({'error': 'Forbidden.'}, status=status.HTTP_403_FORBIDDEN)
+        if request_user_is_recruiter(request.user) and not recruiter_owns_application(application, request.user):
             return Response({'error': 'Forbidden.'}, status=status.HTTP_403_FORBIDDEN)
         return Response(ApplicationSerializer(application).data)
 
@@ -95,10 +120,12 @@ class UpdateStageView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, application_id):
-        if request.user.role != 'recruiter':
+        if not request_user_is_recruiter(request.user):
             return Response({'error': 'Only recruiters can update stage.'}, status=status.HTTP_403_FORBIDDEN)
 
         application = get_object_or_404(Application, id=application_id)
+        if not recruiter_owns_application(application, request.user):
+            return Response({'error': 'Forbidden.'}, status=status.HTTP_403_FORBIDDEN)
         serializer = StageUpdateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
@@ -132,6 +159,8 @@ class StageHistoryView(APIView):
         application = get_object_or_404(Application, id=application_id)
         if request.user.role == 'seeker' and str(application.seeker_id) != str(request.user.id):
             return Response({'error': 'Forbidden.'}, status=status.HTTP_403_FORBIDDEN)
+        if request_user_is_recruiter(request.user) and not recruiter_owns_application(application, request.user):
+            return Response({'error': 'Forbidden.'}, status=status.HTTP_403_FORBIDDEN)
 
         history = application.stage_history.order_by('-changed_at')
         return Response(ApplicationStageHistorySerializer(history, many=True).data)
@@ -141,10 +170,12 @@ class ScheduleInterviewView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, application_id):
-        if request.user.role != 'recruiter':
+        if not request_user_is_recruiter(request.user):
             return Response({'error': 'Only recruiters can schedule interviews.'}, status=status.HTTP_403_FORBIDDEN)
 
         application = get_object_or_404(Application, id=application_id)
+        if not recruiter_owns_application(application, request.user):
+            return Response({'error': 'Forbidden.'}, status=status.HTTP_403_FORBIDDEN)
         serializer = InterviewScheduleSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
@@ -180,7 +211,14 @@ class ScheduleInterviewView(APIView):
         )
 
         publish_application_stage_changed(application.id, application.seeker_id, Application.STAGE_INTERVIEW)
-        publish_interview_scheduled(application.id, application.seeker_id, scheduled_at, link)
+        publish_interview_scheduled(
+            application.id,
+            application.seeker_id,
+            scheduled_at,
+            link,
+            application.seeker_email,
+            application.job_title,
+        )
 
         return Response(InterviewSerializer(interview).data, status=status.HTTP_201_CREATED)
 
@@ -193,6 +231,8 @@ class InterviewDetailView(APIView):
         interview = get_object_or_404(Interview, application=application)
 
         if request.user.role == 'seeker' and str(application.seeker_id) != str(request.user.id):
+            return Response({'error': 'Forbidden.'}, status=status.HTTP_403_FORBIDDEN)
+        if request_user_is_recruiter(request.user) and not recruiter_owns_application(application, request.user):
             return Response({'error': 'Forbidden.'}, status=status.HTTP_403_FORBIDDEN)
 
         return Response(InterviewSerializer(interview).data)

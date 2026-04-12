@@ -70,6 +70,12 @@ Important:
   - `AWS_STORAGE_BUCKET_NAME`
   - `AWS_S3_REGION_NAME`
 
+Virtual environment layout on this repo:
+- `backend/auth_service/.venv`
+- `backend/profile_service/venv`
+- `backend/job_service/venv`
+- `backend/application_service`, `backend/matching_service`, `backend/notification_service`, and `backend/chat_service` reuse `backend/auth_service/.venv`
+
 ## 6) Migrations
 
 ```bash
@@ -81,6 +87,18 @@ cd ../application_service && ../auth_service/.venv/bin/python manage.py migrate 
 cd ../matching_service && ../auth_service/.venv/bin/python manage.py migrate --noinput
 cd ../notification_service && ../auth_service/.venv/bin/python manage.py migrate --noinput
 cd ../chat_service && ../auth_service/.venv/bin/python manage.py migrate --noinput
+```
+
+Alternative activation-style commands:
+
+```bash
+cd backend/auth_service && source .venv/bin/activate && python manage.py migrate --noinput
+cd ../profile_service && source venv/bin/activate && python manage.py migrate --noinput
+cd ../job_service && source venv/bin/activate && python manage.py migrate --noinput
+cd ../application_service && source ../auth_service/.venv/bin/activate && python manage.py migrate --noinput
+cd ../matching_service && source ../auth_service/.venv/bin/activate && python manage.py migrate --noinput
+cd ../notification_service && source ../auth_service/.venv/bin/activate && python manage.py migrate --noinput
+cd ../chat_service && source ../auth_service/.venv/bin/activate && python manage.py migrate --noinput
 ```
 
 ## 7) Start backend services (7 terminals)
@@ -108,6 +126,31 @@ cd backend/notification_service && ../auth_service/.venv/bin/python manage.py ru
 cd backend/chat_service && ../auth_service/.venv/bin/python manage.py runserver 127.0.0.1:8007
 ```
 
+Activation-style equivalents:
+
+```bash
+# T1
+cd backend/auth_service && source .venv/bin/activate && python manage.py runserver 127.0.0.1:8001
+
+# T2
+cd backend/profile_service && source venv/bin/activate && python manage.py runserver 127.0.0.1:8002
+
+# T3
+cd backend/job_service && source venv/bin/activate && python manage.py runserver 127.0.0.1:8003
+
+# T4
+cd backend/application_service && source ../auth_service/.venv/bin/activate && python manage.py runserver 127.0.0.1:8004
+
+# T5
+cd backend/matching_service && source ../auth_service/.venv/bin/activate && python manage.py runserver 127.0.0.1:8005
+
+# T6
+cd backend/notification_service && source ../auth_service/.venv/bin/activate && python manage.py runserver 127.0.0.1:8006
+
+# T7
+cd backend/chat_service && source ../auth_service/.venv/bin/activate && python manage.py runserver 127.0.0.1:8007
+```
+
 Start consumers (2 more terminals):
 
 ```bash
@@ -116,6 +159,16 @@ cd backend/notification_service && ../auth_service/.venv/bin/python manage.py co
 
 # T9
 cd backend/matching_service && ../auth_service/.venv/bin/python manage.py consume_events
+```
+
+Activation-style equivalents:
+
+```bash
+# T8
+cd backend/notification_service && source ../auth_service/.venv/bin/activate && python manage.py consume_events
+
+# T9
+cd backend/matching_service && source ../auth_service/.venv/bin/activate && python manage.py consume_events
 ```
 
 ## 8) Health checks

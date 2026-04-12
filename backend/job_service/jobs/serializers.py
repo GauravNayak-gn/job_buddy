@@ -21,8 +21,8 @@ class JobSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Job
-        exclude = ['recruiter_id', 'total_applications']
-        read_only_fields = ['slug', 'status']
+        exclude = ['total_applications']
+        read_only_fields = ['slug', 'status', 'is_archived', 'archived_at', 'recruiter_id']
 
     def create(self, validated_data):
         skills_data = validated_data.pop('skills', [])

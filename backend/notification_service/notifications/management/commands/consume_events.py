@@ -40,13 +40,25 @@ class Command(BaseCommand):
 
             elif topic == 'interview.scheduled':
                 user_id = payload.get('seeker_id')
+                email = payload.get('seeker_email')
+                scheduled_at = payload.get('scheduled_at', 'TBD')
+                jitsi_link = payload.get('jitsi_link', '')
+                job_title = payload.get('job_title') or 'your application'
                 if user_id:
                     create_notification(
                         user_id=user_id,
                         notification_type=topic,
                         title='Interview scheduled',
-                        body=f"Interview scheduled at {payload.get('scheduled_at', 'TBD')}",
+                        body=f"Interview scheduled for {job_title} at {scheduled_at}",
                         payload=payload,
+                    )
+                    send_notification_email(
+                        to_email=email,
+                        subject='Interview scheduled',
+                        message=(
+                            f"Your interview for {job_title} is scheduled at {scheduled_at}.\n"
+                            f"Join link: {jitsi_link}"
+                        ),
                     )
 
             elif topic == 'user.registered':
