@@ -387,7 +387,10 @@ export class ProfileComponent implements OnInit {
 
   private errorMessage(error: { error?: unknown; message?: string }): string {
     if (typeof error.error === 'string') return error.error;
-    if (error.error && typeof error.error === 'object') return JSON.stringify(error.error);
+    if (error.error) {
+      if (typeof error.error === 'object' && 'detail' in error.error) return error.error.detail as string;
+      return JSON.stringify(error.error, null, 2);
+    }
     return error.message ?? 'Request failed';
   }
 }

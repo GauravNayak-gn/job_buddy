@@ -32,21 +32,6 @@ interface Job {
           <a routerLink="/login" class="btn-secondary">Login / Register</a>
         </div>
       </div>
-      <div class="hero-stats">
-        <article>
-          <strong>3</strong>
-          <span>live services</span>
-        </article>
-        <article>
-          <strong>JWT</strong>
-          <span>shared auth flow</span>
-        </article>
-        <article>
-          <strong>Angular</strong>
-          <span>single frontend</span>
-        </article>
-      </div>
-    </section>
 
     <section class="section">
       <div class="section-heading">

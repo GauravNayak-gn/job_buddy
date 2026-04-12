@@ -58,6 +58,22 @@ import { AuthStateService } from '../core/auth-state.service';
           </div>
         }
 
+        @if (mode() === 'otp') {
+          <div class="stack">
+            <div>
+              <p class="eyebrow">Verify Email</p>
+              <h1>Enter 6-digit OTP</h1>
+              <p>OTP sent to <strong>{{ otpEmail() }}</strong></p>
+            </div>
+            <label>
+              <span>OTP Code</span>
+              <input [(ngModel)]="otpForm.otp" type="text" maxlength="6" />
+            </label>
+            <button type="button" (click)="verifyOtp()">Verify OTP</button>
+            <button type="button" (click)="mode.set('login')" class="secondary">Back to Login</button>
+          </div>
+        }
+
         @if (message()) {
           <div class="message">{{ message() }}</div>
         }
@@ -75,8 +91,7 @@ import { AuthStateService } from '../core/auth-state.service';
           <span>recruiter1@jobbuddy.com / Test@1234</span>
         </div>
         <p class="help">
-          New registrations must verify OTP first. If login fails with "Email not verified", use an
-          already verified account for the demo.
+          Demo accounts are verified. New registrations: Register → Enter OTP from email → Login.
         </p>
       </article>
     </section>
@@ -135,11 +150,44 @@ import { AuthStateService } from '../core/auth-state.service';
   `],
 })
 export class LoginComponent {
-  private readonly api = inject(ApiService);
-  private readonly authState = inject(AuthStateService);
-  private readonly router = inject(Router);
+  otpEmail = signal('');
+  readonly otpForm = {
+    otp: '',
+  };
 
-  readonly mode = signal<'login' | 'register'>('login');
+  protected verifyOtp(): void {
+    this.api.post<{message: string}>(`${this.api.authBase}/verify-otp/`, {
+      email: this.otpEmail(),
+      otp_code: this.otpForm.otp,
+    }).subscribe({
+      next: (response) => {
+        this.message.set(response.message + ' You can now login.');
+        this.mode.set('login');
+        this.otpForm.otp = '';
+      },
+      error: (error) => {
+        this.message.set(this.errorMessage(error));
+      },
+    });
+  }
+
+  protected register(): void {
+    this.api.post<{ message: string }>(`${this.api.authBase}/register/`, this.registerForm).subscribe({
+      next: (response) => {
+        this.otpEmail.set(this.registerForm.email);
+        this.message.set(`${response.message} Enter OTP below:`);
+        this.mode.set('otp');
+      },
+      error: (error) => {
+        this.message.set(this.errorMessage(error));
+      },
+    });
+  }
+  readonly api = inject(ApiService);
+  readonly authState = inject(AuthStateService);
+  readonly router = inject(Router);
+
+  readonly mode = signal<'login' | 'register' | 'otp'>('login');
   readonly message = signal('');
 
   readonly loginForm = {
@@ -173,17 +221,7 @@ export class LoginComponent {
     });
   }
 
-  protected register(): void {
-    this.api.post<{ message: string }>(`${this.api.authBase}/register/`, this.registerForm).subscribe({
-      next: (response) => {
-        this.message.set(`${response.message} Verify OTP in the backend before login.`);
-        this.mode.set('login');
-      },
-      error: (error) => {
-        this.message.set(this.errorMessage(error));
-      },
-    });
-  }
+
 
   private errorMessage(error: { error?: unknown; message?: string }): string {
     if (typeof error.error === 'string') {
