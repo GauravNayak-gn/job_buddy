@@ -12,10 +12,12 @@ import { AuthStateService } from '../core/auth-state.service';
   template: `
     <section class="auth-shell">
       <article class="auth-card">
-        <div class="tabs">
-          <button type="button" [class.active]="mode() === 'login'" (click)="mode.set('login')">Login</button>
-          <button type="button" [class.active]="mode() === 'register'" (click)="mode.set('register')">Register</button>
-        </div>
+        @if (mode() !== 'otp') {
+          <div class="tabs">
+            <button type="button" [class.active]="mode() === 'login'" (click)="mode.set('login')">Login</button>
+            <button type="button" [class.active]="mode() === 'register'" (click)="mode.set('register')">Register</button>
+          </div>
+        }
 
         @if (mode() === 'login') {
           <div class="stack">
@@ -33,7 +35,7 @@ import { AuthStateService } from '../core/auth-state.service';
             </label>
             <button type="button" (click)="login()">Login</button>
           </div>
-        } @else {
+        } @else if (mode() === 'register') {
           <div class="stack">
             <div>
               <p class="eyebrow">Create an account</p>
@@ -56,9 +58,7 @@ import { AuthStateService } from '../core/auth-state.service';
             </label>
             <button type="button" (click)="register()">Register</button>
           </div>
-        }
-
-        @if (mode() === 'otp') {
+        } @else {
           <div class="stack">
             <div>
               <p class="eyebrow">Verify Email</p>

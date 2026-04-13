@@ -24,9 +24,11 @@ import { finalize } from 'rxjs/operators';
         <nav class="nav-links">
           <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Home</a>
           <a routerLink="/jobs" routerLinkActive="active">Jobs</a>
-          <a routerLink="/profile" routerLinkActive="active">Profile</a>
-          <a routerLink="/notifications" routerLinkActive="active">Notifications</a>
-          <a routerLink="/matches" routerLinkActive="active">AI Match</a>
+          @if (auth.isLoggedIn()) {
+            <a routerLink="/profile" routerLinkActive="active">Profile</a>
+            <a routerLink="/notifications" routerLinkActive="active">Notifications</a>
+            <a routerLink="/matches" routerLinkActive="active">AI Match</a>
+          }
           @if (isRecruiter()) {
             <a routerLink="/post-job" routerLinkActive="active">Post Job</a>
           }

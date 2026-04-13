@@ -32,6 +32,7 @@ interface Job {
           <a routerLink="/login" class="btn-secondary">Login / Register</a>
         </div>
       </div>
+    </section>
 
     <section class="section">
       <div class="section-heading">
