@@ -10,6 +10,12 @@ class RegisterSerializer(serializers.ModelSerializer):
         model = User
         fields = ['email', 'password', 'role']
 
+    def validate_email(self, value):
+        normalized_email = value.strip().lower()
+        if User.objects.filter(email__iexact=normalized_email).exists():
+            raise serializers.ValidationError("A user with this email already exists.")
+        return normalized_email
+
     def validate_role(self, value):
         if value not in ['seeker', 'recruiter']:
             raise serializers.ValidationError("Role must be seeker or recruiter.")
@@ -24,9 +30,12 @@ class LoginSerializer(serializers.Serializer):
     password = serializers.CharField(write_only=True)
 
     def validate(self, data):
-        user = authenticate(username=data['email'], password=data['password'])
+        email = data['email'].strip().lower()
+        user = authenticate(username=email, password=data['password'])
         if not user:
             raise serializers.ValidationError("Invalid credentials.")
+        if not user.is_active:
+            raise serializers.ValidationError("User account is inactive.")
         if not user.is_verified:
             raise serializers.ValidationError("Email not verified.")
         data['user'] = user

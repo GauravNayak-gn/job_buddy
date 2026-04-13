@@ -5,7 +5,12 @@ from django.db import models
 
 class UserManager(BaseUserManager):
     def create_user(self, email, password, role):
-        user = self.model(email=self.normalize_email(email), role=role)
+        if not email:
+            raise ValueError("Email is required.")
+        if not role:
+            raise ValueError("Role is required.")
+        normalized_email = self.normalize_email(email).strip().lower()
+        user = self.model(email=normalized_email, role=role)
         user.set_password(password)
         user.save(using=self._db)
         return user

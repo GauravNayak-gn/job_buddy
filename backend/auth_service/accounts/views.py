@@ -3,6 +3,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
+from django.db import transaction
 from django.core.cache import cache
 from .models import User
 from .serializers import (
@@ -21,9 +22,13 @@ class RegisterView(APIView):
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        user = serializer.save()
-        otp = generate_otp(user, 'verify_email')
-        send_otp_email(user.email, otp, 'verify_email')
+        try:
+            with transaction.atomic():
+                user = serializer.save()
+                otp = generate_otp(user, 'verify_email')
+                send_otp_email(user.email, otp, 'verify_email')
+        except Exception:
+            return Response({"error": "Registration failed. Please try again."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         publish_user_registered(user)
         return Response({"message": "Registered. Check email for OTP."}, status=status.HTTP_201_CREATED)
 
@@ -33,7 +38,7 @@ class VerifyOTPView(APIView):
         serializer = OTPSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         try:
-            user = User.objects.get(email=serializer.validated_data['email'])
+            user = User.objects.get(email__iexact=serializer.validated_data['email'].strip())
         except User.DoesNotExist:
             return Response({"error": "User not found."}, status=status.HTTP_404_NOT_FOUND)
         if not verify_otp(user, serializer.validated_data['otp_code'], 'verify_email'):
@@ -64,7 +69,12 @@ class LogoutView(APIView):
 
     def post(self, request):
         token = request.data.get('refresh')
-        if token:
+        if not token:
+            return Response({"error": "refresh token is required."}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            refresh = RefreshToken(token)
+            refresh.blacklist()
+        except Exception:
             cache.set(f"blacklist_{token}", "1", timeout=60 * 60 * 24 * 7)
         return Response({"message": "Logged out."})
 
@@ -74,7 +84,7 @@ class ForgotPasswordView(APIView):
         serializer = ForgotPasswordSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         try:
-            user = User.objects.get(email=serializer.validated_data['email'])
+            user = User.objects.get(email__iexact=serializer.validated_data['email'].strip())
             otp = generate_otp(user, 'reset_password')
             send_otp_email(user.email, otp, 'reset_password')
         except User.DoesNotExist:
@@ -87,7 +97,7 @@ class ResetPasswordView(APIView):
         serializer = ResetPasswordSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         try:
-            user = User.objects.get(email=serializer.validated_data['email'])
+            user = User.objects.get(email__iexact=serializer.validated_data['email'].strip())
         except User.DoesNotExist:
             return Response({"error": "User not found."}, status=status.HTTP_404_NOT_FOUND)
         if not verify_otp(user, serializer.validated_data['otp_code'], 'reset_password'):
