@@ -8,6 +8,10 @@ from .serializers import JobSerializer, JobCategorySerializer
 from .utils import publish_job_published
 
 
+def request_user_is_recruiter(user):
+    return getattr(user, 'role', '') == 'recruiter'
+
+
 class HealthView(APIView):
     def get(self, request):
         return Response({"status": "ok", "service": "jobs"})
@@ -48,7 +52,7 @@ class JobCreateView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        if request.user.role != 'recruiter':
+        if not request_user_is_recruiter(request.user):
             return Response({"error": "Only recruiters can post jobs."}, status=status.HTTP_403_FORBIDDEN)
         serializer = JobSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -88,6 +92,8 @@ class JobPublishView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, job_id):
+        if not request_user_is_recruiter(request.user):
+            return Response({"error": "Only recruiters can publish jobs."}, status=status.HTTP_403_FORBIDDEN)
         try:
             job = Job.objects.get(id=job_id, recruiter_id=request.user.id)
         except Job.DoesNotExist:
@@ -105,6 +111,8 @@ class JobCloseView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, job_id):
+        if not request_user_is_recruiter(request.user):
+            return Response({"error": "Only recruiters can close jobs."}, status=status.HTTP_403_FORBIDDEN)
         try:
             job = Job.objects.get(id=job_id, recruiter_id=request.user.id)
         except Job.DoesNotExist:
@@ -119,6 +127,8 @@ class JobArchiveView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, job_id):
+        if not request_user_is_recruiter(request.user):
+            return Response({"error": "Only recruiters can archive jobs."}, status=status.HTTP_403_FORBIDDEN)
         try:
             job = Job.objects.get(id=job_id, recruiter_id=request.user.id)
         except Job.DoesNotExist:
@@ -133,6 +143,8 @@ class JobRestoreView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, job_id):
+        if not request_user_is_recruiter(request.user):
+            return Response({"error": "Only recruiters can restore jobs."}, status=status.HTTP_403_FORBIDDEN)
         try:
             job = Job.objects.get(id=job_id, recruiter_id=request.user.id)
         except Job.DoesNotExist:
@@ -147,5 +159,7 @@ class RecruiterJobListView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        if not request_user_is_recruiter(request.user):
+            return Response({"error": "Only recruiters can view recruiter jobs."}, status=status.HTTP_403_FORBIDDEN)
         jobs = Job.objects.filter(recruiter_id=request.user.id).order_by('-created_at')
         return Response(JobSerializer(jobs, many=True).data)

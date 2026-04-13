@@ -6,6 +6,10 @@ from .models import Conversation, Message
 from .serializers import ConversationSerializer, MessageSerializer
 
 
+def conversation_has_user(conversation, user_id):
+    return str(conversation.participant_a) == str(user_id) or str(conversation.participant_b) == str(user_id)
+
+
 class HealthView(APIView):
     permission_classes = [AllowAny]
 
@@ -41,7 +45,13 @@ class MessageListCreateView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, conversation_id):
-        messages = Message.objects.filter(conversation_id=conversation_id).order_by('created_at')
+        try:
+            conversation = Conversation.objects.get(id=conversation_id)
+        except Conversation.DoesNotExist:
+            return Response({'error': 'Conversation not found.'}, status=404)
+        if not conversation_has_user(conversation, request.user.id):
+            return Response({'error': 'Forbidden.'}, status=403)
+        messages = Message.objects.filter(conversation=conversation).order_by('created_at')
         return Response(MessageSerializer(messages, many=True).data)
 
     def post(self, request, conversation_id):
@@ -53,6 +63,8 @@ class MessageListCreateView(APIView):
             conversation = Conversation.objects.get(id=conversation_id)
         except Conversation.DoesNotExist:
             return Response({'error': 'Conversation not found.'}, status=404)
+        if not conversation_has_user(conversation, request.user.id):
+            return Response({'error': 'Forbidden.'}, status=403)
 
         message = Message.objects.create(
             conversation=conversation,

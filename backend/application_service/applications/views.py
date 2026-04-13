@@ -22,8 +22,20 @@ def recruiter_owns_application(application, user):
     return request_user_is_recruiter(user) and str(application.recruiter_id) == str(user.id)
 
 
+def request_user_is_seeker(user):
+    return getattr(user, 'role', '') == 'seeker'
+
+
 def request_user_is_recruiter(user):
     return getattr(user, 'role', '') == 'recruiter'
+
+
+def user_can_access_application(user, application):
+    if request_user_is_seeker(user):
+        return str(application.seeker_id) == str(user.id)
+    if request_user_is_recruiter(user):
+        return recruiter_owns_application(application, user)
+    return False
 
 
 class HealthView(APIView):
@@ -37,7 +49,7 @@ class ApplyView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        if request.user.role != 'seeker':
+        if not request_user_is_seeker(request.user):
             return Response({'error': 'Only seekers can apply.'}, status=status.HTTP_403_FORBIDDEN)
 
         serializer = ApplicationSerializer(data=request.data)
@@ -99,9 +111,7 @@ class ApplicationDetailView(APIView):
 
     def get(self, request, application_id):
         application = get_object_or_404(Application, id=application_id)
-        if request.user.role == 'seeker' and str(application.seeker_id) != str(request.user.id):
-            return Response({'error': 'Forbidden.'}, status=status.HTTP_403_FORBIDDEN)
-        if request_user_is_recruiter(request.user) and not recruiter_owns_application(application, request.user):
+        if not user_can_access_application(request.user, application):
             return Response({'error': 'Forbidden.'}, status=status.HTTP_403_FORBIDDEN)
         return Response(ApplicationSerializer(application).data)
 
@@ -157,9 +167,7 @@ class StageHistoryView(APIView):
 
     def get(self, request, application_id):
         application = get_object_or_404(Application, id=application_id)
-        if request.user.role == 'seeker' and str(application.seeker_id) != str(request.user.id):
-            return Response({'error': 'Forbidden.'}, status=status.HTTP_403_FORBIDDEN)
-        if request_user_is_recruiter(request.user) and not recruiter_owns_application(application, request.user):
+        if not user_can_access_application(request.user, application):
             return Response({'error': 'Forbidden.'}, status=status.HTTP_403_FORBIDDEN)
 
         history = application.stage_history.order_by('-changed_at')
@@ -230,9 +238,7 @@ class InterviewDetailView(APIView):
         application = get_object_or_404(Application, id=application_id)
         interview = get_object_or_404(Interview, application=application)
 
-        if request.user.role == 'seeker' and str(application.seeker_id) != str(request.user.id):
-            return Response({'error': 'Forbidden.'}, status=status.HTTP_403_FORBIDDEN)
-        if request_user_is_recruiter(request.user) and not recruiter_owns_application(application, request.user):
+        if not user_can_access_application(request.user, application):
             return Response({'error': 'Forbidden.'}, status=status.HTTP_403_FORBIDDEN)
 
         return Response(InterviewSerializer(interview).data)

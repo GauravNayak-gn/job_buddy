@@ -11,6 +11,10 @@ from .serializers import (
 from .utils import upload_to_s3, extract_text_from_pdf, get_presigned_url, publish_resume_uploaded
 
 
+def get_seeker_profile(user_id):
+    return SeekerProfile.objects.filter(user_id=user_id).first()
+
+
 class HealthView(APIView):
     def get(self, request):
         return Response({"status": "ok", "service": "profile"})
@@ -83,11 +87,15 @@ class SeekerSkillView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        seeker = SeekerProfile.objects.get(user_id=request.user.id)
+        seeker = get_seeker_profile(request.user.id)
+        if not seeker:
+            return Response({"error": "Seeker profile not found."}, status=status.HTTP_404_NOT_FOUND)
         return Response(SeekerSkillSerializer(seeker.skills.all(), many=True).data)
 
     def post(self, request):
-        seeker = SeekerProfile.objects.get(user_id=request.user.id)
+        seeker = get_seeker_profile(request.user.id)
+        if not seeker:
+            return Response({"error": "Seeker profile not found."}, status=status.HTTP_404_NOT_FOUND)
         skill, _ = Skill.objects.get_or_create(name=request.data.get('skill_name', '').strip())
         obj, created = SeekerSkill.objects.get_or_create(
             seeker=seeker, skill=skill,
@@ -100,11 +108,15 @@ class ExperienceView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        seeker = SeekerProfile.objects.get(user_id=request.user.id)
+        seeker = get_seeker_profile(request.user.id)
+        if not seeker:
+            return Response({"error": "Seeker profile not found."}, status=status.HTTP_404_NOT_FOUND)
         return Response(ExperienceSerializer(seeker.experiences.all(), many=True).data)
 
     def post(self, request):
-        seeker = SeekerProfile.objects.get(user_id=request.user.id)
+        seeker = get_seeker_profile(request.user.id)
+        if not seeker:
+            return Response({"error": "Seeker profile not found."}, status=status.HTTP_404_NOT_FOUND)
         serializer = ExperienceSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save(seeker=seeker)
@@ -116,7 +128,9 @@ class ResumeUploadView(APIView):
     parser_classes = [MultiPartParser]
 
     def get(self, request):
-        seeker = SeekerProfile.objects.get(user_id=request.user.id)
+        seeker = get_seeker_profile(request.user.id)
+        if not seeker:
+            return Response({"error": "Seeker profile not found."}, status=status.HTTP_404_NOT_FOUND)
         return Response(ResumeSerializer(seeker.resumes.all(), many=True).data)
 
     def post(self, request):
@@ -124,7 +138,9 @@ class ResumeUploadView(APIView):
         if not file or not file.name.endswith('.pdf'):
             return Response({"error": "PDF file required."}, status=status.HTTP_400_BAD_REQUEST)
 
-        seeker = SeekerProfile.objects.get(user_id=request.user.id)
+        seeker = get_seeker_profile(request.user.id)
+        if not seeker:
+            return Response({"error": "Seeker profile not found."}, status=status.HTTP_404_NOT_FOUND)
 
         raw_text = extract_text_from_pdf(file)
         file.seek(0)
@@ -156,7 +172,9 @@ class ResumePresignedURLView(APIView):
     def get(self, request, resume_id):
         try:
             resume = Resume.objects.get(id=resume_id)
-            url = get_presigned_url(resume.s3_key)
-            return Response({"url": url})
         except Resume.DoesNotExist:
             return Response({"error": "Resume not found."}, status=status.HTTP_404_NOT_FOUND)
+        if str(resume.seeker.user_id) != str(request.user.id):
+            return Response({"error": "Forbidden."}, status=status.HTTP_403_FORBIDDEN)
+        url = get_presigned_url(resume.s3_key)
+        return Response({"url": url})

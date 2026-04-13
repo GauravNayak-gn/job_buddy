@@ -1,4 +1,5 @@
 import jwt
+from django.conf import settings
 from rest_framework.authentication import BaseAuthentication
 from rest_framework.exceptions import AuthenticationFailed
 
@@ -10,7 +11,7 @@ class JWTAuthentication(BaseAuthentication):
             return None
         token = auth_header.split(' ')[1]
         try:
-            decoded = jwt.decode(token, options={"verify_signature": False})
+            decoded = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
             user_id = decoded.get('user_id')
             role = decoded.get('role', '')
             email = decoded.get('email', '')
