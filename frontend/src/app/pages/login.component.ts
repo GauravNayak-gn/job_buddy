@@ -45,7 +45,7 @@ import { AuthStateService } from '../core/auth-state.service';
             </label>
             <label>
               <span>Password</span>
-              <input [(ngModel)]="registerForm.password" type="text" />
+              <input [(ngModel)]="registerForm.password" type="password" />
             </label>
             <label>
               <span>Role</span>
@@ -156,9 +156,15 @@ export class LoginComponent {
   };
 
   protected verifyOtp(): void {
+    const otp = this.otpForm.otp.trim();
+    if (!this.otpEmail() || otp.length !== 6) {
+      this.message.set('Enter the 6-digit OTP sent to your email.');
+      return;
+    }
+
     this.api.post<{message: string}>(`${this.api.authBase}/verify-otp/`, {
       email: this.otpEmail(),
-      otp_code: this.otpForm.otp,
+      otp_code: otp,
     }).subscribe({
       next: (response) => {
         this.message.set(response.message + ' You can now login.');
@@ -172,9 +178,19 @@ export class LoginComponent {
   }
 
   protected register(): void {
-    this.api.post<{ message: string }>(`${this.api.authBase}/register/`, this.registerForm).subscribe({
+    const payload = {
+      email: this.registerForm.email.trim().toLowerCase(),
+      password: this.registerForm.password,
+      role: this.registerForm.role,
+    };
+    if (!payload.email || !payload.password) {
+      this.message.set('Email and password are required.');
+      return;
+    }
+
+    this.api.post<{ message: string }>(`${this.api.authBase}/register/`, payload).subscribe({
       next: (response) => {
-        this.otpEmail.set(this.registerForm.email);
+        this.otpEmail.set(payload.email);
         this.message.set(`${response.message} Enter OTP below:`);
         this.mode.set('otp');
       },
@@ -202,9 +218,18 @@ export class LoginComponent {
   };
 
   protected login(): void {
+    const payload = {
+      email: this.loginForm.email.trim().toLowerCase(),
+      password: this.loginForm.password,
+    };
+    if (!payload.email || !payload.password) {
+      this.message.set('Email and password are required.');
+      return;
+    }
+
     this.api.post<{ access: string; refresh: string; role: 'seeker' | 'recruiter'; user_id: string }>(
       `${this.api.authBase}/login/`,
-      this.loginForm,
+      payload,
     ).subscribe({
       next: (response) => {
         this.authState.setSession({

@@ -1,7 +1,10 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject } from '@angular/core';
+import { Router } from '@angular/router';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthStateService } from './core/auth-state.service';
+import { ApiService } from './core/api.service';
+import { finalize } from 'rxjs/operators';
 
 @Component({
   selector: 'app-root',
@@ -48,9 +51,24 @@ import { AuthStateService } from './core/auth-state.service';
 })
 export class App {
   readonly auth = inject(AuthStateService);
+  readonly api = inject(ApiService);
+  readonly router = inject(Router);
   readonly isRecruiter = computed(() => this.auth.role() === 'recruiter');
 
   protected logout(): void {
-    this.auth.clearSession();
+    const refresh = this.auth.refreshToken();
+    const clearAndRedirect = () => {
+      this.auth.clearSession();
+      void this.router.navigateByUrl('/login');
+    };
+
+    if (!refresh) {
+      clearAndRedirect();
+      return;
+    }
+
+    this.api.post(`${this.api.authBase}/logout/`, { refresh }, true)
+      .pipe(finalize(clearAndRedirect))
+      .subscribe();
   }
 }
