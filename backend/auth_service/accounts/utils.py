@@ -21,7 +21,11 @@ def generate_otp(user, purpose):
 
 def send_otp_email(email, otp_code, purpose):
     subject = "Verify your email" if purpose == 'verify_email' else "Reset your password"
-    send_mail(subject, f"Your OTP is: {otp_code}. Valid for 10 minutes.", settings.DEFAULT_FROM_EMAIL, [email])
+    try:
+        send_mail(subject, f"Your OTP is: {otp_code}. Valid for 10 minutes.", settings.DEFAULT_FROM_EMAIL, [email], timeout=5)
+        return True
+    except Exception:
+        return False
 
 
 def verify_otp(user, otp_code, purpose):
@@ -40,13 +44,20 @@ def publish_user_registered(user):
     try:
         producer = KafkaProducer(
             bootstrap_servers=settings.KAFKA_BOOTSTRAP_SERVERS if hasattr(settings, 'KAFKA_BOOTSTRAP_SERVERS') else 'localhost:9092',
-            value_serializer=lambda v: json.dumps(v).encode('utf-8')
+            value_serializer=lambda v: json.dumps(v).encode('utf-8'),
+            connections_max_idle_ms=10000,
+            request_timeout_ms=5000,
         )
         producer.send('user.registered', {
             'user_id': str(user.id),
             'email': user.email,
             'role': user.role,
         })
-        producer.flush()
+        producer.flush(timeout_secs=5)
     except Exception:
         pass
+    finally:
+        try:
+            producer.close(timeout_secs=2)
+        except:
+            pass

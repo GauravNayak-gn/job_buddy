@@ -188,10 +188,11 @@ export class LoginComponent {
       return;
     }
 
-    this.api.post<{ message: string }>(`${this.api.authBase}/register/`, payload).subscribe({
+    this.api.post<{ message: string; otp_code?: string }>(`${this.api.authBase}/register/`, payload).subscribe({
       next: (response) => {
         this.otpEmail.set(payload.email);
-        this.message.set(`${response.message} Enter OTP below:`);
+        const otpHint = response.otp_code ? ` OTP: ${response.otp_code}` : '';
+        this.message.set(`${response.message}${otpHint} Enter OTP below:`);
         this.mode.set('otp');
       },
       error: (error) => {

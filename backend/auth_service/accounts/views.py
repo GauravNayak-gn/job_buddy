@@ -3,6 +3,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
+from django.conf import settings
 from django.db import transaction
 from django.core.cache import cache
 from .models import User
@@ -26,11 +27,23 @@ class RegisterView(APIView):
             with transaction.atomic():
                 user = serializer.save()
                 otp = generate_otp(user, 'verify_email')
-                send_otp_email(user.email, otp, 'verify_email')
+                email_sent = send_otp_email(user.email, otp, 'verify_email')
         except Exception:
             return Response({"error": "Registration failed. Please try again."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         publish_user_registered(user)
-        return Response({"message": "Registered. Check email for OTP."}, status=status.HTTP_201_CREATED)
+
+        if email_sent:
+            return Response({"message": "Registered. Check email for OTP."}, status=status.HTTP_201_CREATED)
+
+        if settings.DEBUG:
+            return Response({
+                "message": "Registered. OTP email delivery failed in local setup; use this OTP for verification.",
+                "otp_code": otp,
+            }, status=status.HTTP_201_CREATED)
+
+        return Response({
+            "message": "Registered, but OTP email delivery failed. Please retry shortly."
+        }, status=status.HTTP_201_CREATED)
 
 
 class VerifyOTPView(APIView):
