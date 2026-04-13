@@ -8,13 +8,13 @@ export class ApiService {
   private readonly http = inject(HttpClient);
   private readonly authState = inject(AuthStateService);
 
-  readonly authBase = 'http://localhost:8001/api/auth';
-  readonly profileBase = 'http://localhost:8002/api/profile';
-  readonly jobsBase = 'http://localhost:8003/api/jobs';
-  readonly applicationsBase = 'http://localhost:8004/api/applications';
-  readonly matchBase = 'http://localhost:8005/api/match';
-  readonly notificationsBase = 'http://localhost:8006/api/notifications';
-  readonly chatBase = 'http://localhost:8007/api/chat';
+  readonly authBase = '/api/auth';
+  readonly profileBase = '/api/profile';
+  readonly jobsBase = '/api/jobs';
+  readonly applicationsBase = '/api/applications';
+  readonly matchBase = '/api/match';
+  readonly notificationsBase = '/api/notifications';
+  readonly chatBase = '/api/chat';
 
   get<T>(url: string, auth = false): Observable<T> {
     return this.http.get<T>(url, { headers: this.headers(auth) });
