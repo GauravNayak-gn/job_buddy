@@ -13,6 +13,7 @@ A microservices-based job portal built with Django REST Framework, Angular, Post
 - Proxy: Nginx (API Gateway + Load Balancer)
 - Video: Jitsi Meet
 - AI Matching: Sentence Transformers (all-MiniLM-L6-v2)
+  Structure
 
 ## Structure
 ```
