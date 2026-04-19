@@ -76,4 +76,6 @@ AUTH_SERVICE_URL = config('AUTH_SERVICE_URL')
 
 CORS_ALLOW_ALL_ORIGINS = True
 STATIC_URL = '/static/'
+MEDIA_URL = '/media/'
+MEDIA_ROOT = 'media/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

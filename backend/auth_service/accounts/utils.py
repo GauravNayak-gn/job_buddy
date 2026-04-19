@@ -19,12 +19,27 @@ def generate_otp(user, purpose):
     return otp.otp_code
 
 
+# def send_otp_email(email, otp_code, purpose):
+#     subject = "Verify your email" if purpose == 'verify_email' else "Reset your password"
+#     try:
+#         send_mail(subject, f"Your OTP is: {otp_code}. Valid for 10 minutes.", settings.DEFAULT_FROM_EMAIL, [email], timeout=5)
+#         return True
+#     except Exception:
+#         return False
 def send_otp_email(email, otp_code, purpose):
     subject = "Verify your email" if purpose == 'verify_email' else "Reset your password"
     try:
-        send_mail(subject, f"Your OTP is: {otp_code}. Valid for 10 minutes.", settings.DEFAULT_FROM_EMAIL, [email], timeout=5)
+        send_mail(
+            subject, 
+            f"Your OTP is: {otp_code}. Valid for 10 minutes.", 
+            settings.DEFAULT_FROM_EMAIL, 
+            [email]
+        )
         return True
-    except Exception:
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Failed to send OTP email to {email}: {str(e)}")
         return False
 
 
@@ -53,11 +68,11 @@ def publish_user_registered(user):
             'email': user.email,
             'role': user.role,
         })
-        producer.flush(timeout_secs=5)
+        producer.flush(timeout_secs=300)
     except Exception:
         pass
     finally:
         try:
-            producer.close(timeout_secs=2)
+            producer.close(timeout_secs=20)
         except:
             pass
