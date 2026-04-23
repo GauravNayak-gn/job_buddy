@@ -77,7 +77,7 @@ class Resume(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     seeker = models.ForeignKey(SeekerProfile, on_delete=models.CASCADE, related_name='resumes')
     resume_title = models.CharField(max_length=200)
-    s3_key = models.CharField(max_length=500)
+    local_path = models.CharField(max_length=500)
     file_size_bytes = models.IntegerField(null=True)
     is_primary = models.BooleanField(default=False)
     raw_text = models.TextField(blank=True)

@@ -56,7 +56,10 @@ CACHES = {
     'default': {
         'BACKEND': 'django_redis.cache.RedisCache',
         'LOCATION': config('REDIS_URL'),
-        'OPTIONS': {'CLIENT_CLASS': 'django_redis.client.DefaultClient'},
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            "SERIALIZER": "django_redis.serializers.json.JSONSerializer",
+        },
     }
 }
 
@@ -76,4 +79,6 @@ AUTH_SERVICE_URL = config('AUTH_SERVICE_URL')
 
 CORS_ALLOW_ALL_ORIGINS = True
 STATIC_URL = '/static/'
+MEDIA_URL = '/media/'
+MEDIA_ROOT = 'media/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

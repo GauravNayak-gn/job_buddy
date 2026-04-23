@@ -67,6 +67,7 @@ class Command(BaseCommand):
       # process embedding/email
 ```
 
+<<<<<<< HEAD
 ## **API Testing with curl** 
 
 **Base URLs**: 
@@ -81,6 +82,9 @@ class Command(BaseCommand):
 - `<APP_UUID>` - UUID of application
 - `<RESUME_UUID>` - UUID of resume
 - `<NOTIF_UUID>` - UUID of notification
+=======
+## **API Testing with curl** (All services localhost:8xxx/api/{app}/)
+>>>>>>> b4a880c0c43ea7e9f8cc1bfd9b3b40285d012cf3
 
 ## Database Schema Per Service (from docs/database_schema.md)
 
@@ -152,12 +156,18 @@ docker exec -i jobportal_postgres psql -U jobportal_user jobportal_db < scripts/
 
 ```
 # Health check
+<<<<<<< HEAD
 curl http://localhost:8001/api/auth/health/
+=======
+curl http://localhost:8001/api/auth/health/    awkq123@yopmail.com
+
+>>>>>>> b4a880c0c43ea7e9f8cc1bfd9b3b40285d012cf3
 → {"status": "ok", "service": "auth"}
 
 # Register (triggers OTP email)
 curl -X POST http://localhost:8001/api/auth/register/ \
   -H "Content-Type: application/json" \
+<<<<<<< HEAD
   -d '{"email": "newuser@yopmail.com", "password": "test123", "role": "seeker"}'
 → {"message": "Registered. Check email for OTP."}
 
@@ -165,12 +175,26 @@ curl -X POST http://localhost:8001/api/auth/register/ \
 curl -X POST http://localhost:8001/api/auth/verify-otp/ \
   -H "Content-Type: application/json" \
   -d '{"email": "newuser@yopmail.com", "otp_code": "123456"}'
+=======
+  -d '{"email": "lpolpolpolpo@yopmail.com", "password": "test123", "role": "seeker"}'
+  
+→ {"message": "Registered. Check email for OTP."} (OTP sent, Kafka event)
+
+# Verify OTP (check Gmail spam for 6-digit)
+curl -X POST http://localhost:8001/api/auth/verify-otp/ \
+  -H "Content-Type: application/json" \
+  -d '{"email": "lpolpolpolpo@yopmail.com", "otp_code": "496024"}'
+>>>>>>> b4a880c0c43ea7e9f8cc1bfd9b3b40285d012cf3
 → {"message": "Email verified."}
 
 # Login
 curl -X POST http://localhost:8001/api/auth/login/ \
   -H "Content-Type: application/json" \
+<<<<<<< HEAD
   -d '{"email": "newuser@yopmail.com", "password": "test123"}'
+=======
+  -d '{"email": "lpolpolpolpo@yopmail.com", "password": "test123"}'
+>>>>>>> b4a880c0c43ea7e9f8cc1bfd9b3b40285d012cf3
 → {
   "access": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
   "refresh": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
@@ -180,6 +204,7 @@ curl -X POST http://localhost:8001/api/auth/login/ \
 
 # Logout (JWT required)
 curl -X POST http://localhost:8001/api/auth/logout/ \
+<<<<<<< HEAD
   -H "Authorization: Bearer <ACCESS_TOKEN>" \
   -H "Content-Type: application/json" \
   -d '{"refresh": "<REFRESH_TOKEN>"}'
@@ -189,23 +214,45 @@ curl -X POST http://localhost:8001/api/auth/logout/ \
 curl -X POST http://localhost:8001/api/auth/forgot-password/ \
   -H "Content-Type: application/json" \
   -d '{"email": "newuser@yopmail.com"}'
+=======
+  -H "Authorization: Bearer ACCESS_TOKEN_HERE" \
+  -H "Content-Type: application/json" \
+  -d '{"refresh": "REFRESH_TOKEN"}'
+→ {"message": "Logged out."} (blacklists refresh in Redis)
+
+```
+# Forgot Password (sends OTP to email)
+curl -X POST http://localhost:8001/api/auth/forgot-password/ \
+  -H "Content-Type: application/json" \
+  -d '{"email": "lpolpolpolpo@yopmail.com"}'
+>>>>>>> b4a880c0c43ea7e9f8cc1bfd9b3b40285d012cf3
 → {"message": "Password reset OTP sent to email."}
 
 # Reset Password (use OTP)
 curl -X POST http://localhost:8001/api/auth/reset-password/ \
   -H "Content-Type: application/json" \
+<<<<<<< HEAD
   -d '{"email": "newuser@yopmail.com", "otp_code": "654321", "new_password": "newpass123"}'
+=======
+  -d '{"email": "lpolpolpolpo@yopmail.com", "otp_code": "372119", "new_password": "newpass123"}'
+>>>>>>> b4a880c0c43ea7e9f8cc1bfd9b3b40285d012cf3
 → {"message": "Password reset successful."}
 
 # Refresh Access Token
 curl -X POST http://localhost:8001/api/auth/token/refresh/ \
   -H "Content-Type: application/json" \
+<<<<<<< HEAD
   -d '{"refresh": "<REFRESH_TOKEN>"}'
 → {"access": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."}
+=======
+  -d '{"refresh": "REFRESH_TOKEN_HERE"}'
+→ {"access": "eyJnew_access_token"}
+>>>>>>> b4a880c0c43ea7e9f8cc1bfd9b3b40285d012cf3
 ```
 ### 2. **Profile Service (8002) - Seeker Profile/Skills/Resume** ❌ **WRONG** (resume needs S3)
 
 ```
+<<<<<<< HEAD
 # Get seeker profile (JWT required)
 curl -H "Authorization: Bearer <SEEKER_TOKEN>" \
   http://localhost:8002/api/profile/seeker/
@@ -238,10 +285,28 @@ curl -X POST -H "Authorization: Bearer <SEEKER_TOKEN>" \
 
 # Upload resume (S3 + Kafka event)
 curl -X POST -H "Authorization: Bearer <SEEKER_TOKEN>" \
+=======
+# Get profile (JWT req)
+curl -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzc2MDE4NDU1LCJpYXQiOjE3NzYwMTQ4NTUsImp0aSI6ImJhOTEwMGI4NGYxYzQxNWJiY2RiMzExNzNhNzYzNmYxIiwidXNlcl9pZCI6ImVlNmU2ZDU1LTYzZTEtNDQyYy05MjM1LWZjMWRmNTkwNDFiYSIsInJvbGUiOiJzZWVrZXIiLCJlbWFpbCI6Imxwb2xwb2xwb2xwb0B5b3BtYWlsLmNvbSJ9.Nza__-aV074qZKsxveSihoa4UbWm9ejJhAOjBcwxvhc" http://localhost:8002/api/profile/seeker/
+→ {"first_name": "", "summary": "", ...}
+
+# Create seeker profile
+curl -X POST -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzc2MDE4NDU1LCJpYXQiOjE3NzYwMTQ4NTUsImp0aSI6ImJhOTEwMGI4NGYxYzQxNWJiY2RiMzExNzNhNzYzNmYxIiwidXNlcl9pZCI6ImVlNmU2ZDU1LTYzZTEtNDQyYy05MjM1LWZjMWRmNTkwNDFiYSIsInJvbGUiOiJzZWVrZXIiLCJlbWFpbCI6Imxwb2xwb2xwb2xwb0B5b3BtYWlsLmNvbSJ9.Nza__-aV074qZKsxveSihoa4UbWm9ejJhAOjBcwxvhc" -H "Content-Type: application/json" \
+  -d '{"first_name": "shubham", "last_name": "pattewad"}' http://localhost:8002/api/profile/seeker/
+
+# Add skill
+curl -X POST -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzc2MDE4NDU1LCJpYXQiOjE3NzYwMTQ4NTUsImp0aSI6ImJhOTEwMGI4NGYxYzQxNWJiY2RiMzExNzNhNzYzNmYxIiwidXNlcl9pZCI6ImVlNmU2ZDU1LTYzZTEtNDQyYy05MjM1LWZjMWRmNTkwNDFiYSIsInJvbGUiOiJzZWVrZXIiLCJlbWFpbCI6Imxwb2xwb2xwb2xwb0B5b3BtYWlsLmNvbSJ9.Nza__-aV074qZKsxveSihoa4UbWm9ejJhAOjBcwxvhc" -H "Content-Type: application/json" \
+  -d '{"skill_name": "Python", "years_of_experience": 2}' http://localhost:8002/api/profile/seeker/skills/
+→ {"id": "uuid", "skill_name": "Python", "years_of_experience": 2} (triggers chips UI)
+
+# Upload resume (S3 + Kafka)
+curl -X POST -H "Authorization: Bearer ACCESS_TOKEN" \
+>>>>>>> b4a880c0c43ea7e9f8cc1bfd9b3b40285d012cf3
   -F "resume_title=My Resume" -F "resume=@resume.pdf" \
   http://localhost:8002/api/profile/seeker/resumes/
 → {"id": "uuid", "s3_key": "resumes/seeker-uuid/resume.pdf", "parsing_status": "success"}
 
+<<<<<<< HEAD
 # Get presigned S3 URL for resume upload
 curl -H "Authorization: Bearer <SEEKER_TOKEN>" \
   http://localhost:8002/api/profile/seeker/resumes/<RESUME_UUID>/url/
@@ -459,6 +524,242 @@ curl -X POST -H "Authorization: Bearer <ACCESS_TOKEN>" \
 5. **Interviews**: Schedule interview → Get Jitsi link
 6. **Notifications**: Check notifications → Mark as read
 7. **Chat**: Send message between users
+=======
+```
+# List all skills (global, no auth needed)
+curl http://localhost:8002/api/profile/skills/
+→ [{"id": "uuid", "name": "Python"}]
+
+# Add professional experience
+curl -X POST -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzc2MDE4NDU1LCJpYXQiOjE3NzYwMTQ4NTUsImp0aSI6ImJhOTEwMGI4NGYxYzQxNWJiY2RiMzExNzNhNzYzNmYxIiwidXNlcl9pZCI6ImVlNmU2ZDU1LTYzZTEtNDQyYy05MjM1LWZjMWRmNTkwNDFiYSIsInJvbGUiOiJzZWVrZXIiLCJlbWFpbCI6Imxwb2xwb2xwb2xwb0B5b3BtYWlsLmNvbSJ9.Nza__-aV074qZKsxveSihoa4UbWm9ejJhAOjBcwxvhc" -H "Content-Type: application/json" \
+  -d '{"company": "Tech Inc", "title": "Developer", "start_date": "2021-01", "end_date": null}' \
+  http://localhost:8002/api/profile/seeker/experience/
+→ {"id": "uuid", "company": "Tech Inc", ...}
+
+# Get presigned S3 URL for resume upload (client-side upload)curl -X POST -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzc2MDE4NDU1LCJpYXQiOjE3NzYwMTQ4NTUsImp0aSI6ImJhOTEwMGI4NGYxYzQxNWJiY2RiMzExNzNhNzYzNmYxIiwidXNlcl9pZCI6ImVlNmU2ZDU1LTYzZTEtNDQyYy05MjM1LWZjMWRmNTkwNDFiYSIsInJvbGUiOiJzZWVrZXIiLCJlbWFpbCI6Imxwb2xwb2xwb2xwb0B5b3BtYWlsLmNvbSJ9.Nza__-aV074qZKsxveSihoa4UbWm9ejJhAOjBcwxvhc" -H "Content-Type: application/json" \
+  -d '{"company": "Tech Inc", "title": "Developer", "start_date": "2021-01", "end_date": null}' \
+  http://localhost:8002/api/profile/seeker/experience/
+curl -H "Authorization: Bearer ACCESS_TOKEN" \
+  http://localhost:8002/api/profile/seeker/resumes/<resume_id>/url/
+→ {"url": "https://s3.amazonaws.com/bucket...?X-Amz-...", "fields": {...}}curl -X POST -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzc2MDE4NDU1LCJpYXQiOjE3NzYwMTQ4NTUsImp0aSI6ImJhOTEwMGI4NGYxYzQxNWJiY2RiMzExNzNhNzYzNmYxIiwidXNlcl9pZCI6ImVlNmU2ZDU1LTYzZTEtNDQyYy05MjM1LWZjMWRmNTkwNDFiYSIsInJvbGUiOiJzZWVrZXIiLCJlbWFpbCI6Imxwb2xwb2xwb2xwb0B5b3BtYWlsLmNvbSJ9.Nza__-aV074qZKsxveSihoa4UbWm9ejJhAOjBcwxvhc" -H "Content-Type: application/json" \
+  -d '{"company": "Tech Inc", "title": "Developer", "start_date": "2021-01", "end_date": null}' \
+  http://localhost:8002/api/profile/seeker/experience/
+
+# Recruiter profile (role='recruiter')curl -X POST -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzc2MDE4NDU1LCJpYXQiOjE3NzYwMTQ4NTUsImp0aSI6ImJhOTEwMGI4NGYxYzQxNWJiY2RiMzExNzNhNzYzNmYxIiwidXNlcl9pZCI6ImVlNmU2ZDU1LTYzZTEtNDQyYy05MjM1LWZjMWRmNTkwNDFiYSIsInJvbGUiOiJzZWVrZXIiLCJlbWFpbCI6Imxwb2xwb2xwb2xwb0B5b3BtYWlsLmNvbSJ9.Nza__-aV074qZKsxveSihoa4UbWm9ejJhAOjBcwxvhc" -H "Content-Type: application/json" \
+  -d '{"company": "Tech Inc", "title": "Developer", "start_date": "2021-01", "end_date": null}' \
+  http://localhost:8002/api/profile/seeker/experience/
+curl -H "Authorization: Bearer RECRUITER_TOKEN" http://localhost:8002/api/profile/recruiter/
+→ {"company_name": "", "industry": "", "location": "Remote"}
+curl -X POST -H "Authorization: Bearer RECRUITER_TOKEN" -d '{"company_name": "HirePro"}' \
+  http://localhost:8002/api/profile/recruiter/curl -X POST -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzc2MDE4NDU1LCJpYXQiOjE3NzYwMTQ4NTUsImp0aSI6ImJhOTEwMGI4NGYxYzQxNWJiY2RiMzExNzNhNzYzNmYxIiwidXNlcl9pZCI6ImVlNmU2ZDU1LTYzZTEtNDQyYy05MjM1LWZjMWRmNTkwNDFiYSIsInJvbGUiOiJzZWVrZXIiLCJlbWFpbCI6Imxwb2xwb2xwb2xwb0B5b3BtYWlsLmNvbSJ9.Nza__-aV074qZKsxveSihoa4UbWm9ejJhAOjBcwxvhc" -H "Content-Type: application/json" \
+  -d '{"company": "Tech Inc", "title": "Developer", "start_date": "2021-01", "end_date": null}' \
+  http://localhost:8002/api/profile/seeker/experience/
+→ Updated recruiter profile
+```
+### 3. **Job Service (8003)** ✅ **RIGHT** (fully independent)
+curl -X POST -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzc2MDE4NDU1LCJpYXQiOjE3NzYwMTQ4NTUsImp0aSI6ImJhOTEwMGI4NGYxYzQxNWJiY2RiMzExNzNhNzYzNmYxIiwidXNlcl9pZCI6ImVlNmU2ZDU1LTYzZTEtNDQyYy05MjM1LWZjMWRmNTkwNDFiYSIsInJvbGUiOiJzZWVrZXIiLCJlbWFpbCI6Imxwb2xwb2xwb2xwb0B5b3BtYWlsLmNvbSJ9.Nza__-aV074qZKsxveSihoa4UbWm9ejJhAOjBcwxvhc" -H "Content-Type: application/json" \
+  -d '{"company": "Tech Inc", "title": "Developer", "start_date": "2021-01", "end_date": null}' \
+  http://localhost:8002/api/profile/seeker/experience/
+```
+# List jobs
+curl http://localhost:8003/api/jobs/
+→ [{"id": "uuid", "title": "Django Dev", "status": "published", ...}]curl -X POST -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzc2MDE4NDU1LCJpYXQiOjE3NzYwMTQ4NTUsImp0aSI6ImJhOTEwMGI4NGYxYzQxNWJiY2RiMzExNzNhNzYzNmYxIiwidXNlcl9pZCI6ImVlNmU2ZDU1LTYzZTEtNDQyYy05MjM1LWZjMWRmNTkwNDFiYSIsInJvbGUiOiJzZWVrZXIiLCJlbWFpbCI6Imxwb2xwb2xwb2xwb0B5b3BtYWlsLmNvbSJ9.Nza__-aV074qZKsxveSihoa4UbWm9ejJhAOjBcwxvhc" -H "Content-Type: application/json" \
+  -d '{"company": "Tech Inc", "title": "Developer", "start_date": "2021-01", "end_date": null}' \
+  http://localhost:8002/api/profile/seeker/experience/
+
+# Health
+curl http://localhost:8003/api/jobs/health/
+curl -X POST -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzc2MDE4NDU1LCJpYXQiOjE3NzYwMTQ4NTUsImp0aSI6ImJhOTEwMGI4NGYxYzQxNWJiY2RiMzExNzNhNzYzNmYxIiwidXNlcl9pZCI6ImVlNmU2ZDU1LTYzZTEtNDQyYy05MjM1LWZjMWRmNTkwNDFiYSIsInJvbGUiOiJzZWVrZXIiLCJlbWFpbCI6Imxwb2xwb2xwb2xwb0B5b3BtYWlsLmNvbSJ9.Nza__-aV074qZKsxveSihoa4UbWm9ejJhAOjBcwxvhc" -H "Content-Type: application/json" \
+  -d '{"company": "Tech Inc", "title": "Developer", "start_date": "2021-01", "end_date": null}' \
+  http://localhost:8002/api/profile/seeker/experience/
+```
+# List job categories
+curl http://localhost:8003/api/jobs/categories/
+→ [{"id": "uuid", "name": "Backend", "description": "Server-side dev"}]curl -X POST -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzc2MDE4NDU1LCJpYXQiOjE3NzYwMTQ4NTUsImp0aSI6ImJhOTEwMGI4NGYxYzQxNWJiY2RiMzExNzNhNzYzNmYxIiwidXNlcl9pZCI6ImVlNmU2ZDU1LTYzZTEtNDQyYy05MjM1LWZjMWRmNTkwNDFiYSIsInJvbGUiOiJzZWVrZXIiLCJlbWFpbCI6Imxwb2xwb2xwb2xwb0B5b3BtYWlsLmNvbSJ9.Nza__-aV074qZKsxveSihoa4UbWm9ejJhAOjBcwxvhc" -H "Content-Type: application/json" \
+  -d '{"company": "Tech Inc", "title": "Developer", "start_date": "2021-01", "end_date": null}' \
+  http://localhost:8002/api/profile/seeker/experience/
+
+# Create job (recruiter JWT)
+curl -X POST -H "Authorization: Bearer RECRUITER_TOKEN" -H "Content-Type: application/json" \
+  -d '{"title": "Senior Django Dev", "description": "Build APIs", "location": "Remote", "salary_min": 80000}' \curl -X POST -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzc2MDE4NDU1LCJpYXQiOjE3NzYwMTQ4NTUsImp0aSI6ImJhOTEwMGI4NGYxYzQxNWJiY2RiMzExNzNhNzYzNmYxIiwidXNlcl9pZCI6ImVlNmU2ZDU1LTYzZTEtNDQyYy05MjM1LWZjMWRmNTkwNDFiYSIsInJvbGUiOiJzZWVrZXIiLCJlbWFpbCI6Imxwb2xwb2xwb2xwb0B5b3BtYWlsLmNvbSJ9.Nza__-aV074qZKsxveSihoa4UbWm9ejJhAOjBcwxvhc" -H "Content-Type: application/json" \
+  -d '{"company": "Tech Inc", "title": "Developer", "start_date": "2021-01", "end_date": null}' \
+  http://localhost:8002/api/profile/seeker/experience/
+  http://localhost:8003/api/jobs/create/
+→ {"id": "job_uuid", "title": "Senior Django Dev", "status": "draft"}
+
+# My jobs (recruiter)curl -X POST -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzc2MDE4NDU1LCJpYXQiOjE3NzYwMTQ4NTUsImp0aSI6ImJhOTEwMGI4NGYxYzQxNWJiY2RiMzExNzNhNzYzNmYxIiwidXNlcl9pZCI6ImVlNmU2ZDU1LTYzZTEtNDQyYy05MjM1LWZjMWRmNTkwNDFiYSIsInJvbGUiOiJzZWVrZXIiLCJlbWFpbCI6Imxwb2xwb2xwb2xwb0B5b3BtYWlsLmNvbSJ9.Nza__-aV074qZKsxveSihoa4UbWm9ejJhAOjBcwxvhc" -H "Content-Type: application/json" \
+  -d '{"company": "Tech Inc", "title": "Developer", "start_date": "2021-01", "end_date": null}' \
+  http://localhost:8002/api/profile/seeker/experience/
+curl -H "Authorization: Bearer RECRUITER_TOKEN" http://localhost:8003/api/jobs/my/
+→ [{"id": "job_uuid", "title": "...", "status": "draft"}]
+
+# Job detailcurl -X POST -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzc2MDE4NDU1LCJpYXQiOjE3NzYwMTQ4NTUsImp0aSI6ImJhOTEwMGI4NGYxYzQxNWJiY2RiMzExNzNhNzYzNmYxIiwidXNlcl9pZCI6ImVlNmU2ZDU1LTYzZTEtNDQyYy05MjM1LWZjMWRmNTkwNDFiYSIsInJvbGUiOiJzZWVrZXIiLCJlbWFpbCI6Imxwb2xwb2xwb2xwb0B5b3BtYWlsLmNvbSJ9.Nza__-aV074qZKsxveSihoa4UbWm9ejJhAOjBcwxvhc" -H "Content-Type: application/json" \
+  -d '{"company": "Tech Inc", "title": "Developer", "start_date": "2021-01", "end_date": null}' \
+  http://localhost:8002/api/profile/seeker/experience/
+curl http://localhost:8003/api/jobs/<job_uuid>/
+→ Full job details
+
+# Publish job (triggers Kafka)curl -X POST -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzc2MDE4NDU1LCJpYXQiOjE3NzYwMTQ4NTUsImp0aSI6ImJhOTEwMGI4NGYxYzQxNWJiY2RiMzExNzNhNzYzNmYxIiwidXNlcl9pZCI6ImVlNmU2ZDU1LTYzZTEtNDQyYy05MjM1LWZjMWRmNTkwNDFiYSIsInJvbGUiOiJzZWVrZXIiLCJlbWFpbCI6Imxwb2xwb2xwb2xwb0B5b3BtYWlsLmNvbSJ9.Nza__-aV074qZKsxveSihoa4UbWm9ejJhAOjBcwxvhc" -H "Content-Type: application/json" \
+  -d '{"company": "Tech Inc", "title": "Developer", "start_date": "2021-01", "end_date": null}' \
+  http://localhost:8002/api/profile/seeker/experience/
+curl -X POST -H "Authorization: Bearer RECRUITER_TOKEN" http://localhost:8003/api/jobs/<job_uuid>/publish/
+→ {"message": "Job published", "id": "job_uuid"}
+
+# Close/Archive jobcurl -X POST -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzc2MDE4NDU1LCJpYXQiOjE3NzYwMTQ4NTUsImp0aSI6ImJhOTEwMGI4NGYxYzQxNWJiY2RiMzExNzNhNzYzNmYxIiwidXNlcl9pZCI6ImVlNmU2ZDU1LTYzZTEtNDQyYy05MjM1LWZjMWRmNTkwNDFiYSIsInJvbGUiOiJzZWVrZXIiLCJlbWFpbCI6Imxwb2xwb2xwb2xwb0B5b3BtYWlsLmNvbSJ9.Nza__-aV074qZKsxveSihoa4UbWm9ejJhAOjBcwxvhc" -H "Content-Type: application/json" \
+  -d '{"company": "Tech Inc", "title": "Developer", "start_date": "2021-01", "end_date": null}' \
+  http://localhost:8002/api/profile/seeker/experience/
+curl -X POST -H "Authorization: Bearer RECRUITER_TOKEN" http://localhost:8003/api/jobs/<job_uuid>/close/
+→ {"status": "closed"}
+curl -X POST ... /archive/
+curl -X POST ... /restore/curl -X POST -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzc2MDE4NDU1LCJpYXQiOjE3NzYwMTQ4NTUsImp0aSI6ImJhOTEwMGI4NGYxYzQxNWJiY2RiMzExNzNhNzYzNmYxIiwidXNlcl9pZCI6ImVlNmU2ZDU1LTYzZTEtNDQyYy05MjM1LWZjMWRmNTkwNDFiYSIsInJvbGUiOiJzZWVrZXIiLCJlbWFpbCI6Imxwb2xwb2xwb2xwb0B5b3BtYWlsLmNvbSJ9.Nza__-aV074qZKsxveSihoa4UbWm9ejJhAOjBcwxvhc" -H "Content-Type: application/json" \
+  -d '{"company": "Tech Inc", "title": "Developer", "start_date": "2021-01", "end_date": null}' \
+  http://localhost:8002/api/profile/seeker/experience/
+
+```
+### 5. **Application Service (8004)** ✅ **RIGHT** (interviews work!)
+curl -X POST -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzc2MDE4NDU1LCJpYXQiOjE3NzYwMTQ4NTUsImp0aSI6ImJhOTEwMGI4NGYxYzQxNWJiY2RiMzExNzNhNzYzNmYxIiwidXNlcl9pZCI6ImVlNmU2ZDU1LTYzZTEtNDQyYy05MjM1LWZjMWRmNTkwNDFiYSIsInJvbGUiOiJzZWVrZXIiLCJlbWFpbCI6Imxwb2xwb2xwb2xwb0B5b3BtYWlsLmNvbSJ9.Nza__-aV074qZKsxveSihoa4UbWm9ejJhAOjBcwxvhc" -H "Content-Type: application/json" \
+  -d '{"company": "Tech Inc", "title": "Developer", "start_date": "2021-01", "end_date": null}' \
+  http://localhost:8002/api/profile/seeker/experience/
+```
+# Health
+curl http://localhost:8004/api/applications/health/
+→ {"status": "ok"}curl -X POST -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzc2MDE4NDU1LCJpYXQiOjE3NzYwMTQ4NTUsImp0aSI6ImJhOTEwMGI4NGYxYzQxNWJiY2RiMzExNzNhNzYzNmYxIiwidXNlcl9pZCI6ImVlNmU2ZDU1LTYzZTEtNDQyYy05MjM1LWZjMWRmNTkwNDFiYSIsInJvbGUiOiJzZWVrZXIiLCJlbWFpbCI6Imxwb2xwb2xwb2xwb0B5b3BtYWlsLmNvbSJ9.Nza__-aV074qZKsxveSihoa4UbWm9ejJhAOjBcwxvhc" -H "Content-Type: application/json" \
+  -d '{"company": "Tech Inc", "title": "Developer", "start_date": "2021-01", "end_date": null}' \
+  http://localhost:8002/api/profile/seeker/experience/
+
+# Apply to job (seeker)
+curl -X POST -H "Authorization: Bearer SEEKER_TOKEN" -H "Content-Type: application/json" \
+  -d '{"job_id": "job_uuid", "resume_id": "resume_uuid", "cover_letter": "Interested..."}' \curl -X POST -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzc2MDE4NDU1LCJpYXQiOjE3NzYwMTQ4NTUsImp0aSI6ImJhOTEwMGI4NGYxYzQxNWJiY2RiMzExNzNhNzYzNmYxIiwidXNlcl9pZCI6ImVlNmU2ZDU1LTYzZTEtNDQyYy05MjM1LWZjMWRmNTkwNDFiYSIsInJvbGUiOiJzZWVrZXIiLCJlbWFpbCI6Imxwb2xwb2xwb2xwb0B5b3BtYWlsLmNvbSJ9.Nza__-aV074qZKsxveSihoa4UbWm9ejJhAOjBcwxvhc" -H "Content-Type: application/json" \
+  -d '{"company": "Tech Inc", "title": "Developer", "start_date": "2021-01", "end_date": null}' \
+  http://localhost:8002/api/profile/seeker/experience/
+  http://localhost:8004/api/applications/apply/
+→ {"id": "app_uuid", "status": "screening"}
+
+# My applications (seeker)curl -X POST -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzc2MDE4NDU1LCJpYXQiOjE3NzYwMTQ4NTUsImp0aSI6ImJhOTEwMGI4NGYxYzQxNWJiY2RiMzExNzNhNzYzNmYxIiwidXNlcl9pZCI6ImVlNmU2ZDU1LTYzZTEtNDQyYy05MjM1LWZjMWRmNTkwNDFiYSIsInJvbGUiOiJzZWVrZXIiLCJlbWFpbCI6Imxwb2xwb2xwb2xwb0B5b3BtYWlsLmNvbSJ9.Nza__-aV074qZKsxveSihoa4UbWm9ejJhAOjBcwxvhc" -H "Content-Type: application/json" \
+  -d '{"company": "Tech Inc", "title": "Developer", "start_date": "2021-01", "end_date": null}' \
+  http://localhost:8002/api/profile/seeker/experience/
+curl -H "Authorization: Bearer SEEKER_TOKEN" http://localhost:8004/api/applications/my/
+→ [{"id": "app_uuid", "job_title": "Django Dev", "status": "screening"}]
+
+# Job applications (recruiter)curl -X POST -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzc2MDE4NDU1LCJpYXQiOjE3NzYwMTQ4NTUsImp0aSI6ImJhOTEwMGI4NGYxYzQxNWJiY2RiMzExNzNhNzYzNmYxIiwidXNlcl9pZCI6ImVlNmU2ZDU1LTYzZTEtNDQyYy05MjM1LWZjMWRmNTkwNDFiYSIsInJvbGUiOiJzZWVrZXIiLCJlbWFpbCI6Imxwb2xwb2xwb2xwb0B5b3BtYWlsLmNvbSJ9.Nza__-aV074qZKsxveSihoa4UbWm9ejJhAOjBcwxvhc" -H "Content-Type: application/json" \
+  -d '{"company": "Tech Inc", "title": "Developer", "start_date": "2021-01", "end_date": null}' \
+  http://localhost:8002/api/profile/seeker/experience/
+curl -H "Authorization: Bearer RECRUITER_TOKEN" http://localhost:8004/api/applications/job/<job_uuid>/
+→ List of applications for job
+
+# Application detailcurl -X POST -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzc2MDE4NDU1LCJpYXQiOjE3NzYwMTQ4NTUsImp0aSI6ImJhOTEwMGI4NGYxYzQxNWJiY2RiMzExNzNhNzYzNmYxIiwidXNlcl9pZCI6ImVlNmU2ZDU1LTYzZTEtNDQyYy05MjM1LWZjMWRmNTkwNDFiYSIsInJvbGUiOiJzZWVrZXIiLCJlbWFpbCI6Imxwb2xwb2xwb2xwb0B5b3BtYWlsLmNvbSJ9.Nza__-aV074qZKsxveSihoa4UbWm9ejJhAOjBcwxvhc" -H "Content-Type: application/json" \
+  -d '{"company": "Tech Inc", "title": "Developer", "start_date": "2021-01", "end_date": null}' \
+  http://localhost:8002/api/profile/seeker/experience/
+curl -H "Authorization: Bearer TOKEN" http://localhost:8004/api/applications/<app_uuid>/
+→ Full app details
+
+# Update stage (recruiter, triggers Kafka)curl -X POST -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzc2MDE4NDU1LCJpYXQiOjE3NzYwMTQ4NTUsImp0aSI6ImJhOTEwMGI4NGYxYzQxNWJiY2RiMzExNzNhNzYzNmYxIiwidXNlcl9pZCI6ImVlNmU2ZDU1LTYzZTEtNDQyYy05MjM1LWZjMWRmNTkwNDFiYSIsInJvbGUiOiJzZWVrZXIiLCJlbWFpbCI6Imxwb2xwb2xwb2xwb0B5b3BtYWlsLmNvbSJ9.Nza__-aV074qZKsxveSihoa4UbWm9ejJhAOjBcwxvhc" -H "Content-Type: application/json" \
+  -d '{"company": "Tech Inc", "title": "Developer", "start_date": "2021-01", "end_date": null}' \
+  http://localhost:8002/api/profile/seeker/experience/
+curl -X POST -H "Authorization: Bearer RECRUITER_TOKEN" -H "Content-Type: application/json" \
+  -d '{"stage": "interview"}' http://localhost:8004/api/applications/<app_uuid>/stage/
+→ {"status": "interview"}
+curl -X POST -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzc2MDE4NDU1LCJpYXQiOjE3NzYwMTQ4NTUsImp0aSI6ImJhOTEwMGI4NGYxYzQxNWJiY2RiMzExNzNhNzYzNmYxIiwidXNlcl9pZCI6ImVlNmU2ZDU1LTYzZTEtNDQyYy05MjM1LWZjMWRmNTkwNDFiYSIsInJvbGUiOiJzZWVrZXIiLCJlbWFpbCI6Imxwb2xwb2xwb2xwb0B5b3BtYWlsLmNvbSJ9.Nza__-aV074qZKsxveSihoa4UbWm9ejJhAOjBcwxvhc" -H "Content-Type: application/json" \
+  -d '{"company": "Tech Inc", "title": "Developer", "start_date": "2021-01", "end_date": null}' \
+  http://localhost:8002/api/profile/seeker/experience/
+# Schedule interview (Jitsi)
+curl -X POST -H "Authorization: Bearer RECRUITER_TOKEN" -H "Content-Type: application/json" \
+  -d '{"scheduled_at": "2024-04-15T14:00:00Z"}' http://localhost:8004/api/applications/<app_uuid>/schedule-interview/
+→ {"jitsi_link": "meet.jit.si/app-interview-uuid", "scheduled_at": "..."}curl -X POST -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzc2MDE4NDU1LCJpYXQiOjE3NzYwMTQ4NTUsImp0aSI6ImJhOTEwMGI4NGYxYzQxNWJiY2RiMzExNzNhNzYzNmYxIiwidXNlcl9pZCI6ImVlNmU2ZDU1LTYzZTEtNDQyYy05MjM1LWZjMWRmNTkwNDFiYSIsInJvbGUiOiJzZWVrZXIiLCJlbWFpbCI6Imxwb2xwb2xwb2xwb0B5b3BtYWlsLmNvbSJ9.Nza__-aV074qZKsxveSihoa4UbWm9ejJhAOjBcwxvhc" -H "Content-Type: application/json" \
+  -d '{"company": "Tech Inc", "title": "Developer", "start_date": "2021-01", "end_date": null}' \
+  http://localhost:8002/api/profile/seeker/experience/
+
+# Interview detail
+curl http://localhost:8004/api/applications/<app_uuid>/interview/
+→ {"jitsi_link": "...", "status": "scheduled"}curl -X POST -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzc2MDE4NDU1LCJpYXQiOjE3NzYwMTQ4NTUsImp0aSI6ImJhOTEwMGI4NGYxYzQxNWJiY2RiMzExNzNhNzYzNmYxIiwidXNlcl9pZCI6ImVlNmU2ZDU1LTYzZTEtNDQyYy05MjM1LWZjMWRmNTkwNDFiYSIsInJvbGUiOiJzZWVrZXIiLCJlbWFpbCI6Imxwb2xwb2xwb2xwb0B5b3BtYWlsLmNvbSJ9.Nza__-aV074qZKsxveSihoa4UbWm9ejJhAOjBcwxvhc" -H "Content-Type: application/json" \
+  -d '{"company": "Tech Inc", "title": "Developer", "start_date": "2021-01", "end_date": null}' \
+  http://localhost:8002/api/profile/seeker/experience/
+
+# Application history
+curl http://localhost:8004/api/applications/<app_uuid>/history/
+→ [{"stage": "screening", "timestamp": "..."}, {"stage": "interview", ...}]curl -X POST -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzc2MDE4NDU1LCJpYXQiOjE3NzYwMTQ4NTUsImp0aSI6ImJhOTEwMGI4NGYxYzQxNWJiY2RiMzExNzNhNzYzNmYxIiwidXNlcl9pZCI6ImVlNmU2ZDU1LTYzZTEtNDQyYy05MjM1LWZjMWRmNTkwNDFiYSIsInJvbGUiOiJzZWVrZXIiLCJlbWFpbCI6Imxwb2xwb2xwb2xwb0B5b3BtYWlsLmNvbSJ9.Nza__-aV074qZKsxveSihoa4UbWm9ejJhAOjBcwxvhc" -H "Content-Type: application/json" \
+  -d '{"company": "Tech Inc", "title": "Developer", "start_date": "2021-01", "end_date": null}' \
+  http://localhost:8002/api/profile/seeker/experience/
+
+# Withdraw application (seeker)
+curl -X POST -H "Authorization: Bearer SEEKER_TOKEN" http://localhost:8004/api/applications/<app_uuid>/withdraw/
+→ {"message": "Application withdrawn"}curl -X POST -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzc2MDE4NDU1LCJpYXQiOjE3NzYwMTQ4NTUsImp0aSI6ImJhOTEwMGI4NGYxYzQxNWJiY2RiMzExNzNhNzYzNmYxIiwidXNlcl9pZCI6ImVlNmU2ZDU1LTYzZTEtNDQyYy05MjM1LWZjMWRmNTkwNDFiYSIsInJvbGUiOiJzZWVrZXIiLCJlbWFpbCI6Imxwb2xwb2xwb2xwb0B5b3BtYWlsLmNvbSJ9.Nza__-aV074qZKsxveSihoa4UbWm9ejJhAOjBcwxvhc" -H "Content-Type: application/json" \
+  -d '{"company": "Tech Inc", "title": "Developer", "start_date": "2021-01", "end_date": null}' \
+  http://localhost:8002/api/profile/seeker/experience/
+```
+### 4. **Matching Service (8005) - AI** ❌ **WRONG** (needs embeddings)
+
+```curl -X POST -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzc2MDE4NDU1LCJpYXQiOjE3NzYwMTQ4NTUsImp0aSI6ImJhOTEwMGI4NGYxYzQxNWJiY2RiMzExNzNhNzYzNmYxIiwidXNlcl9pZCI6ImVlNmU2ZDU1LTYzZTEtNDQyYy05MjM1LWZjMWRmNTkwNDFiYSIsInJvbGUiOiJzZWVrZXIiLCJlbWFpbCI6Imxwb2xwb2xwb2xwb0B5b3BtYWlsLmNvbSJ9.Nza__-aV074qZKsxveSihoa4UbWm9ejJhAOjBcwxvhc" -H "Content-Type: application/json" \
+  -d '{"company": "Tech Inc", "title": "Developer", "start_date": "2021-01", "end_date": null}' \
+  http://localhost:8002/api/profile/seeker/experience/
+```
+curl http://localhost:8005/api/match/health/
+# After resume/job uploaded (async)
+curl -H "Authorization: Bearer ACCESS_TOKEN" http://localhost:8005/api/match/jobs-for-seeker/seeker-uuid/curl -X POST -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzc2MDE4NDU1LCJpYXQiOjE3NzYwMTQ4NTUsImp0aSI6ImJhOTEwMGI4NGYxYzQxNWJiY2RiMzExNzNhNzYzNmYxIiwidXNlcl9pZCI6ImVlNmU2ZDU1LTYzZTEtNDQyYy05MjM1LWZjMWRmNTkwNDFiYSIsInJvbGUiOiJzZWVrZXIiLCJlbWFpbCI6Imxwb2xwb2xwb2xwb0B5b3BtYWlsLmNvbSJ9.Nza__-aV074qZKsxveSihoa4UbWm9ejJhAOjBcwxvhc" -H "Content-Type: application/json" \
+  -d '{"company": "Tech Inc", "title": "Developer", "start_date": "2021-01", "end_date": null}' \
+  http://localhost:8002/api/profile/seeker/experience/
+→ TOP 10 matching jobs by pgvector cosine sim
+
+```
+# Embed resume (called async by Kafka consumer)curl -X POST -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzc2MDE4NDU1LCJpYXQiOjE3NzYwMTQ4NTUsImp0aSI6ImJhOTEwMGI4NGYxYzQxNWJiY2RiMzExNzNhNzYzNmYxIiwidXNlcl9pZCI6ImVlNmU2ZDU1LTYzZTEtNDQyYy05MjM1LWZjMWRmNTkwNDFiYSIsInJvbGUiOiJzZWVrZXIiLCJlbWFpbCI6Imxwb2xwb2xwb2xwb0B5b3BtYWlsLmNvbSJ9.Nza__-aV074qZKsxveSihoa4UbWm9ejJhAOjBcwxvhc" -H "Content-Type: application/json" \
+  -d '{"company": "Tech Inc", "title": "Developer", "start_date": "2021-01", "end_date": null}' \
+  http://localhost:8002/api/profile/seeker/experience/
+curl -X POST -H "Authorization: Bearer TOKEN" http://localhost:8005/api/match/embed/resume/ \
+  -F "resume_id": "r1"
+→ {"status": "embedded"}
+curl -X POST -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzc2MDE4NDU1LCJpYXQiOjE3NzYwMTQ4NTUsImp0aSI6ImJhOTEwMGI4NGYxYzQxNWJiY2RiMzExNzNhNzYzNmYxIiwidXNlcl9pZCI6ImVlNmU2ZDU1LTYzZTEtNDQyYy05MjM1LWZjMWRmNTkwNDFiYSIsInJvbGUiOiJzZWVrZXIiLCJlbWFpbCI6Imxwb2xwb2xwb2xwb0B5b3BtYWlsLmNvbSJ9.Nza__-aV074qZKsxveSihoa4UbWm9ejJhAOjBcwxvhc" -H "Content-Type: application/json" \
+  -d '{"company": "Tech Inc", "title": "Developer", "start_date": "2021-01", "end_date": null}' \
+  http://localhost:8002/api/profile/seeker/experience/
+# Embed job
+curl -X POST http://localhost:8005/api/match/embed/job/ -d '{"job_id": "j1"}'
+→ {"status": "embedded"}
+curl -X POST -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzc2MDE4NDU1LCJpYXQiOjE3NzYwMTQ4NTUsImp0aSI6ImJhOTEwMGI4NGYxYzQxNWJiY2RiMzExNzNhNzYzNmYxIiwidXNlcl9pZCI6ImVlNmU2ZDU1LTYzZTEtNDQyYy05MjM1LWZjMWRmNTkwNDFiYSIsInJvbGUiOiJzZWVrZXIiLCJlbWFpbCI6Imxwb2xwb2xwb2xwb0B5b3BtYWlsLmNvbSJ9.Nza__-aV074qZKsxveSihoa4UbWm9ejJhAOjBcwxvhc" -H "Content-Type: application/json" \
+  -d '{"company": "Tech Inc", "title": "Developer", "start_date": "2021-01", "end_date": null}' \
+  http://localhost:8002/api/profile/seeker/experience/
+# Seekers for job (recruiter)
+curl -H "Authorization: Bearer RECRUITER_TOKEN" http://localhost:8005/api/match/seekers-for-job/<job_uuid>/
+→ TOP 10 matching seekers
+```curl -X POST -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzc2MDE4NDU1LCJpYXQiOjE3NzYwMTQ4NTUsImp0aSI6ImJhOTEwMGI4NGYxYzQxNWJiY2RiMzExNzNhNzYzNmYxIiwidXNlcl9pZCI6ImVlNmU2ZDU1LTYzZTEtNDQyYy05MjM1LWZjMWRmNTkwNDFiYSIsInJvbGUiOiJzZWVrZXIiLCJlbWFpbCI6Imxwb2xwb2xwb2xwb0B5b3BtYWlsLmNvbSJ9.Nza__-aV074qZKsxveSihoa4UbWm9ejJhAOjBcwxvhc" -H "Content-Type: application/json" \
+  -d '{"company": "Tech Inc", "title": "Developer", "start_date": "2021-01", "end_date": null}' \
+  http://localhost:8002/api/profile/seeker/experience/
+### 5. **Notification (8006)** ✅ **RIGHT** (w/ Kafka events)
+
+```
+```curl -X POST -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzc2MDE4NDU1LCJpYXQiOjE3NzYwMTQ4NTUsImp0aSI6ImJhOTEwMGI4NGYxYzQxNWJiY2RiMzExNzNhNzYzNmYxIiwidXNlcl9pZCI6ImVlNmU2ZDU1LTYzZTEtNDQyYy05MjM1LWZjMWRmNTkwNDFiYSIsInJvbGUiOiJzZWVrZXIiLCJlbWFpbCI6Imxwb2xwb2xwb2xwb0B5b3BtYWlsLmNvbSJ9.Nza__-aV074qZKsxveSihoa4UbWm9ejJhAOjBcwxvhc" -H "Content-Type: application/json" \
+  -d '{"company": "Tech Inc", "title": "Developer", "start_date": "2021-01", "end_date": null}' \
+  http://localhost:8002/api/profile/seeker/experience/
+curl -H "Authorization: Bearer ACCESS_TOKEN" http://localhost:8006/api/notifications/
+→ [{"title": "Application received", "is_read": false}]
+
+```curl -X POST -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzc2MDE4NDU1LCJpYXQiOjE3NzYwMTQ4NTUsImp0aSI6ImJhOTEwMGI4NGYxYzQxNWJiY2RiMzExNzNhNzYzNmYxIiwidXNlcl9pZCI6ImVlNmU2ZDU1LTYzZTEtNDQyYy05MjM1LWZjMWRmNTkwNDFiYSIsInJvbGUiOiJzZWVrZXIiLCJlbWFpbCI6Imxwb2xwb2xwb2xwb0B5b3BtYWlsLmNvbSJ9.Nza__-aV074qZKsxveSihoa4UbWm9ejJhAOjBcwxvhc" -H "Content-Type: application/json" \
+  -d '{"company": "Tech Inc", "title": "Developer", "start_date": "2021-01", "end_date": null}' \
+  http://localhost:8002/api/profile/seeker/experience/
+# Unread count
+curl -H "Authorization: Bearer TOKEN" http://localhost:8006/api/notifications/unread-count/
+→ {"count": 3}
+curl -X POST -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzc2MDE4NDU1LCJpYXQiOjE3NzYwMTQ4NTUsImp0aSI6ImJhOTEwMGI4NGYxYzQxNWJiY2RiMzExNzNhNzYzNmYxIiwidXNlcl9pZCI6ImVlNmU2ZDU1LTYzZTEtNDQyYy05MjM1LWZjMWRmNTkwNDFiYSIsInJvbGUiOiJzZWVrZXIiLCJlbWFpbCI6Imxwb2xwb2xwb2xwb0B5b3BtYWlsLmNvbSJ9.Nza__-aV074qZKsxveSihoa4UbWm9ejJhAOjBcwxvhc" -H "Content-Type: application/json" \
+  -d '{"company": "Tech Inc", "title": "Developer", "start_date": "2021-01", "end_date": null}' \
+  http://localhost:8002/api/profile/seeker/experience/
+# Mark single read
+curl -X POST -H "Authorization: Bearer TOKEN" http://localhost:8006/api/notifications/<notif_uuid>/mark-read/
+→ {"message": "Marked as read"}
+curl -X POST -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzc2MDE4NDU1LCJpYXQiOjE3NzYwMTQ4NTUsImp0aSI6ImJhOTEwMGI4NGYxYzQxNWJiY2RiMzExNzNhNzYzNmYxIiwidXNlcl9pZCI6ImVlNmU2ZDU1LTYzZTEtNDQyYy05MjM1LWZjMWRmNTkwNDFiYSIsInJvbGUiOiJzZWVrZXIiLCJlbWFpbCI6Imxwb2xwb2xwb2xwb0B5b3BtYWlsLmNvbSJ9.Nza__-aV074qZKsxveSihoa4UbWm9ejJhAOjBcwxvhc" -H "Content-Type: application/json" \
+  -d '{"company": "Tech Inc", "title": "Developer", "start_date": "2021-01", "end_date": null}' \
+  http://localhost:8002/api/profile/seeker/experience/
+# Mark all read
+curl -X POST -H "Authorization: Bearer TOKEN" http://localhost:8006/api/notifications/mark-all-read/
+→ {"message": "All notifications marked read"}
+```curl -X POST -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzc2MDE4NDU1LCJpYXQiOjE3NzYwMTQ4NTUsImp0aSI6ImJhOTEwMGI4NGYxYzQxNWJiY2RiMzExNzNhNzYzNmYxIiwidXNlcl9pZCI6ImVlNmU2ZDU1LTYzZTEtNDQyYy05MjM1LWZjMWRmNTkwNDFiYSIsInJvbGUiOiJzZWVrZXIiLCJlbWFpbCI6Imxwb2xwb2xwb2xwb0B5b3BtYWlsLmNvbSJ9.Nza__-aV074qZKsxveSihoa4UbWm9ejJhAOjBcwxvhc" -H "Content-Type: application/json" \
+  -d '{"company": "Tech Inc", "title": "Developer", "start_date": "2021-01", "end_date": null}' \
+  http://localhost:8002/api/profile/seeker/experience/
+```
+
+**Test Sequence**:
+1. Auth register/verify/login → get JWTcurl -X POST -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzc2MDE4NDU1LCJpYXQiOjE3NzYwMTQ4NTUsImp0aSI6ImJhOTEwMGI4NGYxYzQxNWJiY2RiMzExNzNhNzYzNmYxIiwidXNlcl9pZCI6ImVlNmU2ZDU1LTYzZTEtNDQyYy05MjM1LWZjMWRmNTkwNDFiYSIsInJvbGUiOiJzZWVrZXIiLCJlbWFpbCI6Imxwb2xwb2xwb2xwb0B5b3BtYWlsLmNvbSJ9.Nza__-aV074qZKsxveSihoa4UbWm9ejJhAOjBcwxvhc" -H "Content-Type: application/json" \
+  -d '{"company": "Tech Inc", "title": "Developer", "start_date": "2021-01", "end_date": null}' \
+  http://localhost:8002/api/profile/seeker/experience/
+```
+>>>>>>> b4a880c0c43ea7e9f8cc1bfd9b3b40285d012cf3
 
 
 2. Profile seeker/ + skills + resume → Kafka eventscurl -X POST -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzc2MDE4NDU1LCJpYXQiOjE3NzYwMTQ4NTUsImp0aSI6ImJhOTEwMGI4NGYxYzQxNWJiY2RiMzExNzNhNzYzNmYxIiwidXNlcl9pZCI6ImVlNmU2ZDU1LTYzZTEtNDQyYy05MjM1LWZjMWRmNTkwNDFiYSIsInJvbGUiOiJzZWVrZXIiLCJlbWFpbCI6Imxwb2xwb2xwb2xwb0B5b3BtYWlsLmNvbSJ9.Nza__-aV074qZKsxveSihoa4UbWm9ejJhAOjBcwxvhc" -H "Content-Type: application/json" \

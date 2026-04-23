@@ -146,15 +146,15 @@ class ResumeUploadView(APIView):
         file.seek(0)
 
         try:
-            s3_key = upload_to_s3(file, seeker.id)
+            local_path = upload_to_s3(file, seeker.id)
             parsing_status = 'success'
         except Exception as e:
-            return Response({"error": f"S3 upload failed: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({"error": f"Upload failed: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         resume = Resume.objects.create(
             seeker=seeker,
             resume_title=request.data.get('resume_title', file.name),
-            s3_key=s3_key,
+            local_path=local_path,
             file_size_bytes=file.size,
             is_primary=not seeker.resumes.filter(is_primary=True).exists(),
             raw_text=raw_text,
@@ -166,7 +166,7 @@ class ResumeUploadView(APIView):
         return Response(ResumeSerializer(resume).data, status=status.HTTP_201_CREATED)
 
 
-class ResumePresignedURLView(APIView):
+class ResumeURLView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, resume_id):
@@ -176,5 +176,5 @@ class ResumePresignedURLView(APIView):
             return Response({"error": "Resume not found."}, status=status.HTTP_404_NOT_FOUND)
         if str(resume.seeker.user_id) != str(request.user.id):
             return Response({"error": "Forbidden."}, status=status.HTTP_403_FORBIDDEN)
-        url = get_presigned_url(resume.s3_key)
+        url = get_presigned_url(resume.local_path)
         return Response({"url": url})

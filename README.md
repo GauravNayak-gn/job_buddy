@@ -3,6 +3,7 @@
 A microservices-based job portal built with Django REST Framework, Angular, PostgreSQL, Redis, Kafka, Nginx, and AWS S3.
 
 ## Stack
+
 - Frontend: Angular (single app)
 - Backend: 7 Django microservices
 - DB: PostgreSQL (local, schema-per-service)
@@ -12,6 +13,7 @@ A microservices-based job portal built with Django REST Framework, Angular, Post
 - Proxy: Nginx (API Gateway + Load Balancer)
 - Video: Jitsi Meet
 - AI Matching: Sentence Transformers (all-MiniLM-L6-v2)
+  Structure
 
 ## Structure
 ```
