@@ -1,93 +1,80 @@
-html, body {
-  margin: 0;
-  min-height: 100%;
+:root {
+  /* Core Palette */
+  --bg: #f8fafc;
+  --card: #ffffff;
+  --text: #0f172a;
+  --muted: #64748b;
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --border: #e2e8f0;
+  
+  /* UI Elements */
+  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  --radius: 16px;
 }
 
-body {
-  font-family: Georgia, 'Times New Roman', serif;
+html, body {
+  margin: 0;
+  min-height: 100vh;
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  line-height: 1.6;
 }
 
 * {
   box-sizing: border-box;
 }
 
-button,
-input,
-select,
-textarea {
+/* Typography */
+h1, h2, h3, h4, p { 
+  margin: 0; 
+}
+
+h1 { 
+  font-size: clamp(2rem, 5vw, 3rem); 
+  font-weight: 700; 
+  letter-spacing: -0.02em; 
+  line-height: 1.1;
+  color: #0f172a;
+}
+
+h2 { font-size: 1.5rem; font-weight: 600; }
+h3 { font-size: 1.25rem; font-weight: 600; }
+
+.eyebrow {
+  color: var(--accent);
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+/* Forms */
+button, input, select, textarea {
   font: inherit;
 }
 
-input,
-select,
-textarea {
-  background: rgba(255, 255, 255, 0.82);
-  border: 1px solid rgba(24, 33, 47, 0.12);
-  border-radius: 18px;
-  color: #18212f;
-  padding: 0.9rem 1rem;
+input, select, textarea {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  padding: 0.75rem 1rem;
   width: 100%;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
 }
 
 textarea {
   resize: vertical;
-}
-
-button,
-.btn-primary,
-.btn-secondary,
-.inline-link {
-  cursor: pointer;
-}
-
-button,
-.btn-primary,
-.btn-secondary {
-  border: 0;
-  border-radius: 999px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 46px;
-  padding: 0.75rem 1.15rem;
-  text-decoration: none;
-  transition: transform 150ms ease, opacity 150ms ease;
-}
-
-button:hover,
-.btn-primary:hover,
-.btn-secondary:hover {
-  opacity: 0.94;
-  transform: translateY(-1px);
-}
-
-button,
-.btn-primary {
-  background: #d95d39;
-  color: #fff;
-}
-
-button.secondary,
-.btn-secondary {
-  background: rgba(30, 111, 104, 0.1);
-  color: #1e6f68;
-}
-
-.inline-link {
-  color: #1e6f68;
-  font-weight: 700;
-  text-decoration: none;
-}
-
-.eyebrow {
-  color: #d95d39;
-  font-size: 0.82rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-
-h1, h2, h3, p {
-  margin: 0;
 }
 
 label {
@@ -96,16 +83,66 @@ label {
 }
 
 label span {
-  color: #5e6673;
-  font-size: 0.85rem;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  color: var(--muted);
+  font-size: 0.875rem;
+  font-weight: 500;
 }
 
+/* Buttons */
+button, .btn-primary, .btn-secondary {
+  cursor: pointer;
+  border: 0;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 500;
+  min-height: 44px;
+  padding: 0.6rem 1.25rem;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+button, .btn-primary {
+  background: var(--accent);
+  color: #ffffff;
+}
+
+button:hover, .btn-primary:hover {
+  background: var(--accent-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+}
+
+button.secondary, .btn-secondary {
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid var(--border);
+}
+
+button.secondary:hover, .btn-secondary:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+  transform: none;
+  box-shadow: none;
+}
+
+.inline-link {
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.inline-link:hover {
+  text-decoration: underline;
+}
+
+/* Utilities */
 pre {
-  background: rgba(17, 26, 41, 0.92);
-  border-radius: 18px;
-  color: #b9f1e5;
+  background: #0f172a;
+  border-radius: 12px;
+  color: #e2e8f0;
   overflow: auto;
-  padding: 1rem;
+  padding: 1.25rem;
+  font-size: 0.875rem;
 }
