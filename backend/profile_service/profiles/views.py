@@ -176,8 +176,14 @@ class ResumeURLView(APIView):
             resume = Resume.objects.get(id=resume_id)
         except Resume.DoesNotExist:
             return Response({"error": "Resume not found."}, status=status.HTTP_404_NOT_FOUND)
-        if str(resume.seeker.user_id) != str(request.user.id):
-            return Response({"error": "Forbidden."}, status=status.HTTP_403_FORBIDDEN)
+        
+        # Allow access if the user is the seeker OR a recruiter
+        is_owner = str(resume.seeker.user_id) == str(request.user.id)
+        is_recruiter = RecruiterProfile.objects.filter(user_id=request.user.id).exists()
+        
+        if not (is_owner or is_recruiter):
+            return Response({"error": "Forbidden. You do not have permission to view this resume."}, status=status.HTTP_403_FORBIDDEN)
+        
         url = get_presigned_url(resume.local_path)
         return Response({"url": url})
 
@@ -191,8 +197,12 @@ class ResumeDownloadView(APIView):
         except Resume.DoesNotExist:
             raise Http404("Resume not found.")
         
-        if str(resume.seeker.user_id) != str(request.user.id):
-            return Response({"error": "Forbidden."}, status=status.HTTP_403_FORBIDDEN)
+        # Allow access if the user is the seeker OR a recruiter
+        is_owner = str(resume.seeker.user_id) == str(request.user.id)
+        is_recruiter = RecruiterProfile.objects.filter(user_id=request.user.id).exists()
+        
+        if not (is_owner or is_recruiter):
+            return Response({"error": "Forbidden. You do not have permission to download this resume."}, status=status.HTTP_403_FORBIDDEN)
         
         if not default_storage.exists(resume.local_path):
             raise Http404("Resume file not found.")
@@ -201,7 +211,6 @@ class ResumeDownloadView(APIView):
         response = FileResponse(file, content_type='application/pdf')
         response['Content-Disposition'] = f'inline; filename="{resume.resume_title}"'
         return response
-
 
 class SeekerProfileByIdView(APIView):
     permission_classes = [IsAuthenticated]

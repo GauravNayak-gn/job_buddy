@@ -32,6 +32,7 @@ interface Applicant {
   seeker_email: string;
   job_id: string;
   job_title: string;
+  resume_id: string;
   cover_letter: string;
   current_stage: string;
   created_at: string;
@@ -234,6 +235,11 @@ interface InterviewResponse {
 
                         <div class="applicant-actions">
                           <button type="button" class="secondary" (click)="viewProfile(application.seeker_id)">Profile</button>
+
+                          @if (application.resume_id) {
+                            <button type="button" class="secondary" (click)="viewResume(application.resume_id)">View Resume</button>
+                          }
+
                           <button type="button" class="secondary" (click)="toggleSchedule(application.id)">
                             {{ schedulingApplicationId() === application.id ? 'Cancel' : 'Schedule' }}
                           </button>
@@ -528,6 +534,32 @@ export class PostJobComponent implements OnInit {
     if (this.isRecruiter()) {
       this.loadMyJobs();
     }
+  }
+protected viewResume(resumeId: string): void {
+    if (!resumeId) {
+      this.interviewMessage.set('No resume was attached to this application.');
+      return;
+    }
+
+    this.interviewMessage.set('Loading resume securely...');
+    
+    // Hit the secure download endpoint, which requires the Bearer token
+    this.api.getBlob(`${this.api.profileBase}/seeker/resumes/${resumeId}/download/`, true).subscribe({
+      next: (blob) => {
+        this.interviewMessage.set('');
+        // Create a secure, temporary local URL for the PDF blob
+        const fileUrl = window.URL.createObjectURL(blob);
+        // Open the PDF in a new tab
+        window.open(fileUrl, '_blank');
+        
+        // Optional cleanup: Revoke the URL after a short delay to free memory
+        setTimeout(() => window.URL.revokeObjectURL(fileUrl), 10000);
+      },
+      error: (error) => {
+        console.error(error);
+        this.interviewMessage.set('Failed to load resume. You may not have permission.');
+      },
+    });
   }
 
   protected createJob(): void {
