@@ -23,8 +23,22 @@ interface ApplicationItem {
   id: string;
   job_id: string;
   job_title?: string;
+  resume_id?: string; // Added to track which resume was submitted
   current_stage: string;
   created_at: string;
+}
+
+// Added to type the fetched job details
+interface JobDetails {
+  id: string;
+  title: string;
+  description: string;
+  location_type: string;
+  location_city: string;
+  experience_required: string;
+  salary_min: number | null;
+  salary_max: number | null;
+  status: string;
 }
 
 @Component({
@@ -160,9 +174,21 @@ interface ApplicationItem {
                         </div>
                         <span class="status-pill">{{ item.current_stage }}</span>
                       </div>
+                      
+                      <div class="app-actions">
+                        <button type="button" class="secondary" (click)="viewJobDetails(item.job_id)">View Job</button>
+                        @if (item.resume_id) {
+                          <button type="button" class="secondary" (click)="viewResume(item.resume_id)">View Resume</button>
+                        }
+                      </div>
+
                     </div>
                   }
                 </div>
+              }
+              
+              @if (message()) {
+                <div class="message">{{ message() }}</div>
               }
             </article>
           }
@@ -204,6 +230,29 @@ interface ApplicationItem {
           </article>
         }
       }
+
+      @if (viewingJob(); as job) {
+        <div class="modal-overlay" (click)="viewingJob.set(null)">
+          <article class="modal-card" (click)="$event.stopPropagation()">
+            <div class="modal-header">
+              <h2>{{ job.title }}</h2>
+              <button type="button" class="close-btn" (click)="viewingJob.set(null)">Close</button>
+            </div>
+            
+            <div class="modal-section">
+              <p><strong>Location:</strong> {{ job.location_type }} @if(job.location_city) { · {{ job.location_city }} }</p>
+              <p><strong>Experience Required:</strong> {{ job.experience_required || 'Not specified' }}</p>
+              <p><strong>Salary:</strong> {{ formatSalary(job.salary_min, job.salary_max) }}</p>
+              <p><strong>Status:</strong> <span class="status-pill">{{ job.status }}</span></p>
+            </div>
+            
+            <div class="modal-section">
+              <h4>Job Description</h4>
+              <p class="description-text">{{ job.description }}</p>
+            </div>
+          </article>
+        </div>
+      }
     </section>
   `,
   styles: [`
@@ -237,6 +286,7 @@ interface ApplicationItem {
     .actions { margin-top: 1rem; margin-bottom: 0; justify-content: flex-start; }
     
     h3 { margin-bottom: 1rem; }
+    h4 { margin-bottom: 0.5rem; }
     
     .chips { display: flex; flex-wrap: wrap; gap: 0.6rem; margin: 0.6rem 0 1rem; }
     .chip { 
@@ -277,8 +327,12 @@ interface ApplicationItem {
       gap: 1rem;
       border-radius: 18px; 
       padding: 1.25rem;
+      border: 1px solid var(--border);
     }
-    .app-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
+    .app-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: 0.5rem; }
+    
+    .app-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: auto; border-top: 1px solid var(--border); padding-top: 1rem; }
+    .app-actions button { padding: 0.4rem 0.8rem; font-size: 0.85rem; min-height: auto; }
     
     .status-pill { 
       background: #e0e7ff; 
@@ -297,6 +351,31 @@ interface ApplicationItem {
     .meta-line { color: var(--muted); font-size: 0.85rem; margin-top: 0.25rem; margin-bottom: 0; }
     .small { margin-top: 1rem; padding: 1rem; }
     .message { margin-top: 1rem; padding: 1rem; background: #eff6ff; color: #1e40af; border-radius: 12px; }
+
+    /* Modal Styles */
+    .modal-overlay { 
+      position: fixed; 
+      top: 0; left: 0; right: 0; bottom: 0; 
+      background: rgba(0, 0, 0, 0.7); 
+      display: flex; 
+      align-items: center; justify-content: center; 
+      z-index: 1000; padding: 2rem;
+    }
+    .modal-card { 
+      max-width: 700px; width: 100%; max-height: 85vh; 
+      overflow-y: auto; padding: 2rem; 
+      background: var(--card); border-radius: 28px;
+    }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+    .close-btn { 
+      background: #fee2e2; border: none; border-radius: 8px; 
+      padding: 0.4rem 1rem; cursor: pointer; font-size: 0.95rem; 
+      font-weight: 500; color: #991b1b; transition: all 0.2s; 
+    }
+    .close-btn:hover { background: #fecaca; }
+    .modal-section { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+    .modal-section p { margin-bottom: 0.5rem; }
+    .description-text { white-space: pre-wrap; color: var(--muted); }
 
     @media (max-width: 980px) {
       .profile-layout,
@@ -317,6 +396,7 @@ export class ProfileComponent implements OnInit {
   readonly skills = signal<SeekerSkill[]>([]);
   readonly resumes = signal<ResumeItem[]>([]);
   readonly applications = signal<ApplicationItem[]>([]);
+  readonly viewingJob = signal<JobDetails | null>(null);
 
   readonly seeker = {
     first_name: '',
@@ -476,6 +556,40 @@ export class ProfileComponent implements OnInit {
         this.applicationsLoading.set(false);
       },
     });
+  }
+
+  protected viewJobDetails(jobId: string): void {
+    this.message.set('');
+    this.api.get<JobDetails>(`${this.api.jobsBase}/${jobId}/`, true).subscribe({
+      next: (job) => {
+        this.viewingJob.set(job);
+      },
+      error: (error) => {
+        this.message.set('Could not load job details. The job may have been removed.');
+      },
+    });
+  }
+
+  protected viewResume(resumeId: string): void {
+    this.message.set('Loading resume securely...');
+    
+    this.api.getBlob(`${this.api.profileBase}/seeker/resumes/${resumeId}/download/`, true).subscribe({
+      next: (blob) => {
+        this.message.set('');
+        const fileUrl = window.URL.createObjectURL(blob);
+        window.open(fileUrl, '_blank');
+        setTimeout(() => window.URL.revokeObjectURL(fileUrl), 10000);
+      },
+      error: (error) => {
+        console.error(error);
+        this.message.set('Failed to load resume file.');
+      },
+    });
+  }
+
+  protected formatSalary(min: number | null, max: number | null): string {
+    if (!min && !max) return 'Not disclosed';
+    return `INR ${min ?? 0} - ${max ?? 0}`;
   }
 
   private errorMessage(error: { error?: unknown; message?: string }): string {
