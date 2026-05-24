@@ -3,6 +3,8 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import MultiPartParser
+from django.http import FileResponse, Http404
+from django.core.files.storage import default_storage
 from .models import SeekerProfile, RecruiterProfile, Skill, SeekerSkill, Experience, Resume
 from .serializers import (
     SeekerProfileSerializer, RecruiterProfileSerializer,
@@ -178,6 +180,27 @@ class ResumeURLView(APIView):
             return Response({"error": "Forbidden."}, status=status.HTTP_403_FORBIDDEN)
         url = get_presigned_url(resume.local_path)
         return Response({"url": url})
+
+
+class ResumeDownloadView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, resume_id):
+        try:
+            resume = Resume.objects.get(id=resume_id)
+        except Resume.DoesNotExist:
+            raise Http404("Resume not found.")
+        
+        if str(resume.seeker.user_id) != str(request.user.id):
+            return Response({"error": "Forbidden."}, status=status.HTTP_403_FORBIDDEN)
+        
+        if not default_storage.exists(resume.local_path):
+            raise Http404("Resume file not found.")
+        
+        file = default_storage.open(resume.local_path, 'rb')
+        response = FileResponse(file, content_type='application/pdf')
+        response['Content-Disposition'] = f'inline; filename="{resume.resume_title}"'
+        return response
 
 
 class SeekerProfileByIdView(APIView):
