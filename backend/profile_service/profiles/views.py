@@ -178,3 +178,17 @@ class ResumeURLView(APIView):
             return Response({"error": "Forbidden."}, status=status.HTTP_403_FORBIDDEN)
         url = get_presigned_url(resume.local_path)
         return Response({"url": url})
+
+
+class SeekerProfileByIdView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, seeker_id):
+        try:
+            profile = SeekerProfile.objects.get(user_id=seeker_id)
+            data = SeekerProfileSerializer(profile).data
+            data['skills'] = SeekerSkillSerializer(profile.skills.all(), many=True).data
+            data['experiences'] = ExperienceSerializer(profile.experiences.all(), many=True).data
+            return Response(data)
+        except SeekerProfile.DoesNotExist:
+            return Response({"error": "Profile not found."}, status=status.HTTP_404_NOT_FOUND)

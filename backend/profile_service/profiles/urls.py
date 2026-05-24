@@ -2,7 +2,7 @@ from django.urls import path
 from .views import (
     HealthView, SeekerProfileView, RecruiterProfileView,
     SkillListView, SeekerSkillView, ExperienceView,
-    ResumeUploadView, ResumeURLView
+    ResumeUploadView, ResumeURLView, SeekerProfileByIdView
 )
 
 urlpatterns = [
@@ -14,4 +14,5 @@ urlpatterns = [
     path('seeker/experience/', ExperienceView.as_view()),
     path('seeker/resumes/', ResumeUploadView.as_view()),
     path('seeker/resumes/<uuid:resume_id>/url/', ResumeURLView.as_view()),
+    path('seeker/<uuid:seeker_id>/', SeekerProfileByIdView.as_view()),
 ]

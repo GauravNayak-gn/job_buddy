@@ -37,6 +37,26 @@ interface Applicant {
   created_at: string;
 }
 
+interface SeekerProfile {
+  id: string;
+  first_name: string;
+  last_name: string;
+  phone: string;
+  current_title: string;
+  summary: string;
+  github_url: string;
+  linkedin_url: string;
+  skills: Array<{ id: string; skill_name: string; years_of_experience: number }>;
+  experiences: Array<{
+    id: string;
+    company_name: string;
+    role_title: string;
+    start_date: string;
+    end_date: string | null;
+    description: string;
+  }>;
+}
+
 interface InterviewResponse {
   id: string;
   scheduled_at: string;
@@ -199,6 +219,7 @@ interface InterviewResponse {
                         <p class="meta-line">Cover letter: {{ application.cover_letter || 'Not provided' }}</p>
 
                         <div class="actions compact">
+                          <button type="button" class="secondary" (click)="viewProfile(application.seeker_id)">View profile</button>
                           <button type="button" class="secondary" (click)="toggleSchedule(application.id)">
                             {{ schedulingApplicationId() === application.id ? 'Cancel interview' : 'Schedule interview' }}
                           </button>
@@ -229,6 +250,55 @@ interface InterviewResponse {
 
               @if (interviewMessage()) {
                 <div class="message">{{ interviewMessage() }}</div>
+              }
+
+              @if (viewingProfile(); as profile) {
+                <div class="sub-card profile-card">
+                  <div class="profile-header">
+                    <h3>{{ profile.first_name }} {{ profile.last_name }}</h3>
+                    <button type="button" class="secondary" (click)="closeProfile()">Close</button>
+                  </div>
+                  <div class="profile-section">
+                    <p><strong>Current Title:</strong> {{ profile.current_title || 'Not specified' }}</p>
+                    <p><strong>Phone:</strong> {{ profile.phone || 'Not provided' }}</p>
+                    @if (profile.github_url) {
+                      <p><strong>GitHub:</strong> <a [href]="profile.github_url" target="_blank" rel="noreferrer">{{ profile.github_url }}</a></p>
+                    }
+                    @if (profile.linkedin_url) {
+                      <p><strong>LinkedIn:</strong> <a [href]="profile.linkedin_url" target="_blank" rel="noreferrer">{{ profile.linkedin_url }}</a></p>
+                    }
+                  </div>
+                  @if (profile.summary) {
+                    <div class="profile-section">
+                      <h4>Summary</h4>
+                      <p>{{ profile.summary }}</p>
+                    </div>
+                  }
+                  @if (profile.skills?.length) {
+                    <div class="profile-section">
+                      <h4>Skills</h4>
+                      <div class="skills-grid">
+                        @for (skill of profile.skills; track skill.id) {
+                          <span class="skill-tag">{{ skill.skill_name }} ({{ skill.years_of_experience }}y)</span>
+                        }
+                      </div>
+                    </div>
+                  }
+                  @if (profile.experiences?.length) {
+                    <div class="profile-section">
+                      <h4>Experience</h4>
+                      @for (exp of profile.experiences; track exp.id) {
+                        <div class="experience-item">
+                          <p><strong>{{ exp.role_title }}</strong> at {{ exp.company_name }}</p>
+                          <p class="meta-line">{{ exp.start_date | date: 'MMM yyyy' }} - {{ exp.end_date ? (exp.end_date | date: 'MMM yyyy') : 'Present' }}</p>
+                          @if (exp.description) {
+                            <p>{{ exp.description }}</p>
+                          }
+                        </div>
+                      }
+                    </div>
+                  }
+                </div>
               }
 
               @if (scheduledInterview(); as interview) {
@@ -288,6 +358,13 @@ interface InterviewResponse {
     .status-pill.archived { background: rgba(142, 145, 150, 0.18); color: #d9dde4; }
     .meta-line { margin: 0; color: var(--muted); }
     .interview-card { margin-top: 1rem; }
+    .profile-card { margin-top: 1rem; }
+    .profile-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+    .profile-section { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+    .profile-section:first-of-type { border-top: none; padding-top: 0; }
+    .skills-grid { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem; }
+    .skill-tag { background: rgba(42, 157, 143, 0.16); border-radius: 999px; color: #9fe3d8; padding: 0.35rem 0.7rem; font-size: 0.9rem; }
+    .experience-item { margin-top: 0.8rem; padding: 0.8rem; background: rgba(10, 16, 32, 0.25); border-radius: 12px; }
     @media (max-width: 980px) {
       .layout,
       .grid,
@@ -312,6 +389,7 @@ export class PostJobComponent implements OnInit {
   readonly schedulingApplicationId = signal('');
   readonly scheduledInterview = signal<InterviewResponse | null>(null);
   readonly selectedJob = computed(() => this.myJobs().find((job) => job.id === this.selectedJobId()) ?? null);
+  readonly viewingProfile = signal<SeekerProfile | null>(null);
 
   readonly form = {
     title: '',
@@ -495,6 +573,17 @@ export class PostJobComponent implements OnInit {
       },
       error: (error) => this.interviewMessage.set(this.errorMessage(error)),
     });
+  }
+
+  protected viewProfile(seekerId: string): void {
+    this.api.get<SeekerProfile>(`${this.api.profileBase}/seeker/${seekerId}/`, true).subscribe({
+      next: (profile) => this.viewingProfile.set(profile),
+      error: (error) => this.interviewMessage.set(this.errorMessage(error)),
+    });
+  }
+
+  protected closeProfile(): void {
+    this.viewingProfile.set(null);
   }
 
   protected loadMyJobs(): void {
