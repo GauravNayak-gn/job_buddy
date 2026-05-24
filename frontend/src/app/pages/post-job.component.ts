@@ -272,7 +272,16 @@ interface InterviewResponse {
     .applicant-item { align-items: stretch; }
     .applicant-panel { border-top: 1px solid var(--border); margin-top: 1.25rem; padding-top: 1.25rem; }
     .actions.compact { margin-top: 0.6rem; }
-    .schedule-grid { display: grid; gap: 1rem; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 0.8rem; }
+    .schedule-grid { 
+  display: grid; 
+  gap: 1.25rem; 
+  grid-template-columns: 1fr; /* Stacks the inputs vertically */
+  margin-top: 1rem; 
+  background: var(--bg); /* Adds a subtle inset look */
+  border: 1px solid var(--border);
+  padding: 1.25rem;
+  border-radius: 12px;
+}
     .message,
     .small { margin-top: 1rem; padding: 1rem; }
     .status-pill { background: rgba(238, 108, 77, 0.16); border-radius: 999px; color: #ffd1c6; padding: 0.45rem 0.8rem; text-transform: capitalize; }
