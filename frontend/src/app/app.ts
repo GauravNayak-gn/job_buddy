@@ -14,7 +14,9 @@ import { finalize } from 'rxjs/operators';
     <div class="app-shell">
       <header class="topbar">
         <a routerLink="/" class="brand">
-          <span class="brand-mark">JB</span>
+          <span class="brand-mark" aria-hidden="true">
+            <span class="brand-initials">JB</span>
+          </span>
           <div>
             <strong>Job Buddy</strong>
             <span>Microservice Job Portal</span>

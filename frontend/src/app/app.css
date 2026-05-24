@@ -57,14 +57,20 @@
 }
 
 .brand-mark {
-  align-items: center;
-  background: linear-gradient(135deg, var(--accent), var(--secondary));
-  border-radius: 18px;
-  color: white;
-  display: inline-flex;
-  height: 48px;
+  color: var(--text);
+  display: grid;
+  font-size: 3rem;
+  font-weight: 900;
   justify-content: center;
-  width: 48px;
+  line-height: 1;
+}
+
+.brand .brand-initials {
+  color: var(--text);
+  font-size: 1rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 0;
 }
 
 .nav-links,

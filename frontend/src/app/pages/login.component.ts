@@ -14,8 +14,8 @@ import { AuthStateService } from '../core/auth-state.service';
       <article class="auth-card">
         @if (mode() !== 'otp') {
           <div class="tabs">
-            <button type="button" [class.active]="mode() === 'login'" (click)="mode.set('login')">Login</button>
-            <button type="button" [class.active]="mode() === 'register'" (click)="mode.set('register')">Register</button>
+            <button type="button" [class.active]="mode() === 'login'" (click)="setMode('login')">Login</button>
+            <button type="button" [class.active]="mode() === 'register'" (click)="setMode('register')">Register</button>
           </div>
         }
 
@@ -70,7 +70,7 @@ import { AuthStateService } from '../core/auth-state.service';
               <input [(ngModel)]="otpForm.otp" type="text" maxlength="6" />
             </label>
             <button type="button" (click)="verifyOtp()">Verify OTP</button>
-            <button type="button" (click)="mode.set('login')" class="secondary">Back to Login</button>
+            <button type="button" (click)="setMode('login')" class="secondary">Back to Login</button>
           </div>
         }
 
@@ -83,11 +83,11 @@ import { AuthStateService } from '../core/auth-state.service';
         <p class="eyebrow">Demo accounts</p>
         <h2>Use seeded credentials</h2>
         <div class="tip">
-          <strong>Seeker</strong>
+          <strong>Seeker </strong>
           <span>seeker1@jobbuddy.com / Test@1234</span>
         </div>
         <div class="tip">
-          <strong>Recruiter</strong>
+          <strong>Recruiter </strong>
           <span>recruiter1@jobbuddy.com / Test@1234</span>
         </div>
         <p class="help">
@@ -120,7 +120,8 @@ import { AuthStateService } from '../core/auth-state.service';
       margin-bottom: 1.2rem;
     }
     .tabs button {
-      background: rgba(255,255,255,0.05);
+      background: rgba(255, 255, 255, 0.55);
+      border: 1px solid var(--border);
       color: var(--text);
     }
     .tabs button.active {
@@ -133,7 +134,7 @@ import { AuthStateService } from '../core/auth-state.service';
     }
     .message,
     .tip {
-      background: rgba(10, 16, 32, 0.45);
+      background: rgba(255, 255, 255, 0.6);
       border-radius: 18px;
       margin-top: 1rem;
       padding: 1rem;
@@ -217,6 +218,11 @@ export class LoginComponent {
     password: 'Test@1234',
     role: 'seeker',
   };
+
+  protected setMode(nextMode: 'login' | 'register' | 'otp'): void {
+    this.mode.set(nextMode);
+    this.message.set('');
+  }
 
   protected login(): void {
     const payload = {

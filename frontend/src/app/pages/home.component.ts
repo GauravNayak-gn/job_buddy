@@ -100,20 +100,10 @@ interface Job {
       justify-content: space-between;
       flex-wrap: wrap;
     }
-    .hero-stats {
-      display: grid;
-      gap: 1rem;
-      align-content: start;
-    }
-    .hero-stats article,
     .empty-card {
-      background: rgba(10, 16, 32, 0.45);
+      background: rgba(255, 255, 255, 0.62);
       border-radius: 22px;
       padding: 1.25rem;
-    }
-    .hero-stats strong {
-      display: block;
-      font-size: 2rem;
     }
     .section {
       display: grid;
@@ -136,7 +126,7 @@ interface Job {
       text-transform: uppercase;
     }
     .error {
-      color: #ffb8aa;
+      color: #9f2f18;
     }
     @media (max-width: 980px) {
       .hero-card,
@@ -167,9 +157,15 @@ export class HomeComponent implements OnInit {
   }
 
   protected formatSalary(min: number | null, max: number | null): string {
-    if (!min && !max) {
+    if (min == null && max == null) {
       return 'Salary not disclosed';
     }
-    return `INR ${min ?? 0} - ${max ?? 0}`;
+    if (min != null && max != null) {
+      return `INR ${min} - ${max}`;
+    }
+    if (min != null) {
+      return `From INR ${min}`;
+    }
+    return `Up to INR ${max}`;
   }
 }

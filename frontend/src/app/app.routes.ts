@@ -15,12 +15,21 @@ const authGuard: CanActivateFn = () => {
   return auth.isLoggedIn() ? true : router.createUrlTree(['/login']);
 };
 
+const recruiterGuard: CanActivateFn = () => {
+  const auth = inject(AuthStateService);
+  const router = inject(Router);
+  if (!auth.isLoggedIn()) {
+    return router.createUrlTree(['/login']);
+  }
+  return auth.isRecruiter() ? true : router.createUrlTree(['/']);
+};
+
 export const routes: Routes = [
   { path: '', component: HomeComponent },
   { path: 'jobs', component: JobsComponent },
   { path: 'login', component: LoginComponent },
   { path: 'profile', component: ProfileComponent, canActivate: [authGuard] },
-  { path: 'post-job', component: PostJobComponent, canActivate: [authGuard] },
+  { path: 'post-job', component: PostJobComponent, canActivate: [recruiterGuard] },
   { path: 'notifications', component: NotificationsComponent, canActivate: [authGuard] },
   { path: 'matches', component: MatchesComponent, canActivate: [authGuard] },
   { path: '**', redirectTo: '' },
