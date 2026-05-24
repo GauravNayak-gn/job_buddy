@@ -342,8 +342,8 @@ interface InterviewResponse {
     .page-card { display: grid; gap: 1.5rem; padding: 1.5rem; }
     .tabs { display: flex; gap: 0.5rem; border-bottom: 2px solid var(--border); padding-bottom: 0.5rem; }
     .tabs button { background: transparent; border: none; color: var(--muted); padding: 0.75rem 1.5rem; border-radius: 12px; cursor: pointer; transition: all 0.2s; }
-    .tabs button.active { background: rgba(42, 157, 143, 0.16); color: #9fe3d8; }
-    .tabs button:hover { background: rgba(42, 157, 143, 0.08); }
+    .tabs button.active { background: #e0e7ff; color: #3730a3; }
+    .tabs button:hover { background: #f1f5f9; }
     
     .form-card,
     .jobs-panel,
@@ -361,15 +361,15 @@ interface InterviewResponse {
     .job-card { 
       display: flex;
       flex-direction: column;
-      background: rgba(10, 16, 32, 0.45); 
-      border: 2px solid transparent;
+      background: var(--card); 
+      border: 1px solid var(--border);
       border-radius: 18px; 
       padding: 1.25rem; 
       cursor: pointer;
       transition: all 0.2s;
     }
-    .job-card:hover { border-color: rgba(42, 157, 143, 0.3); transform: translateY(-2px); }
-    .job-card.selected { border-color: rgba(42, 157, 143, 0.6); background: rgba(42, 157, 143, 0.08); }
+    .job-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+    .job-card.selected { border-color: var(--accent); background: #eff6ff; }
     
     .job-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: 0.75rem; }
     .job-meta { color: var(--muted); font-size: 0.9rem; margin: 0.25rem 0 0 0; }
@@ -389,7 +389,7 @@ interface InterviewResponse {
       display: flex;
       flex-direction: column;
       gap: 1rem;
-      background: rgba(10, 16, 32, 0.45); 
+      background: var(--card); 
       border-radius: 18px; 
       padding: 1.25rem;
       border: 1px solid var(--border);
@@ -413,15 +413,16 @@ interface InterviewResponse {
     .small { margin-top: 1rem; padding: 1rem; }
     
     .status-pill { 
-      background: rgba(238, 108, 77, 0.16); 
+      background: #e0e7ff; 
       border-radius: 999px; 
-      color: #ffd1c6; 
+      color: #3730a3; 
       padding: 0.45rem 0.8rem; 
       text-transform: capitalize;
       font-size: 0.85rem;
       white-space: nowrap;
+      font-weight: 500;
     }
-    .status-pill.archived { background: rgba(142, 145, 150, 0.18); color: #d9dde4; }
+    .status-pill.archived { background: #f1f5f9; color: #475569; }
     
     .meta-line { margin: 0; color: var(--muted); font-size: 0.9rem; }
     
@@ -448,30 +449,31 @@ interface InterviewResponse {
     
     .profile-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
     .close-btn { 
-      background: rgba(238, 108, 77, 0.16); 
+      background: #fee2e2; 
       border: none; 
       border-radius: 8px; 
       padding: 0.4rem 1rem;
       cursor: pointer; 
       font-size: 0.95rem;
       font-weight: 500;
-      color: #ffd1c6;
+      color: #991b1b;
       transition: all 0.2s;
     }
-    .close-btn:hover { background: rgba(238, 108, 77, 0.3); }
+    .close-btn:hover { background: #fecaca; }
     
     .profile-section { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); }
     .profile-section:first-of-type { border-top: none; padding-top: 0; }
     .skills-grid { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem; }
-    .skill-tag { background: rgba(42, 157, 143, 0.16); border-radius: 999px; color: #9fe3d8; padding: 0.35rem 0.7rem; font-size: 0.9rem; }
-    .experience-item { margin-top: 0.8rem; padding: 0.8rem; background: rgba(10, 16, 32, 0.25); border-radius: 12px; }
+    .skill-tag { background: #dbeafe; border-radius: 999px; color: #1e40af; padding: 0.35rem 0.7rem; font-size: 0.9rem; font-weight: 500; }
+    .experience-item { margin-top: 0.8rem; padding: 0.8rem; background: var(--bg); border: 1px solid var(--border); border-radius: 12px; }
     
     .interview-banner { 
-      background: rgba(42, 157, 143, 0.12); 
-      border: 1px solid rgba(42, 157, 143, 0.3);
+      background: #ecfdf5; 
+      border: 1px solid #6ee7b7;
       border-radius: 18px; 
       padding: 1.25rem;
       margin-top: 1rem;
+      color: #065f46;
     }
     
     @media (max-width: 980px) {
