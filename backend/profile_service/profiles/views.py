@@ -163,7 +163,7 @@ class ResumeUploadView(APIView):
             parsing_status=parsing_status if raw_text else 'failed',
         )
 
-        publish_resume_uploaded(resume.id, seeker.id, raw_text)
+        publish_resume_uploaded(resume.id, seeker.user_id, raw_text)
 
         return Response(ResumeSerializer(resume).data, status=status.HTTP_201_CREATED)
 
