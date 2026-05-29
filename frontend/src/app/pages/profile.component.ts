@@ -142,9 +142,12 @@ interface JobDetails {
                   @if (resumes().length) {
                     <div class="list compact">
                       @for (item of resumes(); track item.id) {
-                        <div class="list-item">
-                          <strong>{{ item.resume_title }}</strong>
-                          <p class="meta-line">{{ item.parsing_status }} · {{ item.created_at | date: 'medium' }}</p>
+                        <div class="list-item" style="display: flex; justify-content: space-between; align-items: center;">
+                          <div>
+                            <strong>{{ item.resume_title }}</strong>
+                            <p class="meta-line">{{ item.parsing_status }} · {{ item.created_at | date: 'medium' }}</p>
+                          </div>
+                          <button type="button" class="close-btn" style="padding: 0.2rem 0.5rem; font-size: 0.8rem;" (click)="deleteResume(item.id)">Delete</button>
                         </div>
                       }
                     </div>
@@ -539,6 +542,17 @@ export class ProfileComponent implements OnInit {
         this.message.set('Resume uploaded successfully. It is currently being processed.');
         this.resumeTitle = '';
         this.selectedResumeFile = null;
+        this.loadResumes();
+      },
+      error: (error) => this.message.set(this.errorMessage(error)),
+    });
+  }
+
+  protected deleteResume(resumeId: string): void {
+    if (!confirm('Are you sure you want to delete this resume?')) return;
+    this.api.delete(`${this.api.profileBase}/seeker/resumes/${resumeId}/`, true).subscribe({
+      next: () => {
+        this.message.set('Resume deleted successfully.');
         this.loadResumes();
       },
       error: (error) => this.message.set(this.errorMessage(error)),

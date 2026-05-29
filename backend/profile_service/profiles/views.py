@@ -10,7 +10,7 @@ from .serializers import (
     SeekerProfileSerializer, RecruiterProfileSerializer,
     SkillSerializer, SeekerSkillSerializer, ExperienceSerializer, ResumeSerializer
 )
-from .utils import upload_to_s3, extract_text_from_pdf, get_presigned_url, publish_resume_uploaded
+from .utils import upload_to_s3, extract_text_from_pdf, get_presigned_url, publish_resume_uploaded, publish_resume_deleted
 
 
 def get_seeker_profile(user_id):
@@ -166,6 +166,30 @@ class ResumeUploadView(APIView):
         publish_resume_uploaded(resume.id, seeker.user_id, raw_text)
 
         return Response(ResumeSerializer(resume).data, status=status.HTTP_201_CREATED)
+
+
+class ResumeDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, resume_id):
+        seeker = get_seeker_profile(request.user.id)
+        if not seeker:
+            return Response({"error": "Seeker profile not found."}, status=status.HTTP_404_NOT_FOUND)
+        
+        try:
+            resume = seeker.resumes.get(id=resume_id)
+        except Resume.DoesNotExist:
+            return Response({"error": "Resume not found."}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Publish event before deleting to ensure matching service can delete embeddings
+        publish_resume_deleted(resume.id, seeker.user_id)
+        
+        # Optionally, delete the file from storage
+        if default_storage.exists(resume.local_path):
+            default_storage.delete(resume.local_path)
+            
+        resume.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class ResumeURLView(APIView):

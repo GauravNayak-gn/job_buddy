@@ -7,11 +7,11 @@ from matching.models import JobEmbedding, ResumeEmbedding
 from matching.utils import generate_embedding
 
 
-TOPICS = ['resume.uploaded', 'job.published']
+TOPICS = ['resume.uploaded', 'resume.deleted', 'job.published']
 
 
 class Command(BaseCommand):
-    help = 'Consume Kafka events and create/update embeddings.'
+    help = 'Consume Kafka events and create/update/delete embeddings.'
 
     def handle(self, *args, **options):
         consumer = KafkaConsumer(
@@ -36,6 +36,10 @@ class Command(BaseCommand):
                         resume_id=resume_id,
                         defaults={'seeker_id': seeker_id, 'embedding': vector},
                     )
+            elif message.topic == 'resume.deleted':
+                resume_id = payload.get('resume_id')
+                if resume_id:
+                    ResumeEmbedding.objects.filter(resume_id=resume_id).delete()
             elif message.topic == 'job.published':
                 job_id = payload.get('job_id')
                 description_text = payload.get('description_text', '')
