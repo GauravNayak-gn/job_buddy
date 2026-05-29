@@ -14,6 +14,7 @@ class ResumeEmbedding(models.Model):
 
     class Meta:
         db_table = 'resume_embeddings'
+        app_label = 'matching'
 
 
 class JobEmbedding(models.Model):
@@ -26,3 +27,4 @@ class JobEmbedding(models.Model):
 
     class Meta:
         db_table = 'job_embeddings'
+        app_label = 'matching'

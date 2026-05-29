@@ -77,6 +77,25 @@ interface JobMatchView {
   job_id: string;
   title: string;
   similarity_score: number;
+  description?: string;
+  location_type?: string;
+  location_city?: string;
+  experience_required?: string;
+  salary_min?: number | null;
+  salary_max?: number | null;
+  status?: string;
+}
+
+interface ResumeItem {
+  id: string;
+  resume_title: string;
+  parsing_status: string;
+}
+
+interface ApplicationItem {
+  id: string;
+  job_id: string;
+  current_stage: string;
 }
 
 @Component({
@@ -96,13 +115,51 @@ interface JobMatchView {
         <p class="hint">Shows top matched jobs for your seeker account.</p>
         <button type="button" (click)="loadJobsForSeeker()">Find jobs for me</button>
 
+        @if (auth.isLoggedIn()) {
+          <div class="apply-bar" style="margin-top: 1rem; margin-bottom: 1rem; background: rgba(10, 16, 32, 0.05); border: 1px solid var(--border); border-radius: 18px; padding: 1rem;">
+            <label style="display: grid; gap: 0.25rem;">
+              <span>Resume to use for apply</span>
+              <select [(ngModel)]="selectedResumeId">
+                <option value="">Select resume</option>
+                @for (resume of resumes(); track resume.id) {
+                  <option [value]="resume.id">{{ resume.resume_title }} ({{ resume.parsing_status }})</option>
+                }
+              </select>
+            </label>
+          </div>
+        }
+
         @if (jobResults().length) {
           <div class="list">
             @for (item of jobResults(); track item.job_id) {
               <article class="item">
-                <h2>{{ item.title }}</h2>
-                <p class="muted">Job ID: {{ item.job_id }}</p>
-                <p>Match score: {{ item.similarity_score }}</p>
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap;">
+                  <div>
+                    <p class="eyebrow" style="margin: 0; color: var(--muted); font-size: 0.85rem; text-transform: uppercase;">{{ item.location_type || 'Location N/A' }} @if (item.location_city) { · {{ item.location_city }} }</p>
+                    <h2 style="margin: 0.25rem 0;">{{ item.title }}</h2>
+                    <p class="muted" style="margin: 0; font-size: 0.85rem;">Job ID: {{ item.job_id }}</p>
+                  </div>
+                  <span class="status-pill" style="background: rgba(42, 157, 143, 0.16); color: #9fe3d8;">Match score: {{ item.similarity_score }}</span>
+                </div>
+                
+                @if (item.description) {
+                  <p class="description" style="color: var(--muted); margin: 1rem 0;">{{ item.description.length > 200 ? (item.description | slice:0:200) + '...' : item.description }}</p>
+                }
+                
+                <div style="display: flex; gap: 1rem; justify-content: space-between; margin-bottom: 1rem; flex-wrap: wrap;">
+                  <span>{{ item.experience_required || 'Experience not specified' }}</span>
+                  <span>{{ formatSalary(item.salary_min, item.salary_max) }}</span>
+                </div>
+
+                @if (auth.isLoggedIn()) {
+                  <div style="display: flex; gap: 1rem; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+                    @if (appliedJobIds().has(item.job_id)) {
+                      <span style="background: rgba(30, 111, 104, 0.14); color: #1e6f68; border-radius: 999px; padding: 0.45rem 0.8rem;">Already applied</span>
+                    } @else {
+                      <button type="button" (click)="apply(item.job_id)">Apply now</button>
+                    }
+                  </div>
+                }
               </article>
             }
           </div>
@@ -383,6 +440,10 @@ export class MatchesComponent implements OnInit {
   readonly schedulingSeekerId = signal('');
   readonly scheduledInterview = signal<InterviewResponse | null>(null);
 
+  readonly resumes = signal<ResumeItem[]>([]);
+  readonly appliedJobIds = signal<Set<string>>(new Set<string>());
+  selectedResumeId = '';
+
   jobId = '';
   scheduleDateTime = '';
   scheduleNotes = '';
@@ -393,6 +454,58 @@ export class MatchesComponent implements OnInit {
         next: (jobs) => this.recruiterJobs.set(jobs),
       });
     }
+    if (this.isSeeker() && this.auth.isLoggedIn()) {
+      this.loadResumes();
+      this.loadApplications();
+    }
+  }
+
+  private loadResumes(): void {
+    this.api.get<ResumeItem[]>(`${this.api.profileBase}/seeker/resumes/`, true).subscribe({
+      next: (resumes) => {
+        this.resumes.set(resumes);
+        if (!this.selectedResumeId && resumes.length) {
+          this.selectedResumeId = resumes[0].id;
+        }
+      },
+    });
+  }
+
+  private loadApplications(): void {
+    this.api.get<ApplicationItem[]>(`${this.api.applicationsBase}/my/`, true).subscribe({
+      next: (apps) => this.appliedJobIds.set(new Set(apps.map((app) => app.job_id))),
+    });
+  }
+
+  protected apply(jobId: string): void {
+    this.message.set('');
+    if (!this.selectedResumeId) {
+      this.message.set('Select a resume first from the dropdown above.');
+      return;
+    }
+
+    this.api.post(`${this.api.applicationsBase}/apply/`, {
+      job_id: jobId,
+      resume_id: this.selectedResumeId,
+      cover_letter: 'Applied via AI Matches.',
+    }, true).subscribe({
+      next: () => {
+        this.message.set('Application submitted.');
+        this.loadApplications();
+      },
+      error: (error) => {
+        if (error?.error && typeof error.error === 'object') {
+          this.message.set(JSON.stringify(error.error));
+        } else {
+          this.message.set('Unable to apply for this job.');
+        }
+      },
+    });
+  }
+
+  protected formatSalary(min: number | null | undefined, max: number | null | undefined): string {
+    if (!min && !max) return 'Salary not disclosed';
+    return `INR ${min ?? 0} - ${max ?? 0}`;
   }
 
   protected loadJobsForSeeker(): void {
@@ -410,8 +523,19 @@ export class MatchesComponent implements OnInit {
         }
 
         const detailCalls = results.map((item) =>
-          this.api.get<{ title: string }>(`${this.api.jobsBase}/${item.job_id}/`).pipe(
-            map((job) => ({ job_id: item.job_id, title: job.title || item.job_id, similarity_score: item.similarity_score })),
+          this.api.get<any>(`${this.api.jobsBase}/${item.job_id}/`).pipe(
+            map((job) => ({ 
+              job_id: item.job_id, 
+              title: job.title || item.job_id, 
+              similarity_score: item.similarity_score,
+              description: job.description,
+              location_type: job.location_type,
+              location_city: job.location_city,
+              experience_required: job.experience_required,
+              salary_min: job.salary_min,
+              salary_max: job.salary_max,
+              status: job.status
+            })),
             catchError(() => of({ job_id: item.job_id, title: item.job_id, similarity_score: item.similarity_score })),
           ),
         );
