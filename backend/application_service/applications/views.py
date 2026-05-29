@@ -93,7 +93,13 @@ class MyApplicationListView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        applications = Application.objects.filter(seeker_id=request.user.id).order_by('-created_at')
+        applications = Application.objects.filter(seeker_id=request.user.id)
+        
+        stage = request.query_params.get('stage')
+        if stage:
+            applications = applications.filter(current_stage=stage)
+            
+        applications = applications.order_by('-created_at')
         return Response(ApplicationSerializer(applications, many=True).data)
 
 
@@ -104,11 +110,17 @@ class JobApplicationListView(APIView):
         if not request_user_is_recruiter(request.user):
             return Response({'error': 'Only recruiters can view job applications.'}, status=status.HTTP_403_FORBIDDEN)
 
+        sort_by = request.query_params.get('sort_by', '-created_at')
+        # Validate sort field to prevent injection/errors
+        allowed_sorts = ['current_stage', '-current_stage', 'created_at', '-created_at']
+        if sort_by not in allowed_sorts:
+            sort_by = '-created_at'
+
         applications = Application.objects.filter(
             job_id=job_id,
             recruiter_id=request.user.id,
             is_withdrawn=False,
-        ).order_by('-created_at')
+        ).order_by(sort_by)
         return Response(ApplicationSerializer(applications, many=True).data)
 
 

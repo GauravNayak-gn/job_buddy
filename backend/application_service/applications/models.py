@@ -6,16 +6,16 @@ from django.utils import timezone
 
 class Application(models.Model):
     STAGE_APPLIED = 'applied'
-    STAGE_SCREENING = 'screening'
+    STAGE_SHORTLISTED = 'shortlisted'
     STAGE_INTERVIEW = 'interview_scheduled'
-    STAGE_OFFERED = 'offered'
+    STAGE_SELECTED = 'selected'
     STAGE_REJECTED = 'rejected'
 
     STAGE_CHOICES = [
         (STAGE_APPLIED, 'Applied'),
-        (STAGE_SCREENING, 'Screening'),
+        (STAGE_SHORTLISTED, 'Shortlisted'),
         (STAGE_INTERVIEW, 'Interview Scheduled'),
-        (STAGE_OFFERED, 'Offered'),
+        (STAGE_SELECTED, 'Selected'),
         (STAGE_REJECTED, 'Rejected'),
     ]
 

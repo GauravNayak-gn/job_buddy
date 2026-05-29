@@ -167,13 +167,20 @@ interface JobDetails {
             <article class="panel-card">
               <div class="section-head">
                 <h2>My applications</h2>
-                <button type="button" class="secondary" (click)="loadApplications()">Refresh</button>
+                <div class="app-filters">
+                  <select [ngModel]="applicationStageFilter()" (ngModelChange)="onStageFilterChange($event)" class="filter-select">
+                    @for (stage of availableStages; track stage.value) {
+                      <option [value]="stage.value">{{ stage.label }}</option>
+                    }
+                  </select>
+                  <button type="button" class="secondary" (click)="loadApplications()">Refresh</button>
+                </div>
               </div>
               
               @if (applicationsLoading()) {
                 <div class="empty-card small">Loading applications...</div>
               } @else if (!applications().length) {
-                <div class="empty-card small">You haven't applied to any jobs yet.</div>
+                <div class="empty-card small">No applications found{{ applicationStageFilter() ? ' for this stage' : '' }}.</div>
               } @else {
                 <div class="app-grid">
                   @for (item of applications(); track item.id) {
@@ -356,6 +363,16 @@ interface JobDetails {
       font-weight: 500;
     }
     
+    .app-filters { display: flex; gap: 0.5rem; align-items: center; }
+    .filter-select { 
+      padding: 0.4rem 0.8rem; 
+      border-radius: 12px; 
+      border: 1px solid var(--border);
+      background: var(--card);
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+    
     .file-input { padding: 0.5rem; background: #ffffff; }
     
     .muted { color: var(--muted); }
@@ -403,6 +420,16 @@ export class ProfileComponent implements OnInit {
   readonly activeTab = signal<'profile' | 'applications'>('profile');
   readonly applicationsLoading = signal(false);
   readonly message = signal('');
+  readonly applicationStageFilter = signal<string>('');
+
+  readonly availableStages = [
+    { value: '', label: 'All stages' },
+    { value: 'applied', label: 'Applied' },
+    { value: 'shortlisted', label: 'Shortlisted' },
+    { value: 'interview_scheduled', label: 'Interview Scheduled' },
+    { value: 'selected', label: 'Selected' },
+    { value: 'rejected', label: 'Rejected' },
+  ];
 
   readonly skills = signal<SeekerSkill[]>([]);
   readonly resumes = signal<ResumeItem[]>([]);
@@ -579,7 +606,11 @@ export class ProfileComponent implements OnInit {
 
   protected loadApplications(): void {
     this.applicationsLoading.set(true);
-    this.api.get<ApplicationItem[]>(`${this.api.applicationsBase}/my/`, true).subscribe({
+    const params: Record<string, string> = {};
+    if (this.applicationStageFilter()) {
+      params['stage'] = this.applicationStageFilter();
+    }
+    this.api.get<ApplicationItem[]>(`${this.api.applicationsBase}/my/`, true, params).subscribe({
       next: (res) => {
         this.applications.set(res);
         this.applicationsLoading.set(false);
@@ -588,6 +619,11 @@ export class ProfileComponent implements OnInit {
         this.applicationsLoading.set(false);
       },
     });
+  }
+
+  protected onStageFilterChange(stage: string): void {
+    this.applicationStageFilter.set(stage);
+    this.loadApplications();
   }
 
   protected viewJobDetails(jobId: string): void {

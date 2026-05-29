@@ -16,8 +16,8 @@ export class ApiService {
   readonly notificationsBase = '/api/notifications';
   readonly chatBase = '/api/chat';
 
-  get<T>(url: string, auth = false): Observable<T> {
-    return this.http.get<T>(url, { headers: this.headers(auth) });
+  get<T>(url: string, auth = false, params?: Record<string, string>): Observable<T> {
+    return this.http.get<T>(url, { headers: this.headers(auth), params });
   }
 
   getBlob(url: string, auth = false): Observable<Blob> {

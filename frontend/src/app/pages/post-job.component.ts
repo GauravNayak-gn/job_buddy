@@ -207,9 +207,17 @@ interface InterviewResponse {
             <article class="applicants-panel">
               <div class="list-head">
                 <h2>Applicants {{ selectedJob() ? 'for "' + selectedJob()!.title + '"' : '' }}</h2>
-                @if (selectedJob(); as currentJob) {
-                  <button type="button" class="secondary" (click)="openApplicants(currentJob.id)">Refresh</button>
-                }
+                <div class="applicants-ctrl">
+                  <select [ngModel]="applicationSortBy()" (ngModelChange)="onSortChange($event)" class="sort-select">
+                    <option value="-created_at">Newest first</option>
+                    <option value="created_at">Oldest first</option>
+                    <option value="current_stage">Stage (A-Z)</option>
+                    <option value="-current_stage">Stage (Z-A)</option>
+                  </select>
+                  @if (selectedJob(); as currentJob) {
+                    <button type="button" class="secondary" (click)="openApplicants(currentJob.id)">Refresh</button>
+                  }
+                </div>
               </div>
 
               @if (!selectedJob()) {
@@ -228,7 +236,13 @@ interface InterviewResponse {
                             <h3>{{ application.seeker_email || application.seeker_id }}</h3>
                             <p class="meta-line">Applied {{ application.created_at | date: 'short' }}</p>
                           </div>
-                          <span class="status-pill">{{ application.current_stage }}</span>
+                          <div class="stage-ctrl">
+                            <select [ngModel]="application.current_stage" (ngModelChange)="updateStage(application.id, $event)" class="stage-select">
+                                @for (stage of availableStages; track stage.value) {
+                                    <option [value]="stage.value">{{ stage.label }}</option>
+                                }
+                            </select>
+                          </div>
                         </div>
 
                         <p class="cover-letter">{{ application.cover_letter || 'No cover letter provided' }}</p>
@@ -481,6 +495,17 @@ interface InterviewResponse {
       margin-top: 1rem;
       color: #065f46;
     }
+
+    .applicants-ctrl { display: flex; gap: 0.5rem; align-items: center; }
+    .sort-select, .stage-select { 
+      padding: 0.4rem 0.8rem; 
+      border-radius: 12px; 
+      border: 1px solid var(--border);
+      background: var(--card);
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+    .stage-select { color: #3730a3; font-weight: 500; background: #e0e7ff; border: none; }
     
     @media (max-width: 980px) {
       .manage-layout,
@@ -503,10 +528,19 @@ export class PostJobComponent implements OnInit {
   readonly editingJobId = signal('');
   readonly selectedJobId = signal('');
   readonly applications = signal<Applicant[]>([]);
+  readonly applicationSortBy = signal('-created_at');
   readonly schedulingApplicationId = signal('');
   readonly scheduledInterview = signal<InterviewResponse | null>(null);
   readonly selectedJob = computed(() => this.myJobs().find((job) => job.id === this.selectedJobId()) ?? null);
   readonly viewingProfile = signal<SeekerProfile | null>(null);
+
+  readonly availableStages = [
+    { value: 'applied', label: 'Applied' },
+    { value: 'shortlisted', label: 'Shortlisted' },
+    { value: 'interview_scheduled', label: 'Interview Scheduled' },
+    { value: 'selected', label: 'Selected' },
+    { value: 'rejected', label: 'Rejected' },
+  ];
 
   readonly activeTab = signal<'create' | 'manage'>('manage');
 
@@ -535,7 +569,8 @@ export class PostJobComponent implements OnInit {
       this.loadMyJobs();
     }
   }
-protected viewResume(resumeId: string): void {
+
+  protected viewResume(resumeId: string): void {
     if (!resumeId) {
       this.interviewMessage.set('No resume was attached to this application.');
       return;
@@ -543,16 +578,11 @@ protected viewResume(resumeId: string): void {
 
     this.interviewMessage.set('Loading resume securely...');
     
-    // Hit the secure download endpoint, which requires the Bearer token
     this.api.getBlob(`${this.api.profileBase}/seeker/resumes/${resumeId}/download/`, true).subscribe({
       next: (blob) => {
         this.interviewMessage.set('');
-        // Create a secure, temporary local URL for the PDF blob
         const fileUrl = window.URL.createObjectURL(blob);
-        // Open the PDF in a new tab
         window.open(fileUrl, '_blank');
-        
-        // Optional cleanup: Revoke the URL after a short delay to free memory
         setTimeout(() => window.URL.revokeObjectURL(fileUrl), 10000);
       },
       error: (error) => {
@@ -724,6 +754,28 @@ protected viewResume(resumeId: string): void {
     });
   }
 
+  protected onSortChange(sort: string): void {
+    this.applicationSortBy.set(sort);
+    if (this.selectedJobId()) {
+      this.loadApplications(this.selectedJobId());
+    }
+  }
+
+  protected updateStage(applicationId: string, newStage: string): void {
+    this.api.post(`${this.api.applicationsBase}/${applicationId}/stage/`, {
+      new_stage: newStage,
+      note: 'Updated by recruiter'
+    }, true).subscribe({
+      next: () => {
+        this.interviewMessage.set('Application stage updated.');
+        if (this.selectedJobId()) {
+          this.loadApplications(this.selectedJobId());
+        }
+      },
+      error: (error) => this.interviewMessage.set(this.errorMessage(error))
+    });
+  }
+
   protected viewProfile(seekerId: string): void {
     this.api.get<SeekerProfile>(`${this.api.profileBase}/seeker/${seekerId}/`, true).subscribe({
       next: (profile) => this.viewingProfile.set(profile),
@@ -767,7 +819,8 @@ protected viewResume(resumeId: string): void {
 
   private loadApplications(jobId: string): void {
     this.applicationsLoading.set(true);
-    this.api.get<Applicant[]>(`${this.api.applicationsBase}/job/${jobId}/`, true).subscribe({
+    const params = { sort_by: this.applicationSortBy() };
+    this.api.get<Applicant[]>(`${this.api.applicationsBase}/job/${jobId}/`, true, params).subscribe({
       next: (applications) => {
         this.applications.set(applications);
         this.applicationsLoading.set(false);
