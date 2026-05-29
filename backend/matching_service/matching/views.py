@@ -58,7 +58,15 @@ class JobsForSeekerView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request, seeker_id):
-        resume = ResumeEmbedding.objects.filter(seeker_id=seeker_id).order_by('-updated_at').first()
+        resume_id = request.query_params.get('resume_id')
+        if resume_id:
+            resume = ResumeEmbedding.objects.filter(seeker_id=seeker_id, resume_id=resume_id).first()
+            if not resume:
+                # Fallback if specific resume embedding not found
+                resume = ResumeEmbedding.objects.filter(seeker_id=seeker_id).order_by('-updated_at').first()
+        else:
+            resume = ResumeEmbedding.objects.filter(seeker_id=seeker_id).order_by('-updated_at').first()
+            
         if not resume:
             return Response({'results': []})
 

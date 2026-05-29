@@ -191,6 +191,28 @@ class ResumeDetailView(APIView):
         resume.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+    def patch(self, request, resume_id):
+        seeker = get_seeker_profile(request.user.id)
+        if not seeker:
+            return Response({"error": "Seeker profile not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            resume = seeker.resumes.get(id=resume_id)
+        except Resume.DoesNotExist:
+            return Response({"error": "Resume not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        is_primary = request.data.get('is_primary')
+        if is_primary is not None:
+            if is_primary:
+                # Set all other resumes to not primary
+                seeker.resumes.exclude(id=resume.id).update(is_primary=False)
+            resume.is_primary = is_primary
+            resume.save()
+            return Response(ResumeSerializer(resume).data)
+        
+        return Response({"error": "No valid data provided."}, status=status.HTTP_400_BAD_REQUEST)
+
+
 
 class ResumeURLView(APIView):
     permission_classes = [IsAuthenticated]

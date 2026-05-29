@@ -90,6 +90,7 @@ interface ResumeItem {
   id: string;
   resume_title: string;
   parsing_status: string;
+  is_primary?: boolean;
 }
 
 interface ApplicationItem {
@@ -464,8 +465,9 @@ export class MatchesComponent implements OnInit {
     this.api.get<ResumeItem[]>(`${this.api.profileBase}/seeker/resumes/`, true).subscribe({
       next: (resumes) => {
         this.resumes.set(resumes);
-        if (!this.selectedResumeId && resumes.length) {
-          this.selectedResumeId = resumes[0].id;
+        if (resumes.length) {
+          const primaryResume = resumes.find(r => r.is_primary);
+          this.selectedResumeId = primaryResume ? primaryResume.id : resumes[0].id;
         }
       },
     });
@@ -512,8 +514,13 @@ export class MatchesComponent implements OnInit {
     this.error.set('');
     this.message.set('');
     const seekerId = this.auth.userId();
+    
+    // Attempt to use the selected or primary resume for matching, otherwise let the backend fallback
+    const resumesList = this.resumes();
+    const matchResume = resumesList.find(r => r.is_primary) || resumesList[0];
+    const resumeQuery = matchResume ? `?resume_id=${matchResume.id}` : '';
 
-    this.api.get<MatchResponse<JobMatch>>(`${this.api.matchBase}/jobs-for-seeker/${seekerId}/`, true).subscribe({
+    this.api.get<MatchResponse<JobMatch>>(`${this.api.matchBase}/jobs-for-seeker/${seekerId}/${resumeQuery}`, true).subscribe({
       next: (res) => {
         const results = res.results ?? [];
         if (!results.length) {
