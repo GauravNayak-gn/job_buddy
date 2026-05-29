@@ -217,10 +217,18 @@ class SeekerProfileByIdView(APIView):
 
     def get(self, request, seeker_id):
         try:
-            profile = SeekerProfile.objects.get(user_id=seeker_id)
+            # Try to lookup by profile primary key first
+            profile = SeekerProfile.objects.filter(id=seeker_id).first()
+            if not profile:
+                # If not found, try to lookup by user_id
+                profile = SeekerProfile.objects.filter(user_id=seeker_id).first()
+            
+            if not profile:
+                return Response({"error": "Profile not found."}, status=status.HTTP_404_NOT_FOUND)
+                
             data = SeekerProfileSerializer(profile).data
             data['skills'] = SeekerSkillSerializer(profile.skills.all(), many=True).data
             data['experiences'] = ExperienceSerializer(profile.experiences.all(), many=True).data
             return Response(data)
-        except SeekerProfile.DoesNotExist:
-            return Response({"error": "Profile not found."}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
