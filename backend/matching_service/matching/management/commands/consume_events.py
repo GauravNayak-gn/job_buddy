@@ -4,7 +4,7 @@ from django.conf import settings
 from django.core.management.base import BaseCommand
 
 from matching.models import JobEmbedding, ResumeEmbedding
-from matching.utils import generate_embedding, vector_to_literal
+from matching.utils import generate_embedding
 
 
 TOPICS = ['resume.uploaded', 'job.published']
@@ -34,7 +34,7 @@ class Command(BaseCommand):
                     vector = generate_embedding(raw_text)
                     ResumeEmbedding.objects.update_or_create(
                         resume_id=resume_id,
-                        defaults={'seeker_id': seeker_id, 'embedding': vector_to_literal(vector)},
+                        defaults={'seeker_id': seeker_id, 'embedding': vector},
                     )
             elif message.topic == 'job.published':
                 job_id = payload.get('job_id')
@@ -43,5 +43,5 @@ class Command(BaseCommand):
                     vector = generate_embedding(description_text)
                     JobEmbedding.objects.update_or_create(
                         job_id=job_id,
-                        defaults={'embedding': vector_to_literal(vector)},
+                        defaults={'embedding': vector},
                     )
