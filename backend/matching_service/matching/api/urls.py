@@ -1,11 +1,7 @@
 from django.urls import path
-from .views import (
-    HealthView,
-    JobsForSeekerView,
-    SeekersForJobView,
-    UpsertJobEmbeddingView,
-    UpsertResumeEmbeddingView,
-)
+from .views.health import HealthView
+from .views.embeddings import UpsertResumeEmbeddingView, UpsertJobEmbeddingView
+from .views.matching import JobsForSeekerView, SeekersForJobView
 
 urlpatterns = [
     path('health/', HealthView.as_view()),
