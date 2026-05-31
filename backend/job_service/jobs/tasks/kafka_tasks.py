@@ -2,8 +2,7 @@ import json
 from django.conf import settings
 from kafka import KafkaProducer
 
-
-def publish_job_published(job_id, description):
+def publish_job_published_event(job_id, description):
     try:
         producer = KafkaProducer(
             bootstrap_servers=settings.KAFKA_BOOTSTRAP_SERVERS,

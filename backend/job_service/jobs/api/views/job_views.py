@@ -3,24 +3,22 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.core.cache import cache
-from .models import Job, JobCategory
-from .serializers import JobSerializer, JobCategorySerializer
-from .utils import publish_job_published
 
+from jobs.api.serializers.job_serializers import JobSerializer, JobCategorySerializer
+from jobs.services import job_service
+from jobs.dao import job_dao
 
 def request_user_is_recruiter(user):
     return getattr(user, 'role', '') == 'recruiter'
-
 
 class HealthView(APIView):
     def get(self, request):
         return Response({"status": "ok", "service": "jobs"})
 
-
 class JobCategoryListView(APIView):
     def get(self, request):
-        return Response(JobCategorySerializer(JobCategory.objects.all(), many=True).data)
-
+        categories = job_dao.get_job_categories()
+        return Response(JobCategorySerializer(categories, many=True).data)
 
 class JobListView(APIView):
     def get(self, request):
@@ -29,24 +27,14 @@ class JobListView(APIView):
         if cached:
             return Response(cached)
 
-        jobs = Job.objects.filter(status='published', is_archived=False).select_related('category').prefetch_related('skills')
-
-        # filters
         location_type = request.GET.get('location_type')
         category = request.GET.get('category')
         search = request.GET.get('search')
 
-        if location_type:
-            jobs = jobs.filter(location_type=location_type)
-        if category:
-            jobs = jobs.filter(category__name__icontains=category)
-        if search:
-            jobs = jobs.filter(title__icontains=search) | jobs.filter(description__icontains=search)
-
-        data = JobSerializer(jobs.order_by('-created_at'), many=True).data
-        cache.set(cache_key, data, timeout=300)  # cache 5 minutes
+        jobs = job_dao.get_active_jobs(location_type=location_type, category=category, search=search)
+        data = JobSerializer(jobs, many=True).data
+        cache.set(cache_key, data, timeout=300)
         return Response(data)
-
 
 class JobCreateView(APIView):
     permission_classes = [IsAuthenticated]
@@ -54,39 +42,46 @@ class JobCreateView(APIView):
     def post(self, request):
         if not request_user_is_recruiter(request.user):
             return Response({"error": "Only recruiters can post jobs."}, status=status.HTTP_403_FORBIDDEN)
+        
         serializer = JobSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        job = serializer.save(recruiter_id=request.user.id)
+        
+        validated_data = serializer.validated_data
+        skills_data = validated_data.pop('skills', [])
+        
+        job = job_service.create_job(validated_data, skills_data, request.user.id)
         return Response(JobSerializer(job).data, status=status.HTTP_201_CREATED)
-
 
 class JobDetailView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request, job_id):
         try:
-            job = Job.objects.get(id=job_id)
-            if job.is_archived and str(job.recruiter_id) != str(getattr(request.user, 'id', '')):
-                return Response({"error": "Job not found."}, status=status.HTTP_404_NOT_FOUND)
+            user_id = getattr(request.user, 'id', '')
+            job = job_service.get_job_for_detail(job_id, user_id)
             return Response(JobSerializer(job).data)
-        except Job.DoesNotExist:
+        except (ValueError, job_dao.Job.DoesNotExist):
             return Response({"error": "Job not found."}, status=status.HTTP_404_NOT_FOUND)
 
     def patch(self, request, job_id):
         if not getattr(request.user, 'is_authenticated', False):
             return Response({"error": "Authentication required."}, status=status.HTTP_401_UNAUTHORIZED)
         try:
-            job = Job.objects.get(id=job_id, recruiter_id=request.user.id)
-        except Job.DoesNotExist:
+            job = job_dao.get_job_by_id_and_recruiter(job_id, request.user.id)
+            
+            serializer = JobSerializer(job, data=request.data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            
+            validated_data = serializer.validated_data
+            skills_data = validated_data.pop('skills', None)
+            
+            job = job_service.update_job(job, validated_data, skills_data)
+            return Response(JobSerializer(job).data)
+            
+        except job_dao.Job.DoesNotExist:
             return Response({"error": "Job not found."}, status=status.HTTP_404_NOT_FOUND)
-        if job.is_archived:
-            return Response({"error": "Archived jobs cannot be edited until restored."}, status=status.HTTP_400_BAD_REQUEST)
-        serializer = JobSerializer(job, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        cache.delete_pattern("jobs_list_*")
-        return Response(JobSerializer(job).data)
-
+        except ValueError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 class JobPublishView(APIView):
     permission_classes = [IsAuthenticated]
@@ -95,17 +90,13 @@ class JobPublishView(APIView):
         if not request_user_is_recruiter(request.user):
             return Response({"error": "Only recruiters can publish jobs."}, status=status.HTTP_403_FORBIDDEN)
         try:
-            job = Job.objects.get(id=job_id, recruiter_id=request.user.id)
-        except Job.DoesNotExist:
+            job = job_dao.get_job_by_id_and_recruiter(job_id, request.user.id)
+            job_service.publish_job(job)
+            return Response({"message": "Job published."})
+        except job_dao.Job.DoesNotExist:
             return Response({"error": "Job not found."}, status=status.HTTP_404_NOT_FOUND)
-        if job.is_archived:
-            return Response({"error": "Restore the job before publishing it."}, status=status.HTTP_400_BAD_REQUEST)
-        job.status = 'published'
-        job.save()
-        publish_job_published(job.id, job.description)
-        cache.delete_pattern("jobs_list_*")
-        return Response({"message": "Job published."})
-
+        except ValueError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 class JobCloseView(APIView):
     permission_classes = [IsAuthenticated]
@@ -114,14 +105,11 @@ class JobCloseView(APIView):
         if not request_user_is_recruiter(request.user):
             return Response({"error": "Only recruiters can close jobs."}, status=status.HTTP_403_FORBIDDEN)
         try:
-            job = Job.objects.get(id=job_id, recruiter_id=request.user.id)
-        except Job.DoesNotExist:
+            job = job_dao.get_job_by_id_and_recruiter(job_id, request.user.id)
+            job_service.close_job(job)
+            return Response({"message": "Job closed."})
+        except job_dao.Job.DoesNotExist:
             return Response({"error": "Job not found."}, status=status.HTTP_404_NOT_FOUND)
-        job.status = 'closed'
-        job.save()
-        cache.delete_pattern("jobs_list_*")
-        return Response({"message": "Job closed."})
-
 
 class JobArchiveView(APIView):
     permission_classes = [IsAuthenticated]
@@ -130,14 +118,11 @@ class JobArchiveView(APIView):
         if not request_user_is_recruiter(request.user):
             return Response({"error": "Only recruiters can archive jobs."}, status=status.HTTP_403_FORBIDDEN)
         try:
-            job = Job.objects.get(id=job_id, recruiter_id=request.user.id)
-        except Job.DoesNotExist:
+            job = job_dao.get_job_by_id_and_recruiter(job_id, request.user.id)
+            job_service.archive_job(job)
+            return Response({"message": "Job archived."})
+        except job_dao.Job.DoesNotExist:
             return Response({"error": "Job not found."}, status=status.HTTP_404_NOT_FOUND)
-        job.archive()
-        job.save(update_fields=['is_archived', 'archived_at', 'status', 'updated_at'])
-        cache.delete_pattern("jobs_list_*")
-        return Response({"message": "Job archived."})
-
 
 class JobRestoreView(APIView):
     permission_classes = [IsAuthenticated]
@@ -146,14 +131,11 @@ class JobRestoreView(APIView):
         if not request_user_is_recruiter(request.user):
             return Response({"error": "Only recruiters can restore jobs."}, status=status.HTTP_403_FORBIDDEN)
         try:
-            job = Job.objects.get(id=job_id, recruiter_id=request.user.id)
-        except Job.DoesNotExist:
+            job = job_dao.get_job_by_id_and_recruiter(job_id, request.user.id)
+            job_service.restore_job(job)
+            return Response({"message": "Job restored. Publish it again when ready."})
+        except job_dao.Job.DoesNotExist:
             return Response({"error": "Job not found."}, status=status.HTTP_404_NOT_FOUND)
-        job.restore()
-        job.save(update_fields=['is_archived', 'archived_at', 'updated_at'])
-        cache.delete_pattern("jobs_list_*")
-        return Response({"message": "Job restored. Publish it again when ready."})
-
 
 class RecruiterJobListView(APIView):
     permission_classes = [IsAuthenticated]
@@ -161,5 +143,5 @@ class RecruiterJobListView(APIView):
     def get(self, request):
         if not request_user_is_recruiter(request.user):
             return Response({"error": "Only recruiters can view recruiter jobs."}, status=status.HTTP_403_FORBIDDEN)
-        jobs = Job.objects.filter(recruiter_id=request.user.id).order_by('-created_at')
+        jobs = job_dao.get_recruiter_jobs(request.user.id)
         return Response(JobSerializer(jobs, many=True).data)
