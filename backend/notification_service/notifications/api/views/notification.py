@@ -1,11 +1,10 @@
-from django.utils import timezone
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import Notification
-from .serializers import NotificationSerializer
+from notifications.api.serializers.notification import NotificationSerializer
+from notifications.services.notification_service import NotificationService
 
 
 class HealthView(APIView):
@@ -20,9 +19,7 @@ class NotificationListView(APIView):
 
     def get(self, request):
         only_unread = request.GET.get('unread') == 'true'
-        queryset = Notification.objects.filter(user_id=request.user.id)
-        if only_unread:
-            queryset = queryset.filter(is_read=False)
+        queryset = NotificationService.get_user_notifications(request.user.id, only_unread)
         return Response(NotificationSerializer(queryset[:100], many=True).data)
 
 
@@ -30,7 +27,7 @@ class NotificationUnreadCountView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        count = Notification.objects.filter(user_id=request.user.id, is_read=False).count()
+        count = NotificationService.get_unread_count(request.user.id)
         return Response({'unread_count': count})
 
 
@@ -38,14 +35,10 @@ class NotificationMarkReadView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, notification_id):
-        try:
-            notification = Notification.objects.get(id=notification_id, user_id=request.user.id)
-        except Notification.DoesNotExist:
+        notification = NotificationService.mark_notification_as_read(notification_id, request.user.id)
+        if not notification:
             return Response({'error': 'Notification not found.'}, status=status.HTTP_404_NOT_FOUND)
 
-        notification.is_read = True
-        notification.read_at = timezone.now()
-        notification.save(update_fields=['is_read', 'read_at'])
         return Response({'message': 'Notification marked as read.'})
 
 
@@ -53,6 +46,5 @@ class NotificationMarkAllReadView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        now = timezone.now()
-        Notification.objects.filter(user_id=request.user.id, is_read=False).update(is_read=True, read_at=now)
+        NotificationService.mark_all_as_read(request.user.id)
         return Response({'message': 'All notifications marked as read.'})
