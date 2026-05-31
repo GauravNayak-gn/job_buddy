@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import (
+from applications.api.views.application_views import (
     ApplicationDetailView,
     ApplyView,
     HealthView,

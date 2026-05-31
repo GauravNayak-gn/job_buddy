@@ -3,7 +3,6 @@ from datetime import timedelta
 from django.db import models
 from django.utils import timezone
 
-
 class Application(models.Model):
     STAGE_APPLIED = 'applied'
     STAGE_SHORTLISTED = 'shortlisted'
