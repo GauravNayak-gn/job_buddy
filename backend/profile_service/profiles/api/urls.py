@@ -1,8 +1,10 @@
 from django.urls import path
-from .views import (
+from profiles.api.views.profile import (
     HealthView, SeekerProfileView, RecruiterProfileView,
-    SkillListView, SeekerSkillView, ExperienceView,
-    ResumeUploadView, ResumeDetailView, ResumeURLView, ResumeDownloadView, SeekerProfileByIdView
+    SkillListView, SeekerSkillView, ExperienceView, SeekerProfileByIdView
+)
+from profiles.api.views.resume import (
+    ResumeUploadView, ResumeDetailView, ResumeURLView, ResumeDownloadView
 )
 
 urlpatterns = [
