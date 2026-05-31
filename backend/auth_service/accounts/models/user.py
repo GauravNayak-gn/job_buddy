@@ -2,7 +2,6 @@ import uuid
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
 
-
 class UserManager(BaseUserManager):
     def create_user(self, email, password, role):
         if not email:
@@ -24,7 +23,6 @@ class UserManager(BaseUserManager):
         user.save(using=self._db)
         return user
 
-
 class User(AbstractBaseUser, PermissionsMixin):
     ROLE_CHOICES = [('seeker', 'Seeker'), ('recruiter', 'Recruiter'), ('admin', 'Admin')]
 
@@ -43,18 +41,3 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     class Meta:
         db_table = 'users'
-
-
-class EmailOTP(models.Model):
-    PURPOSE_CHOICES = [('verify_email', 'Verify Email'), ('reset_password', 'Reset Password')]
-
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    otp_code = models.CharField(max_length=6)
-    purpose = models.CharField(max_length=30, choices=PURPOSE_CHOICES)
-    expires_at = models.DateTimeField()
-    is_used = models.BooleanField(default=False)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        db_table = 'email_otps'
