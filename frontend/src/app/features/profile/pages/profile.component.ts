@@ -2,49 +2,17 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { ApiService } from '../core/api.service';
-import { AuthStateService } from '../core/auth-state.service';
-
-interface SeekerSkill {
-  id: string;
-  skill_name: string;
-  years_of_experience: number;
-}
-
-interface ResumeItem {
-  id: string;
-  resume_title: string;
-  is_primary: boolean;
-  parsing_status: string;
-  created_at: string;
-}
-
-interface ApplicationItem {
-  id: string;
-  job_id: string;
-  job_title?: string;
-  resume_id?: string; // Added to track which resume was submitted
-  current_stage: string;
-  created_at: string;
-}
-
-// Added to type the fetched job details
-interface JobDetails {
-  id: string;
-  title: string;
-  description: string;
-  location_type: string;
-  location_city: string;
-  experience_required: string;
-  salary_min: number | null;
-  salary_max: number | null;
-  status: string;
-}
+import { ApiService } from '../../../core/services/api.service';
+import { AuthStateService } from '../../../core/services/auth-state.service';
+import { AlertService } from '../../../core/services/alert.service';
+import { SeekerSkill, ResumeItem, ApplicationItem, Job } from '../../../core/models';
+import { extractErrorMessage } from '../../../shared/utils/error-message.util';
+import { SalaryPipe } from '../../../shared/pipes/salary.pipe';
 
 @Component({
   selector: 'app-profile-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, SalaryPipe],
   template: `
     <section class="page-card">
       <div class="page-head">
@@ -260,7 +228,7 @@ interface JobDetails {
             <div class="modal-section">
               <p><strong>Location:</strong> {{ job.location_type }} @if(job.location_city) { · {{ job.location_city }} }</p>
               <p><strong>Experience Required:</strong> {{ job.experience_required || 'Not specified' }}</p>
-              <p><strong>Salary:</strong> {{ formatSalary(job.salary_min, job.salary_max) }}</p>
+              <p><strong>Salary:</strong> {{ job.salary_min | salary:job.salary_max }}</p>
               <p><strong>Status:</strong> <span class="status-pill">{{ job.status }}</span></p>
             </div>
             
@@ -414,6 +382,7 @@ interface JobDetails {
 export class ProfileComponent implements OnInit {
   private readonly api = inject(ApiService);
   readonly auth = inject(AuthStateService);
+  private readonly alertService = inject(AlertService);
 
   readonly isSeeker = computed(() => this.auth.role() === 'seeker');
   readonly editMode = signal(false);
@@ -434,7 +403,7 @@ export class ProfileComponent implements OnInit {
   readonly skills = signal<SeekerSkill[]>([]);
   readonly resumes = signal<ResumeItem[]>([]);
   readonly applications = signal<ApplicationItem[]>([]);
-  readonly viewingJob = signal<JobDetails | null>(null);
+  readonly viewingJob = signal<Job | null>(null);
 
   readonly seeker = {
     first_name: '',
@@ -479,7 +448,7 @@ export class ProfileComponent implements OnInit {
       next: (response) => {
         Object.assign(this.seeker, response as object);
       },
-      error: (error) => this.message.set(this.errorMessage(error)),
+      error: (error) => this.message.set(extractErrorMessage(error)),
     });
   }
 
@@ -495,7 +464,7 @@ export class ProfileComponent implements OnInit {
             this.message.set('Seeker profile updated.');
             this.editMode.set(false);
           },
-          error: (error) => this.message.set(this.errorMessage(error)),
+          error: (error) => this.message.set(extractErrorMessage(error)),
         });
       },
     });
@@ -506,7 +475,7 @@ export class ProfileComponent implements OnInit {
       next: (response) => {
         Object.assign(this.recruiter, response as object);
       },
-      error: (error) => this.message.set(this.errorMessage(error)),
+      error: (error) => this.message.set(extractErrorMessage(error)),
     });
   }
 
@@ -522,7 +491,7 @@ export class ProfileComponent implements OnInit {
             this.message.set('Recruiter profile updated.');
             this.editMode.set(false);
           },
-          error: (error) => this.message.set(this.errorMessage(error)),
+          error: (error) => this.message.set(extractErrorMessage(error)),
         });
       },
     });
@@ -547,7 +516,7 @@ export class ProfileComponent implements OnInit {
         this.skill.years_of_experience = 1;
         this.loadSkills();
       },
-      error: (error) => this.message.set(this.errorMessage(error)),
+      error: (error) => this.message.set(extractErrorMessage(error)),
     });
   }
 
@@ -579,18 +548,19 @@ export class ProfileComponent implements OnInit {
         this.selectedResumeFile = null;
         this.loadResumes();
       },
-      error: (error) => this.message.set(this.errorMessage(error)),
+      error: (error) => this.message.set(extractErrorMessage(error)),
     });
   }
 
-  protected deleteResume(resumeId: string): void {
-    if (!confirm('Are you sure you want to delete this resume?')) return;
+  protected async deleteResume(resumeId: string): Promise<void> {
+    const confirmed = await this.alertService.confirm('Are you sure you want to delete this resume?');
+    if (!confirmed) return;
     this.api.delete(`${this.api.profileBase}/seeker/resumes/${resumeId}/`, true).subscribe({
       next: () => {
         this.message.set('Resume deleted successfully.');
         this.loadResumes();
       },
-      error: (error) => this.message.set(this.errorMessage(error)),
+      error: (error) => this.message.set(extractErrorMessage(error)),
     });
   }
 
@@ -600,7 +570,7 @@ export class ProfileComponent implements OnInit {
         this.message.set('Primary resume updated successfully.');
         this.loadResumes();
       },
-      error: (error) => this.message.set(this.errorMessage(error)),
+      error: (error) => this.message.set(extractErrorMessage(error)),
     });
   }
 
@@ -628,7 +598,7 @@ export class ProfileComponent implements OnInit {
 
   protected viewJobDetails(jobId: string): void {
     this.message.set('');
-    this.api.get<JobDetails>(`${this.api.jobsBase}/${jobId}/`, true).subscribe({
+    this.api.get<Job>(`${this.api.jobsBase}/${jobId}/`, true).subscribe({
       next: (job) => {
         this.viewingJob.set(job);
       },
@@ -653,19 +623,5 @@ export class ProfileComponent implements OnInit {
         this.message.set('Failed to load resume file.');
       },
     });
-  }
-
-  protected formatSalary(min: number | null, max: number | null): string {
-    if (!min && !max) return 'Not disclosed';
-    return `INR ${min ?? 0} - ${max ?? 0}`;
-  }
-
-  private errorMessage(error: { error?: unknown; message?: string }): string {
-    if (typeof error.error === 'string') return error.error;
-    if (error.error) {
-      if (typeof error.error === 'object' && 'detail' in error.error) return error.error.detail as string;
-      return JSON.stringify(error.error, null, 2);
-    }
-    return error.message ?? 'Request failed';
   }
 }

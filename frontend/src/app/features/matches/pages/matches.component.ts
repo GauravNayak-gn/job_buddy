@@ -3,106 +3,16 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { forkJoin, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
-import { ApiService } from '../core/api.service';
-import { AuthStateService } from '../core/auth-state.service';
-
-interface MatchResponse<T> {
-  results: T[];
-}
-
-interface JobMatch {
-  job_id: string;
-  similarity_score: number;
-}
-
-interface SeekerMatch {
-  seeker_id: string;
-  resume_id: string;
-  similarity_score: number;
-  seeker_email?: string;
-  application_id?: string;
-  current_stage?: string;
-  first_name?: string;
-  last_name?: string;
-}
-
-interface SeekerProfile {
-  id: string;
-  user_id: string;
-  first_name: string;
-  last_name: string;
-  phone: string;
-  current_title: string;
-  summary: string;
-  github_url: string;
-  linkedin_url: string;
-  skills: Array<{ id: string; skill_name: string; years_of_experience: number }>;
-  experiences: Array<{
-    id: string;
-    company_name: string;
-    role_title: string;
-    start_date: string;
-    end_date: string | null;
-    description: string;
-  }>;
-}
-
-interface Applicant {
-  id: string;
-  seeker_id: string;
-  seeker_email: string;
-  job_id: string;
-  job_title: string;
-  resume_id: string;
-  cover_letter: string;
-  current_stage: string;
-  created_at: string;
-}
-
-interface InterviewResponse {
-  id: string;
-  scheduled_at: string;
-  expires_at: string;
-  jitsi_link: string;
-  recruiter_notes: string;
-  is_expired: boolean;
-}
-
-interface JobSummary {
-  id: string;
-  title: string;
-}
-
-interface JobMatchView {
-  job_id: string;
-  title: string;
-  similarity_score: number;
-  description?: string;
-  location_type?: string;
-  location_city?: string;
-  experience_required?: string;
-  salary_min?: number | null;
-  salary_max?: number | null;
-  status?: string;
-}
-
-interface ResumeItem {
-  id: string;
-  resume_title: string;
-  parsing_status: string;
-  is_primary?: boolean;
-}
-
-interface ApplicationItem {
-  id: string;
-  job_id: string;
-  current_stage: string;
-}
+import { ApiService } from '../../../core/services/api.service';
+import { AuthStateService } from '../../../core/services/auth-state.service';
+import { MatchResponse, JobMatch, SeekerMatch, SeekerProfile, Applicant, InterviewResponse, JobSummary, JobMatchView, ResumeItem, ApplicationItem } from '../../../core/models';
+import { extractErrorMessage } from '../../../shared/utils/error-message.util';
+import { SalaryPipe } from '../../../shared/pipes/salary.pipe';
 
 @Component({
   selector: 'app-matches-page',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, SalaryPipe],
   template: `
     <section class="page-card">
       <div class="page-head">
@@ -149,7 +59,7 @@ interface ApplicationItem {
                 
                 <div style="display: flex; gap: 1rem; justify-content: space-between; margin-bottom: 1rem; flex-wrap: wrap;">
                   <span>{{ item.experience_required || 'Experience not specified' }}</span>
-                  <span>{{ formatSalary(item.salary_min, item.salary_max) }}</span>
+                  <span>{{ item.salary_min | salary:item.salary_max }}</span>
                 </div>
 
                 @if (auth.isLoggedIn()) {
@@ -505,11 +415,6 @@ export class MatchesComponent implements OnInit {
     });
   }
 
-  protected formatSalary(min: number | null | undefined, max: number | null | undefined): string {
-    if (!min && !max) return 'Salary not disclosed';
-    return `INR ${min ?? 0} - ${max ?? 0}`;
-  }
-
   protected loadJobsForSeeker(): void {
     this.error.set('');
     this.message.set('');
@@ -620,7 +525,7 @@ export class MatchesComponent implements OnInit {
   protected viewProfile(seekerId: string): void {
     this.api.get<SeekerProfile>(`${this.api.profileBase}/seeker/${seekerId}/`, true).subscribe({
       next: (profile) => this.viewingProfile.set(profile),
-      error: (error) => this.error.set(this.errorMessage(error)),
+      error: (error) => this.error.set(extractErrorMessage(error)),
     });
   }
 
@@ -696,13 +601,7 @@ export class MatchesComponent implements OnInit {
           this.scheduleDateTime = '';
           this.scheduleNotes = '';
         },
-        error: (error) => this.interviewMessage.set(this.errorMessage(error)),
+        error: (error) => this.interviewMessage.set(extractErrorMessage(error)),
       });
-  }
-
-  private errorMessage(error: { error?: unknown; message?: string }): string {
-    if (typeof error.error === 'string') return error.error;
-    if (error.error && typeof error.error === 'object') return JSON.stringify(error.error);
-    return error.message ?? 'Request failed';
   }
 }

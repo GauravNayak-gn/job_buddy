@@ -1,13 +1,5 @@
 import { Injectable, computed, signal } from '@angular/core';
-
-export type UserRole = 'seeker' | 'recruiter' | '';
-
-interface SessionState {
-  access: string;
-  refresh: string;
-  role: UserRole;
-  userId: string;
-}
+import { UserRole, SessionState } from '../models';
 
 const STORAGE_KEY = 'job-buddy-session';
 

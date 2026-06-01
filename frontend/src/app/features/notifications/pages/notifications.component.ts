@@ -1,15 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { ApiService } from '../core/api.service';
-
-interface NotificationItem {
-  id: string;
-  title: string;
-  body: string;
-  notification_type: string;
-  is_read: boolean;
-  created_at: string;
-}
+import { ApiService } from '../../../core/services/api.service';
+import { NotificationItem } from '../../../core/models';
 
 @Component({
   selector: 'app-notifications-page',

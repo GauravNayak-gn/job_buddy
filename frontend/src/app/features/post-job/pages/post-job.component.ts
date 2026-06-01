@@ -2,70 +2,10 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { ApiService } from '../core/api.service';
-import { AuthStateService } from '../core/auth-state.service';
-
-interface Category {
-  id: string;
-  name: string;
-}
-
-interface RecruiterJob {
-  id: string;
-  recruiter_id: string;
-  title: string;
-  description: string;
-  location_type: string;
-  location_city: string;
-  experience_required: string;
-  salary_min: number | null;
-  salary_max: number | null;
-  status: string;
-  is_archived: boolean;
-  archived_at: string | null;
-  created_at: string;
-}
-
-interface Applicant {
-  id: string;
-  seeker_id: string;
-  seeker_email: string;
-  job_id: string;
-  job_title: string;
-  resume_id: string;
-  cover_letter: string;
-  current_stage: string;
-  created_at: string;
-}
-
-interface SeekerProfile {
-  id: string;
-  first_name: string;
-  last_name: string;
-  phone: string;
-  current_title: string;
-  summary: string;
-  github_url: string;
-  linkedin_url: string;
-  skills: Array<{ id: string; skill_name: string; years_of_experience: number }>;
-  experiences: Array<{
-    id: string;
-    company_name: string;
-    role_title: string;
-    start_date: string;
-    end_date: string | null;
-    description: string;
-  }>;
-}
-
-interface InterviewResponse {
-  id: string;
-  scheduled_at: string;
-  expires_at: string;
-  jitsi_link: string;
-  recruiter_notes: string;
-  is_expired: boolean;
-}
+import { ApiService } from '../../../core/services/api.service';
+import { AuthStateService } from '../../../core/services/auth-state.service';
+import { Category, RecruiterJob, Applicant, SeekerProfile, InterviewResponse } from '../../../core/models';
+import { extractErrorMessage } from '../../../shared/utils/error-message.util';
 
 @Component({
   selector: 'app-post-job-page',
@@ -206,7 +146,7 @@ interface InterviewResponse {
 
             <article class="applicants-panel">
               <div class="list-head">
-                <h2>Applicants {{ selectedJob() ? 'for "' + selectedJob()!.title + '"' : '' }}</h2>
+                <h2>Page applicants {{ selectedJob() ? 'for "' + selectedJob()!.title + '"' : '' }}</h2>
                 <div class="applicants-ctrl">
                   <select [ngModel]="applicationSortBy()" (ngModelChange)="onSortChange($event)" class="sort-select">
                     <option value="-created_at">Newest first</option>
@@ -613,7 +553,7 @@ export class PostJobComponent implements OnInit {
         this.loadMyJobs();
         this.activeTab.set('manage');
       },
-      error: (error) => this.message.set(this.errorMessage(error)),
+      error: (error) => this.message.set(extractErrorMessage(error)),
     });
   }
 
@@ -657,7 +597,7 @@ export class PostJobComponent implements OnInit {
         this.loadMyJobs();
         this.activeTab.set('manage');
       },
-      error: (error) => this.message.set(this.errorMessage(error)),
+      error: (error) => this.message.set(extractErrorMessage(error)),
     });
   }
 
@@ -667,7 +607,7 @@ export class PostJobComponent implements OnInit {
         this.message.set('Job published.');
         this.loadMyJobs();
       },
-      error: (error) => this.message.set(this.errorMessage(error)),
+      error: (error) => this.message.set(extractErrorMessage(error)),
     });
   }
 
@@ -677,7 +617,7 @@ export class PostJobComponent implements OnInit {
         this.message.set('Job closed.');
         this.loadMyJobs();
       },
-      error: (error) => this.message.set(this.errorMessage(error)),
+      error: (error) => this.message.set(extractErrorMessage(error)),
     });
   }
 
@@ -687,7 +627,7 @@ export class PostJobComponent implements OnInit {
         this.message.set('Job archived.');
         this.loadMyJobs();
       },
-      error: (error) => this.message.set(this.errorMessage(error)),
+      error: (error) => this.message.set(extractErrorMessage(error)),
     });
   }
 
@@ -697,7 +637,7 @@ export class PostJobComponent implements OnInit {
         this.message.set('Job restored.');
         this.loadMyJobs();
       },
-      error: (error) => this.message.set(this.errorMessage(error)),
+      error: (error) => this.message.set(extractErrorMessage(error)),
     });
   }
 
@@ -750,7 +690,7 @@ export class PostJobComponent implements OnInit {
           this.loadApplications(this.selectedJobId());
         }
       },
-      error: (error) => this.interviewMessage.set(this.errorMessage(error)),
+      error: (error) => this.interviewMessage.set(extractErrorMessage(error)),
     });
   }
 
@@ -772,14 +712,14 @@ export class PostJobComponent implements OnInit {
           this.loadApplications(this.selectedJobId());
         }
       },
-      error: (error) => this.interviewMessage.set(this.errorMessage(error))
+      error: (error) => this.interviewMessage.set(extractErrorMessage(error))
     });
   }
 
   protected viewProfile(seekerId: string): void {
     this.api.get<SeekerProfile>(`${this.api.profileBase}/seeker/${seekerId}/`, true).subscribe({
       next: (profile) => this.viewingProfile.set(profile),
-      error: (error) => this.interviewMessage.set(this.errorMessage(error)),
+      error: (error) => this.interviewMessage.set(extractErrorMessage(error)),
     });
   }
 
@@ -806,7 +746,7 @@ export class PostJobComponent implements OnInit {
         this.jobsLoading.set(false);
       },
       error: (error) => {
-        const errMsg = this.errorMessage(error);
+        const errMsg = extractErrorMessage(error);
         if (errMsg.includes('Invalid or expired token')) {
           this.message.set('Your session has expired. Please log in again.');
         } else {
@@ -826,7 +766,7 @@ export class PostJobComponent implements OnInit {
         this.applicationsLoading.set(false);
       },
       error: (error) => {
-        this.interviewMessage.set(this.errorMessage(error));
+        this.interviewMessage.set(extractErrorMessage(error));
         this.applicationsLoading.set(false);
       },
     });
@@ -843,11 +783,5 @@ export class PostJobComponent implements OnInit {
     this.form.currency = 'INR';
     this.form.experience_required = '2 years';
     this.form.skill_name = 'Python';
-  }
-
-  private errorMessage(error: { error?: unknown; message?: string }): string {
-    if (typeof error.error === 'string') return error.error;
-    if (error.error && typeof error.error === 'object') return JSON.stringify(error.error);
-    return error.message ?? 'Request failed';
   }
 }

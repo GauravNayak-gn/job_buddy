@@ -1,0 +1,33 @@
+<header class="topbar">
+  <a routerLink="/" class="brand">
+    <span class="brand-mark" aria-hidden="true">
+      <span class="brand-initials">JB</span>
+    </span>
+    <div>
+      <strong>Job Buddy</strong>
+      <span>Microservice Job Portal</span>
+    </div>
+  </a>
+
+  <nav class="nav-links">
+    <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Home</a>
+    <a routerLink="/jobs" routerLinkActive="active">Jobs</a>
+    @if (auth.isLoggedIn()) {
+      <a routerLink="/profile" routerLinkActive="active">Profile</a>
+      <a routerLink="/notifications" routerLinkActive="active">Notifications</a>
+      <a routerLink="/matches" routerLinkActive="active">AI Match</a>
+    }
+    @if (isRecruiter()) {
+      <a routerLink="/post-job" routerLinkActive="active">Post Job</a>
+    }
+  </nav>
+
+  <div class="session-box">
+    @if (auth.isLoggedIn()) {
+      <span class="user-pill">{{ auth.role() }} account</span>
+      <button type="button" class="logout" (click)="logout()">Logout</button>
+    } @else {
+      <a routerLink="/login" class="login-link">Login</a>
+    }
+  </div>
+</header>

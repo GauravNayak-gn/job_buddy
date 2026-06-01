@@ -1,28 +1,13 @@
-import { Routes, Router, CanActivateFn } from '@angular/router';
-import { inject } from '@angular/core';
-import { AuthStateService } from './core/auth-state.service';
-import { HomeComponent } from './pages/home.component';
-import { JobsComponent } from './pages/jobs.component';
-import { LoginComponent } from './pages/login.component';
-import { ProfileComponent } from './pages/profile.component';
-import { PostJobComponent } from './pages/post-job.component';
-import { NotificationsComponent } from './pages/notifications.component';
-import { MatchesComponent } from './pages/matches.component';
-
-const authGuard: CanActivateFn = () => {
-  const auth = inject(AuthStateService);
-  const router = inject(Router);
-  return auth.isLoggedIn() ? true : router.createUrlTree(['/login']);
-};
-
-const recruiterGuard: CanActivateFn = () => {
-  const auth = inject(AuthStateService);
-  const router = inject(Router);
-  if (!auth.isLoggedIn()) {
-    return router.createUrlTree(['/login']);
-  }
-  return auth.isRecruiter() ? true : router.createUrlTree(['/']);
-};
+import { Routes } from '@angular/router';
+import { HomeComponent } from './features/home/pages/home.component';
+import { JobsComponent } from './features/jobs/pages/jobs.component';
+import { LoginComponent } from './features/auth/pages/login.component';
+import { ProfileComponent } from './features/profile/pages/profile.component';
+import { PostJobComponent } from './features/post-job/pages/post-job.component';
+import { NotificationsComponent } from './features/notifications/pages/notifications.component';
+import { MatchesComponent } from './features/matches/pages/matches.component';
+import { authGuard } from './core/guards/auth.guard';
+import { recruiterGuard } from './core/guards/recruiter.guard';
 
 export const routes: Routes = [
   { path: '', component: HomeComponent },

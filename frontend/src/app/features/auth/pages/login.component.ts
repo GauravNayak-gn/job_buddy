@@ -2,8 +2,10 @@ import { CommonModule } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { ApiService } from '../core/api.service';
-import { AuthStateService } from '../core/auth-state.service';
+import { ApiService } from '../../../core/services/api.service';
+import { AuthStateService } from '../../../core/services/auth-state.service';
+import { LoginResponse, RegisterResponse, OtpVerifyResponse } from '../../../core/models';
+import { extractErrorMessage } from '../../../shared/utils/error-message.util';
 
 @Component({
   selector: 'app-login-page',
@@ -163,7 +165,7 @@ export class LoginComponent {
       return;
     }
 
-    this.api.post<{message: string}>(`${this.api.authBase}/verify-otp/`, {
+    this.api.post<OtpVerifyResponse>(`${this.api.authBase}/verify-otp/`, {
       email: this.otpEmail(),
       otp_code: otp,
     }).subscribe({
@@ -173,7 +175,7 @@ export class LoginComponent {
         this.otpForm.otp = '';
       },
       error: (error) => {
-        this.message.set(this.errorMessage(error));
+        this.message.set(extractErrorMessage(error));
       },
     });
   }
@@ -189,7 +191,7 @@ export class LoginComponent {
       return;
     }
 
-    this.api.post<{ message: string; otp_code?: string }>(`${this.api.authBase}/register/`, payload).subscribe({
+    this.api.post<RegisterResponse>(`${this.api.authBase}/register/`, payload).subscribe({
       next: (response) => {
         this.otpEmail.set(payload.email);
         const otpHint = response.otp_code ? ` OTP: ${response.otp_code}` : '';
@@ -197,7 +199,7 @@ export class LoginComponent {
         this.mode.set('otp');
       },
       error: (error) => {
-        this.message.set(this.errorMessage(error));
+        this.message.set(extractErrorMessage(error));
       },
     });
   }
@@ -234,7 +236,7 @@ export class LoginComponent {
       return;
     }
 
-    this.api.post<{ access: string; refresh: string; role: 'seeker' | 'recruiter'; user_id: string }>(
+    this.api.post<LoginResponse>(
       `${this.api.authBase}/login/`,
       payload,
     ).subscribe({
@@ -248,20 +250,8 @@ export class LoginComponent {
         void this.router.navigateByUrl(response.role === 'recruiter' ? '/post-job' : '/profile');
       },
       error: (error) => {
-        this.message.set(this.errorMessage(error));
+        this.message.set(extractErrorMessage(error));
       },
     });
-  }
-
-
-
-  private errorMessage(error: { error?: unknown; message?: string }): string {
-    if (typeof error.error === 'string') {
-      return error.error;
-    }
-    if (error.error && typeof error.error === 'object') {
-      return JSON.stringify(error.error);
-    }
-    return error.message ?? 'Request failed';
   }
 }

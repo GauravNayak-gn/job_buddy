@@ -1,38 +1,15 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ApiService } from '../core/api.service';
-import { AuthStateService } from '../core/auth-state.service';
-
-interface Job {
-  id: string;
-  title: string;
-  description: string;
-  location_type: string;
-  location_city: string;
-  experience_required: string;
-  salary_min: number | null;
-  salary_max: number | null;
-  status: string;
-  created_at: string;
-}
-
-interface ResumeItem {
-  id: string;
-  resume_title: string;
-  parsing_status: string;
-}
-
-interface ApplicationItem {
-  id: string;
-  job_id: string;
-  current_stage: string;
-}
+import { ApiService } from '../../../core/services/api.service';
+import { AuthStateService } from '../../../core/services/auth-state.service';
+import { Job, ResumeItem, ApplicationItem } from '../../../core/models';
+import { SalaryPipe } from '../../../shared/pipes/salary.pipe';
 
 @Component({
   selector: 'app-jobs-page',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, SalaryPipe],
   template: `
     <section class="page-card">
       <div class="page-head">
@@ -97,7 +74,7 @@ interface ApplicationItem {
               <p class="description">{{ job.description }}</p>
               <div class="job-bottom">
                 <span>{{ job.experience_required || 'Experience not specified' }}</span>
-                <span>{{ formatSalary(job.salary_min, job.salary_max) }}</span>
+                <span>{{ job.salary_min | salary:job.salary_max }}</span>
               </div>
 
               @if (isSeeker() && auth.isLoggedIn()) {
@@ -237,10 +214,5 @@ export class JobsComponent implements OnInit {
         }
       },
     });
-  }
-
-  protected formatSalary(min: number | null, max: number | null): string {
-    if (!min && !max) return 'Salary not disclosed';
-    return `INR ${min ?? 0} - ${max ?? 0}`;
   }
 }
