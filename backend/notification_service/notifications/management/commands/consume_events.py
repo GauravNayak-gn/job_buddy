@@ -3,7 +3,8 @@ from kafka import KafkaConsumer
 from django.conf import settings
 from django.core.management.base import BaseCommand
 
-from notifications.utils import create_notification, send_notification_email
+from notifications.dao.notification_dao import NotificationDAO
+from notifications.services.notification_service import NotificationService
 
 
 TOPICS = ['application.stage_changed', 'interview.scheduled', 'user.registered', 'application.received']
@@ -30,7 +31,7 @@ class Command(BaseCommand):
             if topic == 'application.stage_changed':
                 user_id = payload.get('seeker_id')
                 if user_id:
-                    create_notification(
+                    NotificationDAO.create_notification(
                         user_id=user_id,
                         notification_type=topic,
                         title='Application stage updated',
@@ -45,14 +46,14 @@ class Command(BaseCommand):
                 jitsi_link = payload.get('jitsi_link', '')
                 job_title = payload.get('job_title') or 'your application'
                 if user_id:
-                    create_notification(
+                    NotificationDAO.create_notification(
                         user_id=user_id,
                         notification_type=topic,
                         title='Interview scheduled',
                         body=f"Interview scheduled for {job_title} at {scheduled_at}. Join here: {jitsi_link}",
                         payload=payload,
                     )
-                    send_notification_email(
+                    NotificationService.send_email(
                         to_email=email,
                         subject='Interview scheduled',
                         message=(
@@ -65,14 +66,14 @@ class Command(BaseCommand):
                 user_id = payload.get('user_id')
                 email = payload.get('email')
                 if user_id:
-                    create_notification(
+                    NotificationDAO.create_notification(
                         user_id=user_id,
                         notification_type=topic,
                         title='Welcome to Job Buddy',
                         body='Your account was created successfully.',
                         payload=payload,
                     )
-                    send_notification_email(
+                    NotificationService.send_email(
                         to_email=email,
                         subject='Welcome to Job Buddy',
                         message='Your account was created successfully.',
@@ -84,7 +85,7 @@ class Command(BaseCommand):
                 seeker_email = payload.get('seeker_email', 'A candidate')
                 self.stdout.write(f"Processing application.received for recruiter {recruiter_id}")
                 if recruiter_id:
-                    notification = create_notification(
+                    notification = NotificationDAO.create_notification(
                         user_id=recruiter_id,
                         notification_type=topic,
                         title='New application received',
