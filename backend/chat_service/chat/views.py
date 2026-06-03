@@ -73,4 +73,18 @@ class MessageListCreateView(APIView):
         )
 
         conversation.save(update_fields=['updated_at'])
+
+        # Centralized event publishing
+        recipient_id = conversation.participant_b if str(conversation.participant_a) == str(request.user.id) else conversation.participant_a
+        payload = {
+            'message_id': str(message.id),
+            'conversation_id': str(conversation.id),
+            'sender_id': str(request.user.id),
+            'recipient_id': str(recipient_id),
+            'body_preview': message.body[:100],
+        }
+        from chat.services.kafka_client import KafkaProducerClient
+        KafkaProducerClient.publish('chat.message_sent', payload)
+
         return Response(MessageSerializer(message).data, status=201)
+
