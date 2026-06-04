@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ApiService } from '../../../core/services/api.service';
 import { AuthStateService } from '../../../core/services/auth-state.service';
+import { AlertService } from '../../../core/services/alert.service';
 import { Category, RecruiterJob, Applicant, SeekerProfile, InterviewResponse } from '../../../core/models';
 import { extractErrorMessage } from '../../../shared/utils/error-message.util';
 
@@ -29,8 +30,8 @@ import { extractErrorMessage } from '../../../shared/utils/error-message.util';
         <div class="empty-card">This page is intended for recruiter accounts only.</div>
       } @else {
         <div class="tabs">
-          <button type="button" [class.active]="activeTab() === 'create'" (click)="activeTab.set('create')">Create Job</button>
-          <button type="button" [class.active]="activeTab() === 'manage'" (click)="activeTab.set('manage')">Manage Jobs</button>
+          <button type="button" [disabled]="isSubmitting()" [class.active]="activeTab() === 'create'" (click)="activeTab.set('create')">Create Job</button>
+          <button type="button" [disabled]="isSubmitting()" [class.active]="activeTab() === 'manage'" (click)="activeTab.set('manage')">Manage Jobs</button>
         </div>
 
         @if (activeTab() === 'create') {
@@ -39,11 +40,11 @@ import { extractErrorMessage } from '../../../shared/utils/error-message.util';
             <div class="grid">
               <label>
                 <span>Title</span>
-                <input [(ngModel)]="form.title" type="text" />
+                <input [disabled]="isSubmitting()" [(ngModel)]="form.title" type="text" />
               </label>
               <label>
                 <span>Category</span>
-                <select [(ngModel)]="form.category">
+                <select [disabled]="isSubmitting()" [(ngModel)]="form.category">
                   <option value="">Select category</option>
                   @for (category of categories(); track category.id) {
                     <option [value]="category.id">{{ category.name }}</option>
@@ -52,7 +53,7 @@ import { extractErrorMessage } from '../../../shared/utils/error-message.util';
               </label>
               <label>
                 <span>Location type</span>
-                <select [(ngModel)]="form.location_type">
+                <select [disabled]="isSubmitting()" [(ngModel)]="form.location_type">
                   <option value="remote">Remote</option>
                   <option value="hybrid">Hybrid</option>
                   <option value="onsite">Onsite</option>
@@ -60,35 +61,35 @@ import { extractErrorMessage } from '../../../shared/utils/error-message.util';
               </label>
               <label>
                 <span>Location city</span>
-                <input [(ngModel)]="form.location_city" type="text" />
+                <input [disabled]="isSubmitting()" [(ngModel)]="form.location_city" type="text" />
               </label>
               <label>
                 <span>Salary min</span>
-                <input [(ngModel)]="form.salary_min" type="number" />
+                <input [disabled]="isSubmitting()" [(ngModel)]="form.salary_min" type="number" />
               </label>
               <label>
                 <span>Salary max</span>
-                <input [(ngModel)]="form.salary_max" type="number" />
+                <input [disabled]="isSubmitting()" [(ngModel)]="form.salary_max" type="number" />
               </label>
               <label>
                 <span>Experience required</span>
-                <input [(ngModel)]="form.experience_required" type="text" />
+                <input [disabled]="isSubmitting()" [(ngModel)]="form.experience_required" type="text" />
               </label>
               <label>
                 <span>Primary skill</span>
-                <input [(ngModel)]="form.skill_name" type="text" />
+                <input [disabled]="isSubmitting()" [(ngModel)]="form.skill_name" type="text" />
               </label>
             </div>
             <label>
               <span>Description</span>
-              <textarea [(ngModel)]="form.description" rows="8"></textarea>
+              <textarea [disabled]="isSubmitting()" [(ngModel)]="form.description" rows="8"></textarea>
             </label>
             <div class="actions">
               @if (editingJobId()) {
-                <button type="button" (click)="updateJob()">Save changes</button>
-                <button type="button" class="secondary" (click)="cancelEdit()">Cancel</button>
+                <button type="button" [disabled]="isSubmitting()" (click)="updateJob()">{{ isSubmitting() ? 'Saving...' : 'Save changes' }}</button>
+                <button type="button" [disabled]="isSubmitting()" class="secondary" (click)="cancelEdit()">Cancel</button>
               } @else {
-                <button type="button" (click)="createJob()">Create job</button>
+                <button type="button" [disabled]="isSubmitting()" (click)="createJob()">{{ isSubmitting() ? 'Creating...' : 'Create job' }}</button>
               }
             </div>
             @if (message()) {
@@ -100,7 +101,7 @@ import { extractErrorMessage } from '../../../shared/utils/error-message.util';
             <article class="jobs-panel">
               <div class="list-head">
                 <h2>My jobs</h2>
-                <button type="button" class="secondary" (click)="loadMyJobs()">Refresh</button>
+                <button type="button" [disabled]="isSubmitting() || jobsLoading()" class="secondary" (click)="loadMyJobs()">Refresh</button>
               </div>
               @if (message()) {
                 <div class="message">{{ message() }}</div>
@@ -124,18 +125,18 @@ import { extractErrorMessage } from '../../../shared/utils/error-message.util';
                       </div>
                       <p class="job-desc">{{ job.description | slice:0:120 }}{{ job.description.length > 120 ? '...' : '' }}</p>
                       <div class="job-actions">
-                        <button type="button" class="secondary" (click)="startEdit(job)">Edit</button>
-                        <button type="button" class="secondary" (click)="openApplicants(job.id)">Applicants</button>
+                        <button type="button" [disabled]="isSubmitting()" class="secondary" (click)="startEdit(job)">Edit</button>
+                        <button type="button" [disabled]="isSubmitting()" class="secondary" (click)="openApplicants(job.id)">Applicants</button>
                         @if (!job.is_archived && job.status !== 'published') {
-                          <button type="button" class="secondary" (click)="publish(job.id)">Publish</button>
+                          <button type="button" [disabled]="isSubmitting()" class="secondary" (click)="publish(job.id)">Publish</button>
                         }
                         @if (!job.is_archived && job.status !== 'closed') {
-                          <button type="button" class="secondary" (click)="close(job.id)">Close</button>
+                          <button type="button" [disabled]="isSubmitting()" class="secondary" (click)="close(job.id)">Close</button>
                         }
                         @if (!job.is_archived) {
-                          <button type="button" class="secondary" (click)="archive(job.id)">Archive</button>
+                          <button type="button" [disabled]="isSubmitting()" class="secondary" (click)="archive(job.id)">Archive</button>
                         } @else {
-                          <button type="button" class="secondary" (click)="restore(job.id)">Restore</button>
+                          <button type="button" [disabled]="isSubmitting()" class="secondary" (click)="restore(job.id)">Restore</button>
                         }
                       </div>
                     </article>
@@ -148,14 +149,14 @@ import { extractErrorMessage } from '../../../shared/utils/error-message.util';
               <div class="list-head">
                 <h2>Page applicants {{ selectedJob() ? 'for "' + selectedJob()!.title + '"' : '' }}</h2>
                 <div class="applicants-ctrl">
-                  <select [ngModel]="applicationSortBy()" (ngModelChange)="onSortChange($event)" class="sort-select">
+                  <select [disabled]="isSubmitting()" [ngModel]="applicationSortBy()" (ngModelChange)="onSortChange($event)" class="sort-select">
                     <option value="-created_at">Newest first</option>
                     <option value="created_at">Oldest first</option>
                     <option value="current_stage">Stage (A-Z)</option>
                     <option value="-current_stage">Stage (Z-A)</option>
                   </select>
                   @if (selectedJob(); as currentJob) {
-                    <button type="button" class="secondary" (click)="openApplicants(currentJob.id)">Refresh</button>
+                    <button type="button" [disabled]="isSubmitting() || applicationsLoading()" class="secondary" (click)="openApplicants(currentJob.id)">Refresh</button>
                   }
                 </div>
               </div>
@@ -177,7 +178,7 @@ import { extractErrorMessage } from '../../../shared/utils/error-message.util';
                             <p class="meta-line">Applied {{ application.created_at | date: 'short' }}</p>
                           </div>
                           <div class="stage-ctrl">
-                            <select [ngModel]="application.current_stage" (ngModelChange)="updateStage(application.id, $event)" class="stage-select">
+                            <select [disabled]="isSubmitting()" [ngModel]="application.current_stage" (ngModelChange)="updateStage(application.id, $event)" class="stage-select">
                                 @for (stage of availableStages; track stage.value) {
                                     <option [value]="stage.value">{{ stage.label }}</option>
                                 }
@@ -194,7 +195,7 @@ import { extractErrorMessage } from '../../../shared/utils/error-message.util';
                             <button type="button" class="secondary" (click)="viewResume(application.resume_id)">View Resume</button>
                           }
 
-                          <button type="button" class="secondary" (click)="toggleSchedule(application.id)">
+                          <button type="button" [disabled]="isSubmitting()" class="secondary" (click)="toggleSchedule(application.id)">
                             {{ schedulingApplicationId() === application.id ? 'Cancel' : 'Schedule' }}
                           </button>
                         </div>
@@ -203,13 +204,15 @@ import { extractErrorMessage } from '../../../shared/utils/error-message.util';
                           <div class="schedule-form">
                             <label>
                               <span>Date and time</span>
-                              <input [(ngModel)]="scheduleDateTime" type="datetime-local" />
+                              <input [disabled]="isSubmitting()" [(ngModel)]="scheduleDateTime" type="datetime-local" />
                             </label>
                             <label>
                               <span>Recruiter notes</span>
-                              <textarea [(ngModel)]="scheduleNotes" rows="2"></textarea>
+                              <textarea [disabled]="isSubmitting()" [(ngModel)]="scheduleNotes" rows="2"></textarea>
                             </label>
-                            <button type="button" (click)="scheduleInterview(application.id)">Generate interview link</button>
+                            <button type="button" [disabled]="isSubmitting()" (click)="scheduleInterview(application.id)">
+                              {{ isSubmitting() ? 'Scheduling...' : 'Generate interview link' }}
+                            </button>
                           </div>
                         }
                       </article>
@@ -302,8 +305,8 @@ import { extractErrorMessage } from '../../../shared/utils/error-message.util';
     .page-card { display: grid; gap: 1.5rem; padding: 1.5rem; }
     .tabs { display: flex; gap: 0.5rem; border-bottom: 2px solid var(--border); padding-bottom: 0.5rem; }
     .tabs button { background: transparent; border: none; color: var(--muted); padding: 0.75rem 1.5rem; border-radius: 12px; cursor: pointer; transition: all 0.2s; }
-    .tabs button.active { background: #e0e7ff; color: #3730a3; }
-    .tabs button:hover { background: #f1f5f9; }
+    .tabs button.active { background: var(--pill-bg); color: var(--pill-text); }
+    .tabs button:hover { background: var(--border); }
     
     .form-card,
     .jobs-panel,
@@ -329,7 +332,7 @@ import { extractErrorMessage } from '../../../shared/utils/error-message.util';
       transition: all 0.2s;
     }
     .job-card:hover { border-color: var(--accent); transform: translateY(-2px); }
-    .job-card.selected { border-color: var(--accent); background: #eff6ff; }
+    .job-card.selected { border-color: var(--accent); background: rgba(217, 93, 57, 0.05); }
     
     .job-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: 0.75rem; }
     .job-meta { color: var(--muted); font-size: 0.9rem; margin: 0.25rem 0 0 0; }
@@ -373,16 +376,16 @@ import { extractErrorMessage } from '../../../shared/utils/error-message.util';
     .small { margin-top: 1rem; padding: 1rem; }
     
     .status-pill { 
-      background: #e0e7ff; 
+      background: var(--pill-bg); 
       border-radius: 999px; 
-      color: #3730a3; 
+      color: var(--pill-text); 
       padding: 0.45rem 0.8rem; 
       text-transform: capitalize;
       font-size: 0.85rem;
       white-space: nowrap;
       font-weight: 500;
     }
-    .status-pill.archived { background: #f1f5f9; color: #475569; }
+    .status-pill.archived { background: var(--border); color: var(--muted); }
     
     .meta-line { margin: 0; color: var(--muted); font-size: 0.9rem; }
     
@@ -409,33 +412,33 @@ import { extractErrorMessage } from '../../../shared/utils/error-message.util';
     
     .profile-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
     .close-btn { 
-      background: #fee2e2; 
+      background: var(--danger-bg); 
       border: none; 
       border-radius: 8px; 
       padding: 0.4rem 1rem;
       cursor: pointer; 
       font-size: 0.95rem;
       font-weight: 500;
-      color: #991b1b;
+      color: var(--danger-text);
       transition: all 0.2s;
     }
-    .close-btn:hover { background: #fecaca; }
+    .close-btn:hover { background: var(--danger-hover); }
     
     .profile-section { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); }
     .profile-section:first-of-type { border-top: none; padding-top: 0; }
     .skills-grid { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem; }
-    .skill-tag { background: #dbeafe; border-radius: 999px; color: #1e40af; padding: 0.35rem 0.7rem; font-size: 0.9rem; font-weight: 500; }
+    .skill-tag { background: var(--info-bg); border-radius: 999px; color: var(--info-text); padding: 0.35rem 0.7rem; font-size: 0.9rem; font-weight: 500; }
     .experience-item { margin-top: 0.8rem; padding: 0.8rem; background: var(--bg); border: 1px solid var(--border); border-radius: 12px; }
     
     .interview-banner { 
-      background: #ecfdf5; 
-      border: 1px solid #6ee7b7;
+      background: var(--success-bg); 
+      border: 1px solid var(--success-border);
       border-radius: 18px; 
       padding: 1.25rem;
       margin-top: 1rem;
-      color: #065f46;
+      color: var(--success-text);
     }
-
+ 
     .applicants-ctrl { display: flex; gap: 0.5rem; align-items: center; }
     .sort-select, .stage-select { 
       padding: 0.4rem 0.8rem; 
@@ -445,7 +448,7 @@ import { extractErrorMessage } from '../../../shared/utils/error-message.util';
       font-size: 0.85rem;
       cursor: pointer;
     }
-    .stage-select { color: #3730a3; font-weight: 500; background: #e0e7ff; border: none; }
+    .stage-select { color: var(--pill-text); font-weight: 500; background: var(--pill-bg); border: none; }
     
     @media (max-width: 980px) {
       .manage-layout,
@@ -457,6 +460,7 @@ import { extractErrorMessage } from '../../../shared/utils/error-message.util';
 export class PostJobComponent implements OnInit {
   private readonly api = inject(ApiService);
   readonly auth = inject(AuthStateService);
+  private readonly alertService = inject(AlertService);
 
   readonly categories = signal<Category[]>([]);
   readonly myJobs = signal<RecruiterJob[]>([]);
@@ -473,6 +477,8 @@ export class PostJobComponent implements OnInit {
   readonly scheduledInterview = signal<InterviewResponse | null>(null);
   readonly selectedJob = computed(() => this.myJobs().find((job) => job.id === this.selectedJobId()) ?? null);
   readonly viewingProfile = signal<SeekerProfile | null>(null);
+
+  readonly isSubmitting = signal(false);
 
   readonly availableStages = [
     { value: 'applied', label: 'Applied' },
@@ -513,6 +519,7 @@ export class PostJobComponent implements OnInit {
   protected viewResume(resumeId: string): void {
     if (!resumeId) {
       this.interviewMessage.set('No resume was attached to this application.');
+      this.alertService.warning('No resume was attached to this application.');
       return;
     }
 
@@ -528,6 +535,7 @@ export class PostJobComponent implements OnInit {
       error: (error) => {
         console.error(error);
         this.interviewMessage.set('Failed to load resume. You may not have permission.');
+        this.alertService.error('Could not download resume. Check your permissions.');
       },
     });
   }
@@ -546,14 +554,22 @@ export class PostJobComponent implements OnInit {
       skills: this.form.skill_name ? [{ skill_name: this.form.skill_name, is_required: true }] : [],
     };
 
+    this.isSubmitting.set(true);
     this.api.post(`${this.api.jobsBase}/create/`, payload, true).subscribe({
       next: () => {
+        this.isSubmitting.set(false);
+        this.alertService.success('Job listing created successfully!', 'Created');
         this.message.set('Job created successfully.');
         this.resetForm();
         this.loadMyJobs();
         this.activeTab.set('manage');
       },
-      error: (error) => this.message.set(extractErrorMessage(error)),
+      error: (error) => {
+        this.isSubmitting.set(false);
+        const errMsg = extractErrorMessage(error);
+        this.message.set(errMsg);
+        this.alertService.error(errMsg, 'Creation Failed');
+      },
     });
   }
 
@@ -590,54 +606,106 @@ export class PostJobComponent implements OnInit {
       skills: this.form.skill_name ? [{ skill_name: this.form.skill_name, is_required: true }] : [],
     };
 
+    this.isSubmitting.set(true);
     this.api.patch(`${this.api.jobsBase}/${jobId}/`, payload, true).subscribe({
       next: () => {
+        this.isSubmitting.set(false);
+        this.alertService.success('Job listing updated successfully!', 'Updated');
         this.message.set('Job updated.');
         this.cancelEdit();
         this.loadMyJobs();
         this.activeTab.set('manage');
       },
-      error: (error) => this.message.set(extractErrorMessage(error)),
+      error: (error) => {
+        this.isSubmitting.set(false);
+        const errMsg = extractErrorMessage(error);
+        this.message.set(errMsg);
+        this.alertService.error(errMsg, 'Update Failed');
+      },
     });
   }
 
   protected publish(jobId: string): void {
-    this.api.post(`${this.api.jobsBase}/${jobId}/publish/`, {}, true).subscribe({
-      next: () => {
-        this.message.set('Job published.');
-        this.loadMyJobs();
-      },
-      error: (error) => this.message.set(extractErrorMessage(error)),
+    this.alertService.confirm('Are you sure you want to publish this job listing? It will become visible to all seekers.', 'Publish Job').then((confirmed) => {
+      if (!confirmed) return;
+      
+      this.isSubmitting.set(true);
+      this.api.post(`${this.api.jobsBase}/${jobId}/publish/`, {}, true).subscribe({
+        next: () => {
+          this.isSubmitting.set(false);
+          this.alertService.toast('Job published successfully');
+          this.message.set('Job published.');
+          this.loadMyJobs();
+        },
+        error: (error) => {
+          this.isSubmitting.set(false);
+          const errMsg = extractErrorMessage(error);
+          this.message.set(errMsg);
+          this.alertService.error(errMsg, 'Publish Failed');
+        },
+      });
     });
   }
 
   protected close(jobId: string): void {
-    this.api.post(`${this.api.jobsBase}/${jobId}/close/`, {}, true).subscribe({
-      next: () => {
-        this.message.set('Job closed.');
-        this.loadMyJobs();
-      },
-      error: (error) => this.message.set(extractErrorMessage(error)),
+    this.alertService.confirm('Are you sure you want to close this job listing? It will no longer accept new applications.', 'Close Job').then((confirmed) => {
+      if (!confirmed) return;
+
+      this.isSubmitting.set(true);
+      this.api.post(`${this.api.jobsBase}/${jobId}/close/`, {}, true).subscribe({
+        next: () => {
+          this.isSubmitting.set(false);
+          this.alertService.toast('Job closed successfully');
+          this.message.set('Job closed.');
+          this.loadMyJobs();
+        },
+        error: (error) => {
+          this.isSubmitting.set(false);
+          const errMsg = extractErrorMessage(error);
+          this.message.set(errMsg);
+          this.alertService.error(errMsg, 'Close Failed');
+        },
+      });
     });
   }
 
   protected archive(jobId: string): void {
-    this.api.post(`${this.api.jobsBase}/${jobId}/archive/`, {}, true).subscribe({
-      next: () => {
-        this.message.set('Job archived.');
-        this.loadMyJobs();
-      },
-      error: (error) => this.message.set(extractErrorMessage(error)),
+    this.alertService.confirm('Are you sure you want to archive this job listing?', 'Archive Job').then((confirmed) => {
+      if (!confirmed) return;
+
+      this.isSubmitting.set(true);
+      this.api.post(`${this.api.jobsBase}/${jobId}/archive/`, {}, true).subscribe({
+        next: () => {
+          this.isSubmitting.set(false);
+          this.alertService.toast('Job archived successfully');
+          this.message.set('Job archived.');
+          this.loadMyJobs();
+        },
+        error: (error) => {
+          this.isSubmitting.set(false);
+          const errMsg = extractErrorMessage(error);
+          this.message.set(errMsg);
+          this.alertService.error(errMsg, 'Archive Failed');
+        },
+      });
     });
   }
 
   protected restore(jobId: string): void {
+    this.isSubmitting.set(true);
     this.api.post(`${this.api.jobsBase}/${jobId}/restore/`, {}, true).subscribe({
       next: () => {
+        this.isSubmitting.set(false);
+        this.alertService.toast('Job restored successfully');
         this.message.set('Job restored.');
         this.loadMyJobs();
       },
-      error: (error) => this.message.set(extractErrorMessage(error)),
+      error: (error) => {
+        this.isSubmitting.set(false);
+        const errMsg = extractErrorMessage(error);
+        this.message.set(errMsg);
+        this.alertService.error(errMsg, 'Restore Failed');
+      },
     });
   }
 
@@ -676,13 +744,16 @@ export class PostJobComponent implements OnInit {
       return;
     }
 
+    this.isSubmitting.set(true);
     this.api.post<InterviewResponse>(`${this.api.applicationsBase}/${applicationId}/schedule-interview/`, {
       scheduled_at: scheduledAt.toISOString(),
       recruiter_notes: this.scheduleNotes,
     }, true).subscribe({
       next: (interview) => {
+        this.isSubmitting.set(false);
         this.scheduledInterview.set(interview);
         this.interviewMessage.set('Interview scheduled and email notification queued for the candidate.');
+        this.alertService.success('Interview scheduled successfully!', 'Scheduled');
         this.schedulingApplicationId.set('');
         this.scheduleDateTime = '';
         this.scheduleNotes = '';
@@ -690,7 +761,12 @@ export class PostJobComponent implements OnInit {
           this.loadApplications(this.selectedJobId());
         }
       },
-      error: (error) => this.interviewMessage.set(extractErrorMessage(error)),
+      error: (error) => {
+        this.isSubmitting.set(false);
+        const errMsg = extractErrorMessage(error);
+        this.interviewMessage.set(errMsg);
+        this.alertService.error(errMsg, 'Scheduling Failed');
+      },
     });
   }
 
@@ -702,17 +778,25 @@ export class PostJobComponent implements OnInit {
   }
 
   protected updateStage(applicationId: string, newStage: string): void {
+    this.isSubmitting.set(true);
     this.api.post(`${this.api.applicationsBase}/${applicationId}/stage/`, {
       new_stage: newStage,
       note: 'Updated by recruiter'
     }, true).subscribe({
       next: () => {
+        this.isSubmitting.set(false);
         this.interviewMessage.set('Application stage updated.');
+        this.alertService.toast(`Stage updated to ${newStage}`);
         if (this.selectedJobId()) {
           this.loadApplications(this.selectedJobId());
         }
       },
-      error: (error) => this.interviewMessage.set(extractErrorMessage(error))
+      error: (error) => {
+        this.isSubmitting.set(false);
+        const errMsg = extractErrorMessage(error);
+        this.interviewMessage.set(errMsg);
+        this.alertService.error(errMsg, 'Stage Update Failed');
+      }
     });
   }
 

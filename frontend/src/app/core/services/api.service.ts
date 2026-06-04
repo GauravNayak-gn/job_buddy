@@ -1,12 +1,10 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { AuthStateService } from './auth-state.service';
 
 @Injectable({ providedIn: 'root' })
 export class ApiService {
   private readonly http = inject(HttpClient);
-  private readonly authState = inject(AuthStateService);
 
   readonly authBase = '/api/auth';
   readonly profileBase = '/api/profile';
@@ -43,20 +41,10 @@ export class ApiService {
   }
 
   private headers(auth: boolean): HttpHeaders {
-    let headers = new HttpHeaders({ 'Content-Type': 'application/json' });
-
-    if (auth && this.authState.accessToken()) {
-      headers = headers.set('Authorization', `Bearer ${this.authState.accessToken()}`);
-    }
-
-    return headers;
+    return new HttpHeaders({ 'Content-Type': 'application/json' });
   }
 
   private formHeaders(auth: boolean): HttpHeaders {
-    let headers = new HttpHeaders();
-    if (auth && this.authState.accessToken()) {
-      headers = headers.set('Authorization', `Bearer ${this.authState.accessToken()}`);
-    }
-    return headers;
+    return new HttpHeaders();
   }
 }

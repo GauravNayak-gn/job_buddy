@@ -1,9 +1,11 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal, effect } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../core/services/api.service';
 import { AuthStateService } from '../../../core/services/auth-state.service';
-import { Job, ResumeItem, ApplicationItem } from '../../../core/models';
+import { SeekerDataService } from '../../../core/services/seeker-data.service';
+import { AlertService } from '../../../core/services/alert.service';
+import { Job } from '../../../core/models';
 import { SalaryPipe } from '../../../shared/pipes/salary.pipe';
 
 @Component({
@@ -22,7 +24,7 @@ import { SalaryPipe } from '../../../shared/pipes/salary.pipe';
       <div class="filters">
         <label>
           <span>Location type</span>
-          <select [(ngModel)]="filters.location_type">
+          <select [disabled]="loading()" [(ngModel)]="filters.location_type">
             <option value="">Any</option>
             <option value="remote">Remote</option>
             <option value="hybrid">Hybrid</option>
@@ -31,20 +33,20 @@ import { SalaryPipe } from '../../../shared/pipes/salary.pipe';
         </label>
         <label>
           <span>Category</span>
-          <input [(ngModel)]="filters.category" type="text" placeholder="Backend" />
+          <input [disabled]="loading()" [(ngModel)]="filters.category" type="text" placeholder="Backend" />
         </label>
         <label>
           <span>Search</span>
-          <input [(ngModel)]="filters.search" type="text" placeholder="Python Developer" />
+          <input [disabled]="loading()" [(ngModel)]="filters.search" type="text" placeholder="Python Developer" />
         </label>
-        <button type="button" (click)="loadJobs()">Apply filters</button>
+        <button type="button" [disabled]="loading()" (click)="loadJobs()">Apply filters</button>
       </div>
 
       @if (isSeeker() && auth.isLoggedIn()) {
         <div class="apply-bar">
           <label>
             <span>Resume to use for apply</span>
-            <select [(ngModel)]="selectedResumeId">
+            <select [disabled]="isSubmitting()" [(ngModel)]="selectedResumeId">
               <option value="">Select resume</option>
               @for (resume of resumes(); track resume.id) {
                 <option [value]="resume.id">{{ resume.resume_title }} ({{ resume.parsing_status }})</option>
@@ -82,7 +84,9 @@ import { SalaryPipe } from '../../../shared/pipes/salary.pipe';
                   @if (appliedJobIds().has(job.id)) {
                     <span class="applied-tag">Already applied</span>
                   } @else {
-                    <button type="button" (click)="apply(job.id)">Apply now</button>
+                    <button type="button" [disabled]="isSubmitting()" (click)="apply(job.id)">
+                      {{ isSubmitting() ? 'Applying...' : 'Apply now' }}
+                    </button>
                   }
                 </div>
               }
@@ -113,10 +117,10 @@ import { SalaryPipe } from '../../../shared/pipes/salary.pipe';
     .job-bottom,
     .apply-actions { display: flex; gap: 1rem; justify-content: space-between; flex-wrap: wrap; align-items: center; }
     .description { color: var(--muted); }
-    .status-pill { background: rgba(42, 157, 143, 0.16); border-radius: 999px; color: #9fe3d8; height: fit-content; padding: 0.45rem 0.8rem; text-transform: capitalize; }
-    .applied-tag { background: rgba(30, 111, 104, 0.14); color: #1e6f68; border-radius: 999px; padding: 0.45rem 0.8rem; }
+    .status-pill { background: var(--pill-bg); border-radius: 999px; color: var(--pill-text); height: fit-content; padding: 0.45rem 0.8rem; text-transform: capitalize; }
+    .applied-tag { background: var(--success-bg); color: var(--success-text); border: 1px solid var(--success-border); border-radius: 999px; padding: 0.45rem 0.8rem; }
     .apply-bar { background: rgba(10, 16, 32, 0.05); border: 1px solid var(--border); border-radius: 18px; padding: 1rem; }
-    .error { color: #ffb8aa; }
+    .error { color: var(--error-text); }
     @media (max-width: 980px) {
       .filters { grid-template-columns: 1fr; }
     }
@@ -125,15 +129,18 @@ import { SalaryPipe } from '../../../shared/pipes/salary.pipe';
 export class JobsComponent implements OnInit {
   private readonly api = inject(ApiService);
   readonly auth = inject(AuthStateService);
+  private readonly seekerData = inject(SeekerDataService);
+  private readonly alertService = inject(AlertService);
 
-  readonly isSeeker = computed(() => this.auth.role() === 'seeker');
+  readonly isSeeker = this.auth.isSeeker;
   readonly jobs = signal<Job[]>([]);
-  readonly resumes = signal<ResumeItem[]>([]);
-  readonly appliedJobIds = signal<Set<string>>(new Set<string>());
+  readonly resumes = this.seekerData.resumes;
+  readonly appliedJobIds = computed(() => new Set(this.seekerData.applications().map((app) => app.job_id)));
 
   readonly loading = signal(true);
   readonly error = signal('');
   readonly message = signal('');
+  readonly isSubmitting = signal(false);
 
   selectedResumeId = '';
 
@@ -143,11 +150,21 @@ export class JobsComponent implements OnInit {
     search: '',
   };
 
+  constructor() {
+    effect(() => {
+      const resumesList = this.resumes();
+      if (!this.selectedResumeId && resumesList.length) {
+        const primaryResume = resumesList.find((r) => r.is_primary);
+        this.selectedResumeId = primaryResume ? primaryResume.id : resumesList[0].id;
+      }
+    });
+  }
+
   ngOnInit(): void {
     this.loadJobs();
     if (this.isSeeker() && this.auth.isLoggedIn()) {
-      this.loadResumes();
-      this.loadApplications();
+      this.seekerData.loadResumes();
+      this.seekerData.loadApplications();
     }
   }
 
@@ -173,45 +190,34 @@ export class JobsComponent implements OnInit {
     });
   }
 
-  private loadResumes(): void {
-    this.api.get<ResumeItem[]>(`${this.api.profileBase}/seeker/resumes/`, true).subscribe({
-      next: (resumes) => {
-        this.resumes.set(resumes);
-        if (!this.selectedResumeId && resumes.length) {
-          this.selectedResumeId = resumes[0].id;
-        }
-      },
-    });
-  }
-
-  private loadApplications(): void {
-    this.api.get<ApplicationItem[]>(`${this.api.applicationsBase}/my/`, true).subscribe({
-      next: (apps) => this.appliedJobIds.set(new Set(apps.map((app) => app.job_id))),
-    });
-  }
-
   protected apply(jobId: string): void {
     this.message.set('');
     if (!this.selectedResumeId) {
       this.message.set('Select a resume first from the dropdown above.');
+      this.alertService.warning('Please select a resume before applying.');
       return;
     }
 
+    this.isSubmitting.set(true);
     this.api.post(`${this.api.applicationsBase}/apply/`, {
       job_id: jobId,
       resume_id: this.selectedResumeId,
       cover_letter: 'Applied via frontend.',
     }, true).subscribe({
       next: () => {
+        this.isSubmitting.set(false);
+        this.alertService.toast('Application submitted successfully!');
         this.message.set('Application submitted.');
-        this.loadApplications();
+        this.seekerData.loadApplications(true);
       },
       error: (error) => {
+        this.isSubmitting.set(false);
+        let errMsg = 'Unable to apply for this job.';
         if (error?.error && typeof error.error === 'object') {
-          this.message.set(JSON.stringify(error.error));
-        } else {
-          this.message.set('Unable to apply for this job.');
+          errMsg = JSON.stringify(error.error);
         }
+        this.message.set(errMsg);
+        this.alertService.error(errMsg, 'Application Failed');
       },
     });
   }

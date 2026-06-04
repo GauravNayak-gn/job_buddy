@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthStateService } from '../../core/services/auth-state.service';
 import { ApiService } from '../../core/services/api.service';
@@ -16,7 +16,7 @@ export class NavbarComponent {
   readonly auth = inject(AuthStateService);
   private readonly api = inject(ApiService);
   private readonly router = inject(Router);
-  readonly isRecruiter = computed(() => this.auth.role() === 'recruiter');
+  readonly isRecruiter = this.auth.isRecruiter;
 
   protected logout(): void {
     const refresh = this.auth.refreshToken();

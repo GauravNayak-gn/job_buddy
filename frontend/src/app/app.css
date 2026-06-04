@@ -1,13 +1,4 @@
 :host {
-  --bg: #f3efe5;
-  --text: #18212f;
-  --muted: #5e6673;
-  --accent: #d95d39;
-  --accent-dark: #b94b2a;
-  --secondary: #1e6f68;
-  --card: rgba(255, 251, 245, 0.88);
-  --border: rgba(24, 33, 47, 0.08);
-  --shadow: 0 18px 45px rgba(28, 39, 56, 0.12);
   display: block;
   min-height: 100vh;
 }

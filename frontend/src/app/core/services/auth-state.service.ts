@@ -13,6 +13,7 @@ export class AuthStateService {
   readonly userId = computed(() => this.state().userId);
   readonly isLoggedIn = computed(() => Boolean(this.state().access));
   readonly isRecruiter = computed(() => this.state().role === 'recruiter');
+  readonly isSeeker = computed(() => this.state().role === 'seeker');
 
   setSession(session: SessionState): void {
     this.state.set(session);

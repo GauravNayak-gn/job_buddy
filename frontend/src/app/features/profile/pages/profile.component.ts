@@ -1,9 +1,10 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal, effect } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ApiService } from '../../../core/services/api.service';
 import { AuthStateService } from '../../../core/services/auth-state.service';
+import { SeekerDataService } from '../../../core/services/seeker-data.service';
 import { AlertService } from '../../../core/services/alert.service';
 import { SeekerSkill, ResumeItem, ApplicationItem, Job } from '../../../core/models';
 import { extractErrorMessage } from '../../../shared/utils/error-message.util';
@@ -31,8 +32,8 @@ import { SalaryPipe } from '../../../shared/pipes/salary.pipe';
         
         @if (isSeeker()) {
           <div class="tabs">
-            <button type="button" [class.active]="activeTab() === 'profile'" (click)="activeTab.set('profile')">My Profile</button>
-            <button type="button" [class.active]="activeTab() === 'applications'" (click)="activeTab.set('applications')">My Applications</button>
+            <button type="button" [disabled]="isSubmitting()" [class.active]="activeTab() === 'profile'" (click)="activeTab.set('profile')">My Profile</button>
+            <button type="button" [disabled]="isSubmitting()" [class.active]="activeTab() === 'applications'" (click)="activeTab.set('applications')">My Applications</button>
           </div>
         }
 
@@ -44,7 +45,7 @@ import { SalaryPipe } from '../../../shared/pipes/salary.pipe';
                 <article class="panel-card">
                   <div class="section-head">
                     <h2>Seeker profile</h2>
-                    <button type="button" class="secondary" (click)="editMode.set(!editMode())">
+                    <button type="button" [disabled]="isSubmitting()" class="secondary" (click)="editMode.set(!editMode())">
                       {{ editMode() ? 'Cancel edit' : 'Edit profile' }}
                     </button>
                   </div>
@@ -60,19 +61,21 @@ import { SalaryPipe } from '../../../shared/pipes/salary.pipe';
                     </div>
                   } @else {
                     <div class="grid">
-                      <label><span>First name</span><input [(ngModel)]="seeker.first_name" type="text" /></label>
-                      <label><span>Last name</span><input [(ngModel)]="seeker.last_name" type="text" /></label>
-                      <label><span>Phone</span><input [(ngModel)]="seeker.phone" type="text" /></label>
-                      <label><span>Current title</span><input [(ngModel)]="seeker.current_title" type="text" /></label>
+                      <label><span>First name</span><input [disabled]="isSubmitting()" [(ngModel)]="seeker.first_name" type="text" /></label>
+                      <label><span>Last name</span><input [disabled]="isSubmitting()" [(ngModel)]="seeker.last_name" type="text" /></label>
+                      <label><span>Phone</span><input [disabled]="isSubmitting()" [(ngModel)]="seeker.phone" type="text" /></label>
+                      <label><span>Current title</span><input [disabled]="isSubmitting()" [(ngModel)]="seeker.current_title" type="text" /></label>
                     </div>
-                    <label><span>Summary</span><textarea [(ngModel)]="seeker.summary" rows="4"></textarea></label>
+                    <label><span>Summary</span><textarea [disabled]="isSubmitting()" [(ngModel)]="seeker.summary" rows="4"></textarea></label>
                     <div class="grid">
-                      <label><span>GitHub URL</span><input [(ngModel)]="seeker.github_url" type="text" /></label>
-                      <label><span>LinkedIn URL</span><input [(ngModel)]="seeker.linkedin_url" type="text" /></label>
+                      <label><span>GitHub URL</span><input [disabled]="isSubmitting()" [(ngModel)]="seeker.github_url" type="text" /></label>
+                      <label><span>LinkedIn URL</span><input [disabled]="isSubmitting()" [(ngModel)]="seeker.linkedin_url" type="text" /></label>
                     </div>
                     <div class="actions">
-                      <button type="button" (click)="saveSeeker()">Save profile</button>
-                      <button type="button" class="secondary" (click)="loadSeeker()">Reload</button>
+                      <button type="button" [disabled]="isSubmitting()" (click)="saveSeeker()">
+                        {{ isSubmitting() ? 'Saving...' : 'Save profile' }}
+                      </button>
+                      <button type="button" [disabled]="isSubmitting()" class="secondary" (click)="loadSeeker()">Reload</button>
                     </div>
                   }
                   @if (message()) {
@@ -94,19 +97,23 @@ import { SalaryPipe } from '../../../shared/pipes/salary.pipe';
                     </div>
                   }
                   <div class="grid skill-inputs">
-                    <label><span>Skill name</span><input [(ngModel)]="skill.skill_name" type="text" placeholder="e.g. Python" /></label>
-                    <label><span>Years of experience</span><input [(ngModel)]="skill.years_of_experience" type="number" min="0" /></label>
+                    <label><span>Skill name</span><input [disabled]="isSubmitting()" [(ngModel)]="skill.skill_name" type="text" placeholder="e.g. Python" /></label>
+                    <label><span>Years of experience</span><input [disabled]="isSubmitting()" [(ngModel)]="skill.years_of_experience" type="number" min="0" /></label>
                   </div>
-                  <button type="button" class="secondary" (click)="addSkill()">Add skill</button>
+                  <button type="button" [disabled]="isSubmitting()" class="secondary" (click)="addSkill()">
+                    {{ isSubmitting() ? 'Adding...' : 'Add skill' }}
+                  </button>
                 </article>
 
                 <article class="panel-card">
                   <h3>Resume upload</h3>
                   <div class="grid">
-                    <label><span>Title</span><input [(ngModel)]="resumeTitle" type="text" placeholder="Backend Resume" /></label>
-                    <label><span>PDF file</span><input type="file" accept="application/pdf" (change)="onResumeSelect($event)" class="file-input" /></label>
+                    <label><span>Title</span><input [disabled]="isSubmitting()" [(ngModel)]="resumeTitle" type="text" placeholder="Backend Resume" /></label>
+                    <label><span>PDF file</span><input [disabled]="isSubmitting()" type="file" accept="application/pdf" (change)="onResumeSelect($event)" class="file-input" /></label>
                   </div>
-                  <button type="button" class="secondary" (click)="uploadResume()">Upload resume</button>
+                  <button type="button" [disabled]="isSubmitting()" class="secondary" (click)="uploadResume()">
+                    {{ isSubmitting() ? 'Uploading...' : 'Upload resume' }}
+                  </button>
                   @if (resumes().length) {
                     <div class="list compact">
                       @for (item of resumes(); track item.id) {
@@ -114,15 +121,15 @@ import { SalaryPipe } from '../../../shared/pipes/salary.pipe';
                           <div>
                             <strong>{{ item.resume_title }}</strong>
                             @if (item.is_primary) {
-                              <span class="primary-badge" style="margin-left: 0.5rem; background: #dcfce7; color: #065f46; padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.75rem; font-weight: bold;">PRIMARY</span>
+                              <span class="primary-badge">PRIMARY</span>
                             }
                             <p class="meta-line">{{ item.parsing_status }} · {{ item.created_at | date: 'medium' }}</p>
                           </div>
                           <div style="display: flex; gap: 0.5rem;">
                             @if (!item.is_primary) {
-                              <button type="button" class="secondary" style="padding: 0.2rem 0.5rem; font-size: 0.8rem;" (click)="makePrimary(item.id)">Set Primary</button>
+                              <button type="button" [disabled]="isSubmitting()" class="secondary" style="padding: 0.2rem 0.5rem; font-size: 0.8rem;" (click)="makePrimary(item.id)">Set Primary</button>
                             }
-                            <button type="button" class="close-btn" style="padding: 0.2rem 0.5rem; font-size: 0.8rem;" (click)="deleteResume(item.id)">Delete</button>
+                            <button type="button" [disabled]="isSubmitting()" class="close-btn" style="padding: 0.2rem 0.5rem; font-size: 0.8rem;" (click)="deleteResume(item.id)">Delete</button>
                           </div>
                         </div>
                       }
@@ -136,12 +143,12 @@ import { SalaryPipe } from '../../../shared/pipes/salary.pipe';
               <div class="section-head">
                 <h2>My applications</h2>
                 <div class="app-filters">
-                  <select [ngModel]="applicationStageFilter()" (ngModelChange)="onStageFilterChange($event)" class="filter-select">
+                  <select [disabled]="isSubmitting()" [ngModel]="applicationStageFilter()" (ngModelChange)="onStageFilterChange($event)" class="filter-select">
                     @for (stage of availableStages; track stage.value) {
                       <option [value]="stage.value">{{ stage.label }}</option>
                     }
                   </select>
-                  <button type="button" class="secondary" (click)="loadApplications()">Refresh</button>
+                  <button type="button" [disabled]="isSubmitting() || applicationsLoading()" class="secondary" (click)="refreshApplications()">Refresh</button>
                 </div>
               </div>
               
@@ -183,7 +190,7 @@ import { SalaryPipe } from '../../../shared/pipes/salary.pipe';
           <article class="panel-card">
             <div class="section-head">
               <h2>Recruiter profile</h2>
-              <button type="button" class="secondary" (click)="editMode.set(!editMode())">
+              <button type="button" [disabled]="isSubmitting()" class="secondary" (click)="editMode.set(!editMode())">
                 {{ editMode() ? 'Cancel edit' : 'Edit profile' }}
               </button>
             </div>
@@ -198,15 +205,17 @@ import { SalaryPipe } from '../../../shared/pipes/salary.pipe';
               </div>
             } @else {
               <div class="grid">
-                <label><span>Company name</span><input [(ngModel)]="recruiter.company_name" type="text" /></label>
-                <label><span>Company size</span><input [(ngModel)]="recruiter.company_size" type="text" /></label>
-                <label><span>Industry</span><input [(ngModel)]="recruiter.industry" type="text" /></label>
-                <label><span>HQ location</span><input [(ngModel)]="recruiter.hq_location" type="text" /></label>
+                <label><span>Company name</span><input [disabled]="isSubmitting()" [(ngModel)]="recruiter.company_name" type="text" /></label>
+                <label><span>Company size</span><input [disabled]="isSubmitting()" [(ngModel)]="recruiter.company_size" type="text" /></label>
+                <label><span>Industry</span><input [disabled]="isSubmitting()" [(ngModel)]="recruiter.industry" type="text" /></label>
+                <label><span>HQ location</span><input [disabled]="isSubmitting()" [(ngModel)]="recruiter.hq_location" type="text" /></label>
               </div>
-              <label><span>Website URL</span><input [(ngModel)]="recruiter.website_url" type="text" /></label>
+              <label><span>Website URL</span><input [disabled]="isSubmitting()" [(ngModel)]="recruiter.website_url" type="text" /></label>
               <div class="actions">
-                <button type="button" (click)="saveRecruiter()">Save profile</button>
-                <button type="button" class="secondary" (click)="loadRecruiter()">Reload</button>
+                <button type="button" [disabled]="isSubmitting()" (click)="saveRecruiter()">
+                  {{ isSubmitting() ? 'Saving...' : 'Save profile' }}
+                </button>
+                <button type="button" [disabled]="isSubmitting()" class="secondary" (click)="loadRecruiter()">Reload</button>
               </div>
             }
 
@@ -260,8 +269,8 @@ import { SalaryPipe } from '../../../shared/pipes/salary.pipe';
     
     .tabs { display: flex; gap: 0.5rem; border-bottom: 2px solid var(--border); padding-bottom: 0.5rem; margin-bottom: 0.5rem; }
     .tabs button { background: transparent; border: none; color: var(--muted); padding: 0.75rem 1.5rem; border-radius: 12px; cursor: pointer; transition: all 0.2s; }
-    .tabs button.active { background: #e0e7ff; color: #3730a3; }
-    .tabs button:hover { background: #f1f5f9; }
+    .tabs button.active { background: var(--pill-bg); color: var(--pill-text); }
+    .tabs button:hover { background: var(--border); }
 
     .grid { display: grid; gap: 1rem; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-bottom: 1rem; }
     .skill-inputs { align-items: end; margin-bottom: 0.5rem; }
@@ -276,10 +285,10 @@ import { SalaryPipe } from '../../../shared/pipes/salary.pipe';
     
     .chips { display: flex; flex-wrap: wrap; gap: 0.6rem; margin: 0.6rem 0 1rem; }
     .chip { 
-      background: #dbeafe; 
+      background: var(--info-bg); 
       border-radius: 999px; 
       padding: 0.35rem 0.8rem; 
-      color: #1e40af; 
+      color: var(--info-text); 
       font-weight: 500;
       font-size: 0.9rem;
     }
@@ -321,9 +330,9 @@ import { SalaryPipe } from '../../../shared/pipes/salary.pipe';
     .app-actions button { padding: 0.4rem 0.8rem; font-size: 0.85rem; min-height: auto; }
     
     .status-pill { 
-      background: #e0e7ff; 
+      background: var(--pill-bg); 
       border-radius: 999px; 
-      color: #3730a3; 
+      color: var(--pill-text); 
       padding: 0.45rem 0.8rem; 
       text-transform: capitalize;
       font-size: 0.85rem;
@@ -346,7 +355,17 @@ import { SalaryPipe } from '../../../shared/pipes/salary.pipe';
     .muted { color: var(--muted); }
     .meta-line { color: var(--muted); font-size: 0.85rem; margin-top: 0.25rem; margin-bottom: 0; }
     .small { margin-top: 1rem; padding: 1rem; }
-    .message { margin-top: 1rem; padding: 1rem; background: #eff6ff; color: #1e40af; border-radius: 12px; }
+    .message { margin-top: 1rem; padding: 1rem; background: var(--info-bg); color: var(--info-text); border-radius: 12px; }
+    
+    .primary-badge {
+      margin-left: 0.5rem;
+      background: var(--primary-badge-bg);
+      color: var(--primary-badge-text);
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: bold;
+    }
 
     /* Modal Styles */
     .modal-overlay { 
@@ -364,11 +383,11 @@ import { SalaryPipe } from '../../../shared/pipes/salary.pipe';
     }
     .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
     .close-btn { 
-      background: #fee2e2; border: none; border-radius: 8px; 
+      background: var(--danger-bg); border: none; border-radius: 8px; 
       padding: 0.4rem 1rem; cursor: pointer; font-size: 0.95rem; 
-      font-weight: 500; color: #991b1b; transition: all 0.2s; 
+      font-weight: 500; color: var(--danger-text); transition: all 0.2s; 
     }
-    .close-btn:hover { background: #fecaca; }
+    .close-btn:hover { background: var(--danger-hover); }
     .modal-section { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); }
     .modal-section p { margin-bottom: 0.5rem; }
     .description-text { white-space: pre-wrap; color: var(--muted); }
@@ -382,12 +401,13 @@ import { SalaryPipe } from '../../../shared/pipes/salary.pipe';
 export class ProfileComponent implements OnInit {
   private readonly api = inject(ApiService);
   readonly auth = inject(AuthStateService);
+  private readonly seekerData = inject(SeekerDataService);
   private readonly alertService = inject(AlertService);
 
-  readonly isSeeker = computed(() => this.auth.role() === 'seeker');
+  readonly isSeeker = this.auth.isSeeker;
   readonly editMode = signal(false);
   readonly activeTab = signal<'profile' | 'applications'>('profile');
-  readonly applicationsLoading = signal(false);
+  readonly applicationsLoading = this.seekerData.applicationsLoading;
   readonly message = signal('');
   readonly applicationStageFilter = signal<string>('');
 
@@ -401,9 +421,18 @@ export class ProfileComponent implements OnInit {
   ];
 
   readonly skills = signal<SeekerSkill[]>([]);
-  readonly resumes = signal<ResumeItem[]>([]);
-  readonly applications = signal<ApplicationItem[]>([]);
+  readonly resumes = this.seekerData.resumes;
+  
+  readonly applications = computed(() => {
+    const stage = this.applicationStageFilter();
+    const apps = this.seekerData.applications();
+    if (!stage) return apps;
+    return apps.filter((app) => app.current_stage === stage);
+  });
+
   readonly viewingJob = signal<Job | null>(null);
+  readonly profileExists = signal(false);
+  readonly isSubmitting = signal(false);
 
   readonly seeker = {
     first_name: '',
@@ -436,8 +465,8 @@ export class ProfileComponent implements OnInit {
     if (this.isSeeker()) {
       this.loadSeeker();
       this.loadSkills();
-      this.loadResumes();
-      this.loadApplications();
+      this.seekerData.loadResumes();
+      this.seekerData.loadApplications();
     } else {
       this.loadRecruiter();
     }
@@ -447,25 +476,36 @@ export class ProfileComponent implements OnInit {
     this.api.get(`${this.api.profileBase}/seeker/`, true).subscribe({
       next: (response) => {
         Object.assign(this.seeker, response as object);
+        this.profileExists.set(true);
       },
-      error: (error) => this.message.set(extractErrorMessage(error)),
+      error: (error) => {
+        this.profileExists.set(false);
+        this.message.set(extractErrorMessage(error));
+      },
     });
   }
 
   protected saveSeeker(): void {
-    this.api.post(`${this.api.profileBase}/seeker/`, this.seeker, true).subscribe({
+    this.isSubmitting.set(true);
+    this.message.set('');
+
+    const request$ = this.profileExists()
+      ? this.api.patch(`${this.api.profileBase}/seeker/`, this.seeker, true)
+      : this.api.post(`${this.api.profileBase}/seeker/`, this.seeker, true);
+
+    request$.subscribe({
       next: () => {
+        this.isSubmitting.set(false);
+        this.profileExists.set(true);
+        this.alertService.toast('Profile saved successfully.');
         this.message.set('Seeker profile saved.');
         this.editMode.set(false);
       },
-      error: () => {
-        this.api.patch(`${this.api.profileBase}/seeker/`, this.seeker, true).subscribe({
-          next: () => {
-            this.message.set('Seeker profile updated.');
-            this.editMode.set(false);
-          },
-          error: (error) => this.message.set(extractErrorMessage(error)),
-        });
+      error: (error) => {
+        this.isSubmitting.set(false);
+        const errMsg = extractErrorMessage(error);
+        this.message.set(errMsg);
+        this.alertService.error(errMsg, 'Save Failed');
       },
     });
   }
@@ -474,25 +514,36 @@ export class ProfileComponent implements OnInit {
     this.api.get(`${this.api.profileBase}/recruiter/`, true).subscribe({
       next: (response) => {
         Object.assign(this.recruiter, response as object);
+        this.profileExists.set(true);
       },
-      error: (error) => this.message.set(extractErrorMessage(error)),
+      error: (error) => {
+        this.profileExists.set(false);
+        this.message.set(extractErrorMessage(error));
+      },
     });
   }
 
   protected saveRecruiter(): void {
-    this.api.post(`${this.api.profileBase}/recruiter/`, this.recruiter, true).subscribe({
+    this.isSubmitting.set(true);
+    this.message.set('');
+
+    const request$ = this.profileExists()
+      ? this.api.patch(`${this.api.profileBase}/recruiter/`, this.recruiter, true)
+      : this.api.post(`${this.api.profileBase}/recruiter/`, this.recruiter, true);
+
+    request$.subscribe({
       next: () => {
+        this.isSubmitting.set(false);
+        this.profileExists.set(true);
+        this.alertService.toast('Profile saved successfully.');
         this.message.set('Recruiter profile saved.');
         this.editMode.set(false);
       },
-      error: () => {
-        this.api.patch(`${this.api.profileBase}/recruiter/`, this.recruiter, true).subscribe({
-          next: () => {
-            this.message.set('Recruiter profile updated.');
-            this.editMode.set(false);
-          },
-          error: (error) => this.message.set(extractErrorMessage(error)),
-        });
+      error: (error) => {
+        this.isSubmitting.set(false);
+        const errMsg = extractErrorMessage(error);
+        this.message.set(errMsg);
+        this.alertService.error(errMsg, 'Save Failed');
       },
     });
   }
@@ -507,23 +558,26 @@ export class ProfileComponent implements OnInit {
   protected addSkill(): void {
     if (!this.skill.skill_name.trim()) {
       this.message.set('Enter a skill name first.');
+      this.alertService.warning('Skill name cannot be empty.');
       return;
     }
+    
+    this.isSubmitting.set(true);
     this.api.post(`${this.api.profileBase}/seeker/skills/`, this.skill, true).subscribe({
       next: () => {
+        this.isSubmitting.set(false);
+        this.alertService.toast('Skill added successfully.');
         this.message.set('Skill saved.');
         this.skill.skill_name = '';
         this.skill.years_of_experience = 1;
         this.loadSkills();
       },
-      error: (error) => this.message.set(extractErrorMessage(error)),
-    });
-  }
-
-  protected loadResumes(): void {
-    this.api.get<ResumeItem[]>(`${this.api.profileBase}/seeker/resumes/`, true).subscribe({
-      next: (res) => this.resumes.set(res),
-      error: () => undefined,
+      error: (error) => {
+        this.isSubmitting.set(false);
+        const errMsg = extractErrorMessage(error);
+        this.message.set(errMsg);
+        this.alertService.error(errMsg, 'Failed to Add Skill');
+      },
     });
   }
 
@@ -535,65 +589,77 @@ export class ProfileComponent implements OnInit {
   protected uploadResume(): void {
     if (!this.selectedResumeFile) {
       this.message.set('Select a resume PDF first.');
+      this.alertService.warning('Please select a PDF file first.');
       return;
     }
     const form = new FormData();
     form.append('resume', this.selectedResumeFile);
     form.append('resume_title', this.resumeTitle || this.selectedResumeFile.name);
 
+    this.isSubmitting.set(true);
     this.api.postForm(`${this.api.profileBase}/seeker/resumes/`, form, true).subscribe({
       next: () => {
+        this.isSubmitting.set(false);
+        this.alertService.success('Resume uploaded successfully and parsing has started.', 'Uploaded');
         this.message.set('Resume uploaded successfully. It is currently being processed.');
         this.resumeTitle = '';
         this.selectedResumeFile = null;
-        this.loadResumes();
+        this.seekerData.loadResumes(true);
       },
-      error: (error) => this.message.set(extractErrorMessage(error)),
+      error: (error) => {
+        this.isSubmitting.set(false);
+        const errMsg = extractErrorMessage(error);
+        this.message.set(errMsg);
+        this.alertService.error(errMsg, 'Upload Failed');
+      },
     });
   }
 
   protected async deleteResume(resumeId: string): Promise<void> {
     const confirmed = await this.alertService.confirm('Are you sure you want to delete this resume?');
     if (!confirmed) return;
+
+    this.isSubmitting.set(true);
     this.api.delete(`${this.api.profileBase}/seeker/resumes/${resumeId}/`, true).subscribe({
       next: () => {
+        this.isSubmitting.set(false);
+        this.alertService.toast('Resume deleted successfully.');
         this.message.set('Resume deleted successfully.');
-        this.loadResumes();
+        this.seekerData.loadResumes(true);
       },
-      error: (error) => this.message.set(extractErrorMessage(error)),
+      error: (error) => {
+        this.isSubmitting.set(false);
+        const errMsg = extractErrorMessage(error);
+        this.message.set(errMsg);
+        this.alertService.error(errMsg, 'Delete Failed');
+      },
     });
   }
 
   protected makePrimary(resumeId: string): void {
+    this.isSubmitting.set(true);
     this.api.patch(`${this.api.profileBase}/seeker/resumes/${resumeId}/`, { is_primary: true }, true).subscribe({
       next: () => {
+        this.isSubmitting.set(false);
+        this.alertService.toast('Primary resume updated.');
         this.message.set('Primary resume updated successfully.');
-        this.loadResumes();
+        this.seekerData.loadResumes(true);
       },
-      error: (error) => this.message.set(extractErrorMessage(error)),
+      error: (error) => {
+        this.isSubmitting.set(false);
+        const errMsg = extractErrorMessage(error);
+        this.message.set(errMsg);
+        this.alertService.error(errMsg, 'Update Failed');
+      },
     });
   }
 
-  protected loadApplications(): void {
-    this.applicationsLoading.set(true);
-    const params: Record<string, string> = {};
-    if (this.applicationStageFilter()) {
-      params['stage'] = this.applicationStageFilter();
-    }
-    this.api.get<ApplicationItem[]>(`${this.api.applicationsBase}/my/`, true, params).subscribe({
-      next: (res) => {
-        this.applications.set(res);
-        this.applicationsLoading.set(false);
-      },
-      error: () => {
-        this.applicationsLoading.set(false);
-      },
-    });
+  protected refreshApplications(): void {
+    this.seekerData.loadApplications(true);
   }
 
   protected onStageFilterChange(stage: string): void {
     this.applicationStageFilter.set(stage);
-    this.loadApplications();
   }
 
   protected viewJobDetails(jobId: string): void {
@@ -602,8 +668,9 @@ export class ProfileComponent implements OnInit {
       next: (job) => {
         this.viewingJob.set(job);
       },
-      error: (error) => {
+      error: () => {
         this.message.set('Could not load job details. The job may have been removed.');
+        this.alertService.error('Could not load job details.');
       },
     });
   }
@@ -621,6 +688,7 @@ export class ProfileComponent implements OnInit {
       error: (error) => {
         console.error(error);
         this.message.set('Failed to load resume file.');
+        this.alertService.error('Could not load resume file.');
       },
     });
   }

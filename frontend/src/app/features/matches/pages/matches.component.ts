@@ -1,11 +1,13 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal, effect } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { forkJoin, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { ApiService } from '../../../core/services/api.service';
 import { AuthStateService } from '../../../core/services/auth-state.service';
-import { MatchResponse, JobMatch, SeekerMatch, SeekerProfile, Applicant, InterviewResponse, JobSummary, JobMatchView, ResumeItem, ApplicationItem } from '../../../core/models';
+import { SeekerDataService } from '../../../core/services/seeker-data.service';
+import { AlertService } from '../../../core/services/alert.service';
+import { MatchResponse, JobMatch, SeekerMatch, SeekerProfile, Applicant, InterviewResponse, JobSummary, JobMatchView } from '../../../core/models';
 import { extractErrorMessage } from '../../../shared/utils/error-message.util';
 import { SalaryPipe } from '../../../shared/pipes/salary.pipe';
 
@@ -24,13 +26,13 @@ import { SalaryPipe } from '../../../shared/pipes/salary.pipe';
 
       @if (isSeeker()) {
         <p class="hint">Shows top matched jobs for your seeker account.</p>
-        <button type="button" (click)="loadJobsForSeeker()">Find jobs for me</button>
+        <button type="button" [disabled]="isSubmitting()" (click)="loadJobsForSeeker()">Find jobs for me</button>
 
         @if (auth.isLoggedIn()) {
           <div class="apply-bar" style="margin-top: 1rem; margin-bottom: 1rem; background: rgba(10, 16, 32, 0.05); border: 1px solid var(--border); border-radius: 18px; padding: 1rem;">
             <label style="display: grid; gap: 0.25rem;">
               <span>Resume to use for apply</span>
-              <select [(ngModel)]="selectedResumeId">
+              <select [disabled]="isSubmitting()" [(ngModel)]="selectedResumeId">
                 <option value="">Select resume</option>
                 @for (resume of resumes(); track resume.id) {
                   <option [value]="resume.id">{{ resume.resume_title }} ({{ resume.parsing_status }})</option>
@@ -67,7 +69,9 @@ import { SalaryPipe } from '../../../shared/pipes/salary.pipe';
                     @if (appliedJobIds().has(item.job_id)) {
                       <span style="background: rgba(30, 111, 104, 0.14); color: #1e6f68; border-radius: 999px; padding: 0.45rem 0.8rem;">Already applied</span>
                     } @else {
-                      <button type="button" (click)="apply(item.job_id)">Apply now</button>
+                      <button type="button" [disabled]="isSubmitting()" (click)="apply(item.job_id)">
+                        {{ isSubmitting() ? 'Applying...' : 'Apply now' }}
+                      </button>
                     }
                   </div>
                 }
@@ -79,14 +83,14 @@ import { SalaryPipe } from '../../../shared/pipes/salary.pipe';
         <div class="controls">
           <label>
             <span>Select job</span>
-            <select [(ngModel)]="jobId">
+            <select [disabled]="isSubmitting()" [(ngModel)]="jobId">
               <option value="">Select job</option>
               @for (job of recruiterJobs(); track job.id) {
                 <option [value]="job.id">{{ job.title }} ({{ job.id }})</option>
               }
             </select>
           </label>
-          <button type="button" (click)="loadSeekersForJob()">Find matching seekers</button>
+          <button type="button" [disabled]="isSubmitting()" (click)="loadSeekersForJob()">Find matching seekers</button>
         </div>
 
         @if (seekerResults().length) {
@@ -116,7 +120,7 @@ import { SalaryPipe } from '../../../shared/pipes/salary.pipe';
                     <button type="button" class="secondary" (click)="viewResume(item.resume_id)">View Resume</button>
                   }
 
-                  <button type="button" class="secondary" (click)="toggleSchedule(item.seeker_id)">
+                  <button type="button" [disabled]="isSubmitting()" class="secondary" (click)="toggleSchedule(item.seeker_id)">
                     {{ schedulingSeekerId() === item.seeker_id ? 'Cancel' : 'Schedule' }}
                   </button>
                 </div>
@@ -128,13 +132,15 @@ import { SalaryPipe } from '../../../shared/pipes/salary.pipe';
                     } @else {
                       <label>
                         <span>Date and time</span>
-                        <input [(ngModel)]="scheduleDateTime" type="datetime-local" />
+                        <input [disabled]="isSubmitting()" [(ngModel)]="scheduleDateTime" type="datetime-local" />
                       </label>
                       <label>
                         <span>Recruiter notes</span>
-                        <textarea [(ngModel)]="scheduleNotes" rows="2"></textarea>
+                        <textarea [disabled]="isSubmitting()" [(ngModel)]="scheduleNotes" rows="2"></textarea>
                       </label>
-                      <button type="button" (click)="scheduleInterview(item)">Generate interview link</button>
+                      <button type="button" [disabled]="isSubmitting()" (click)="scheduleInterview(item)">
+                        {{ isSubmitting() ? 'Scheduling...' : 'Generate interview link' }}
+                      </button>
                     }
                   </div>
                 }
@@ -232,7 +238,7 @@ import { SalaryPipe } from '../../../shared/pipes/salary.pipe';
     .item { padding: 1rem 1.2rem; }
     .hint,
     .muted { color: var(--muted); }
-    .error { color: #ffb8aa; }
+    .error { color: var(--error-text); }
     
     .controls { display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap; margin-bottom: 1rem; }
     .controls label { display: grid; gap: 0.25rem; }
@@ -253,9 +259,9 @@ import { SalaryPipe } from '../../../shared/pipes/salary.pipe';
     .applicant-actions { display: flex; gap: 0.75rem; flex-wrap: wrap; }
     
     .status-pill { 
-      background: #e0e7ff; 
+      background: var(--pill-bg); 
       border-radius: 999px; 
-      color: #3730a3; 
+      color: var(--pill-text); 
       padding: 0.45rem 0.8rem; 
       text-transform: capitalize;
       font-size: 0.85rem;
@@ -274,17 +280,17 @@ import { SalaryPipe } from '../../../shared/pipes/salary.pipe';
       border-radius: 12px;
     }
     
-    .error-text { color: #ef4444; font-size: 0.9rem; margin: 0; }
+    .error-text { color: var(--error-text); font-size: 0.9rem; margin: 0; }
     
     .message { margin-top: 1rem; padding: 1rem; color: var(--accent); }
     
     .interview-banner { 
-      background: #ecfdf5; 
-      border: 1px solid #6ee7b7;
+      background: var(--success-bg); 
+      border: 1px solid var(--success-border);
       border-radius: 18px; 
       padding: 1.25rem;
       margin-top: 1rem;
-      color: #065f46;
+      color: var(--success-text);
     }
     
     .modal-overlay { 
@@ -310,22 +316,22 @@ import { SalaryPipe } from '../../../shared/pipes/salary.pipe';
     
     .profile-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
     .close-btn { 
-      background: #fee2e2; 
+      background: var(--danger-bg); 
       border: none; 
       border-radius: 8px; 
       padding: 0.4rem 1rem;
       cursor: pointer; 
       font-size: 0.95rem;
       font-weight: 500;
-      color: #991b1b;
+      color: var(--danger-text);
       transition: all 0.2s;
     }
-    .close-btn:hover { background: #fecaca; }
+    .close-btn:hover { background: var(--danger-hover); }
     
     .profile-section { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); }
     .profile-section:first-of-type { border-top: none; padding-top: 0; }
     .skills-grid { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem; }
-    .skill-tag { background: #dbeafe; border-radius: 999px; color: #1e40af; padding: 0.35rem 0.7rem; font-size: 0.9rem; font-weight: 500; }
+    .skill-tag { background: var(--info-bg); border-radius: 999px; color: var(--info-text); padding: 0.35rem 0.7rem; font-size: 0.9rem; font-weight: 500; }
     .experience-item { margin-top: 0.8rem; padding: 0.8rem; background: var(--bg); border: 1px solid var(--border); border-radius: 12px; }
 
     @media (max-width: 768px) {
@@ -337,8 +343,10 @@ import { SalaryPipe } from '../../../shared/pipes/salary.pipe';
 export class MatchesComponent implements OnInit {
   private readonly api = inject(ApiService);
   readonly auth = inject(AuthStateService);
+  private readonly seekerData = inject(SeekerDataService);
+  private readonly alertService = inject(AlertService);
 
-  readonly isSeeker = computed(() => this.auth.role() === 'seeker');
+  readonly isSeeker = this.auth.isSeeker;
   readonly recruiterJobs = signal<JobSummary[]>([]);
 
   readonly jobResults = signal<JobMatchView[]>([]);
@@ -351,13 +359,24 @@ export class MatchesComponent implements OnInit {
   readonly schedulingSeekerId = signal('');
   readonly scheduledInterview = signal<InterviewResponse | null>(null);
 
-  readonly resumes = signal<ResumeItem[]>([]);
-  readonly appliedJobIds = signal<Set<string>>(new Set<string>());
+  readonly resumes = this.seekerData.resumes;
+  readonly appliedJobIds = computed(() => new Set(this.seekerData.applications().map((app) => app.job_id)));
+  readonly isSubmitting = signal(false);
   selectedResumeId = '';
 
   jobId = '';
   scheduleDateTime = '';
   scheduleNotes = '';
+
+  constructor() {
+    effect(() => {
+      const resumesList = this.resumes();
+      if (!this.selectedResumeId && resumesList.length) {
+        const primaryResume = resumesList.find((r) => r.is_primary);
+        this.selectedResumeId = primaryResume ? primaryResume.id : resumesList[0].id;
+      }
+    });
+  }
 
   ngOnInit(): void {
     if (!this.isSeeker() && this.auth.isLoggedIn()) {
@@ -366,51 +385,39 @@ export class MatchesComponent implements OnInit {
       });
     }
     if (this.isSeeker() && this.auth.isLoggedIn()) {
-      this.loadResumes();
-      this.loadApplications();
+      this.seekerData.loadResumes();
+      this.seekerData.loadApplications();
     }
-  }
-
-  private loadResumes(): void {
-    this.api.get<ResumeItem[]>(`${this.api.profileBase}/seeker/resumes/`, true).subscribe({
-      next: (resumes) => {
-        this.resumes.set(resumes);
-        if (resumes.length) {
-          const primaryResume = resumes.find(r => r.is_primary);
-          this.selectedResumeId = primaryResume ? primaryResume.id : resumes[0].id;
-        }
-      },
-    });
-  }
-
-  private loadApplications(): void {
-    this.api.get<ApplicationItem[]>(`${this.api.applicationsBase}/my/`, true).subscribe({
-      next: (apps) => this.appliedJobIds.set(new Set(apps.map((app) => app.job_id))),
-    });
   }
 
   protected apply(jobId: string): void {
     this.message.set('');
     if (!this.selectedResumeId) {
       this.message.set('Select a resume first from the dropdown above.');
+      this.alertService.warning('Please select a resume before applying.');
       return;
     }
 
+    this.isSubmitting.set(true);
     this.api.post(`${this.api.applicationsBase}/apply/`, {
       job_id: jobId,
       resume_id: this.selectedResumeId,
       cover_letter: 'Applied via AI Matches.',
     }, true).subscribe({
       next: () => {
+        this.isSubmitting.set(false);
         this.message.set('Application submitted.');
-        this.loadApplications();
+        this.alertService.toast('Application submitted successfully!');
+        this.seekerData.loadApplications(true);
       },
       error: (error) => {
+        this.isSubmitting.set(false);
+        let errMsg = 'Unable to apply for this job.';
         if (error?.error && typeof error.error === 'object') {
-          this.message.set(JSON.stringify(error.error));
-        } else {
-          this.message.set('Unable to apply for this job.');
+          errMsg = JSON.stringify(error.error);
         }
+        this.message.set(errMsg);
+        this.alertService.error(errMsg, 'Application Failed');
       },
     });
   }
@@ -422,11 +429,13 @@ export class MatchesComponent implements OnInit {
     
     // Attempt to use the selected or primary resume for matching, otherwise let the backend fallback
     const resumesList = this.resumes();
-    const matchResume = resumesList.find(r => r.is_primary) || resumesList[0];
+    const matchResume = resumesList.find((r) => r.is_primary) || resumesList[0];
     const resumeQuery = matchResume ? `?resume_id=${matchResume.id}` : '';
 
+    this.isSubmitting.set(true);
     this.api.get<MatchResponse<JobMatch>>(`${this.api.matchBase}/jobs-for-seeker/${seekerId}/${resumeQuery}`, true).subscribe({
       next: (res) => {
+        this.isSubmitting.set(false);
         const results = res.results ?? [];
         if (!results.length) {
           this.jobResults.set([]);
@@ -452,12 +461,22 @@ export class MatchesComponent implements OnInit {
           ),
         );
 
+        this.isSubmitting.set(true);
         forkJoin(detailCalls).subscribe({
-          next: (rows) => this.jobResults.set(rows),
-          error: () => this.error.set('Unable to resolve job details for match results.'),
+          next: (rows) => {
+            this.isSubmitting.set(false);
+            this.jobResults.set(rows);
+          },
+          error: () => {
+            this.isSubmitting.set(false);
+            this.error.set('Unable to resolve job details for match results.');
+          },
         });
       },
-      error: () => this.error.set('Unable to fetch seeker matches from matching service.'),
+      error: () => {
+        this.isSubmitting.set(false);
+        this.error.set('Unable to fetch seeker matches from matching service.');
+      },
     });
   }
 
@@ -471,8 +490,10 @@ export class MatchesComponent implements OnInit {
 
     const job_id = this.jobId.trim();
 
+    this.isSubmitting.set(true);
     this.api.get<MatchResponse<SeekerMatch>>(`${this.api.matchBase}/seekers-for-job/${job_id}/`, true).subscribe({
       next: (res) => {
+        this.isSubmitting.set(false);
         const results = res.results ?? [];
         if (!results.length) {
           this.seekerResults.set([]);
@@ -486,19 +507,19 @@ export class MatchesComponent implements OnInit {
         );
 
         const profiles$ = forkJoin(
-          results.map(match => 
+          results.map((match) => 
             this.api.get<SeekerProfile>(`${this.api.profileBase}/seeker/${match.seeker_id}/`, true).pipe(
               catchError(() => of(null))
             )
           )
         );
 
+        this.isSubmitting.set(true);
         forkJoin([applications$, profiles$]).subscribe({
           next: ([apps, profiles]) => {
+            this.isSubmitting.set(false);
             const seekerResultsEnriched = results.map((match, index) => {
               const profile = profiles[index];
-              // matching_service seeker_id could be profile PK. application_service uses user ID.
-              // profile service now handles both, returning the full profile including user_id.
               const appLookupId = profile?.user_id || match.seeker_id;
               const app = apps.find((a) => a.seeker_id === appLookupId);
 
@@ -514,11 +535,15 @@ export class MatchesComponent implements OnInit {
             this.seekerResults.set(seekerResultsEnriched);
           },
           error: () => {
+            this.isSubmitting.set(false);
             this.seekerResults.set(results);
           }
         });
       },
-      error: () => this.error.set('Unable to fetch job matches from matching service.'),
+      error: () => {
+        this.isSubmitting.set(false);
+        this.error.set('Unable to fetch job matches from matching service.');
+      },
     });
   }
 
@@ -536,6 +561,7 @@ export class MatchesComponent implements OnInit {
   protected viewResume(resumeId: string): void {
     if (!resumeId) {
       this.message.set('No resume found for this seeker.');
+      this.alertService.warning('No resume is attached.');
       return;
     }
 
@@ -550,6 +576,7 @@ export class MatchesComponent implements OnInit {
       error: (error) => {
         console.error(error);
         this.error.set('Failed to load resume. You may not have permission.');
+        this.alertService.error('Could not download resume. Check your permissions.');
       },
     });
   }
@@ -570,6 +597,7 @@ export class MatchesComponent implements OnInit {
   protected scheduleInterview(match: SeekerMatch): void {
     if (!match.application_id) {
       this.interviewMessage.set('Cannot schedule: Seeker has not applied yet.');
+      this.alertService.warning('Candidate has not applied to this job yet.');
       return;
     }
 
@@ -584,6 +612,7 @@ export class MatchesComponent implements OnInit {
       return;
     }
 
+    this.isSubmitting.set(true);
     this.api
       .post<InterviewResponse>(
         `${this.api.applicationsBase}/${match.application_id}/schedule-interview/`,
@@ -595,13 +624,20 @@ export class MatchesComponent implements OnInit {
       )
       .subscribe({
         next: (interview) => {
+          this.isSubmitting.set(false);
           this.scheduledInterview.set(interview);
           this.interviewMessage.set('Interview scheduled and email notification queued.');
+          this.alertService.success('Interview scheduled and notification email queued!', 'Scheduled');
           this.schedulingSeekerId.set('');
           this.scheduleDateTime = '';
           this.scheduleNotes = '';
         },
-        error: (error) => this.interviewMessage.set(extractErrorMessage(error)),
+        error: (error) => {
+          this.isSubmitting.set(false);
+          const errMsg = extractErrorMessage(error);
+          this.interviewMessage.set(errMsg);
+          this.alertService.error(errMsg, 'Scheduling Failed');
+        },
       });
   }
 }
