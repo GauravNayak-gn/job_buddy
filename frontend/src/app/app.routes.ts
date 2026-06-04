@@ -21,8 +21,18 @@ export const routes: Routes = [
     canActivate: [authGuard],
   },
   {
+    path: 'applications',
+    loadComponent: () => import('./features/applications/pages/applications.component').then((m) => m.ApplicationsComponent),
+    canActivate: [authGuard],
+  },
+  {
     path: 'post-job',
     loadComponent: () => import('./features/post-job/pages/post-job.component').then((m) => m.PostJobComponent),
+    canActivate: [recruiterGuard],
+  },
+  {
+    path: 'manage-jobs',
+    loadComponent: () => import('./features/manage-jobs/pages/manage-jobs.component').then((m) => m.ManageJobsComponent),
     canActivate: [recruiterGuard],
   },
   {
