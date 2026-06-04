@@ -14,11 +14,15 @@
     <a routerLink="/jobs" routerLinkActive="active">Jobs</a>
     @if (auth.isLoggedIn()) {
       <a routerLink="/profile" routerLinkActive="active">Profile</a>
+      @if (auth.isSeeker()) {
+        <a routerLink="/applications" routerLinkActive="active">Applications</a>
+      }
       <a routerLink="/notifications" routerLinkActive="active">Notifications</a>
       <a routerLink="/matches" routerLinkActive="active">AI Match</a>
     }
     @if (isRecruiter()) {
       <a routerLink="/post-job" routerLinkActive="active">Post Job</a>
+      <a routerLink="/manage-jobs" routerLinkActive="active">Manage Jobs</a>
     }
   </nav>
 

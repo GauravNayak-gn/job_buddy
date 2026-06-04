@@ -1,19 +1,17 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, computed, inject, signal, effect } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
 import { ApiService } from '../../../core/services/api.service';
 import { AuthStateService } from '../../../core/services/auth-state.service';
 import { SeekerDataService } from '../../../core/services/seeker-data.service';
 import { AlertService } from '../../../core/services/alert.service';
-import { SeekerSkill, ResumeItem, ApplicationItem, Job } from '../../../core/models';
+import { SeekerSkill, ResumeItem, ApplicationItem } from '../../../core/models';
 import { extractErrorMessage } from '../../../shared/utils/error-message.util';
-import { SalaryPipe } from '../../../shared/pipes/salary.pipe';
 
 @Component({
   selector: 'app-profile-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, SalaryPipe],
+  imports: [CommonModule, FormsModule],
   template: `
     <section class="page-card">
       <div class="page-head">
@@ -26,166 +24,109 @@ import { SalaryPipe } from '../../../shared/pipes/salary.pipe';
       @if (!auth.isLoggedIn()) {
         <div class="empty-card">
           Login first to access your profile.
-          <a routerLink="/login" class="inline-link">Go to login</a>
+          <a href="/login" class="inline-link">Go to login</a>
         </div>
       } @else {
         
         @if (isSeeker()) {
-          <div class="tabs">
-            <button type="button" [disabled]="isSubmitting()" [class.active]="activeTab() === 'profile'" (click)="activeTab.set('profile')">My Profile</button>
-            <button type="button" [disabled]="isSubmitting()" [class.active]="activeTab() === 'applications'" (click)="activeTab.set('applications')">My Applications</button>
-          </div>
-        }
-
-        @if (isSeeker()) {
-          
-          @if (activeTab() === 'profile') {
-            <div class="profile-layout">
-              <div class="column-stack">
-                <article class="panel-card">
-                  <div class="section-head">
-                    <h2>Seeker profile</h2>
-                    <button type="button" [disabled]="isSubmitting()" class="secondary" (click)="editMode.set(!editMode())">
-                      {{ editMode() ? 'Cancel edit' : 'Edit profile' }}
-                    </button>
-                  </div>
-
-                  @if (!editMode()) {
-                    <div class="info-grid">
-                      <p><strong>Name:</strong> {{ seeker.first_name }} {{ seeker.last_name }}</p>
-                      <p><strong>Phone:</strong> {{ seeker.phone || '-' }}</p>
-                      <p><strong>Title:</strong> {{ seeker.current_title || '-' }}</p>
-                      <p><strong>GitHub:</strong> {{ seeker.github_url || '-' }}</p>
-                      <p><strong>LinkedIn:</strong> {{ seeker.linkedin_url || '-' }}</p>
-                      <p><strong>Summary:</strong> {{ seeker.summary || '-' }}</p>
-                    </div>
-                  } @else {
-                    <div class="grid">
-                      <label><span>First name</span><input [disabled]="isSubmitting()" [(ngModel)]="seeker.first_name" type="text" /></label>
-                      <label><span>Last name</span><input [disabled]="isSubmitting()" [(ngModel)]="seeker.last_name" type="text" /></label>
-                      <label><span>Phone</span><input [disabled]="isSubmitting()" [(ngModel)]="seeker.phone" type="text" /></label>
-                      <label><span>Current title</span><input [disabled]="isSubmitting()" [(ngModel)]="seeker.current_title" type="text" /></label>
-                    </div>
-                    <label><span>Summary</span><textarea [disabled]="isSubmitting()" [(ngModel)]="seeker.summary" rows="4"></textarea></label>
-                    <div class="grid">
-                      <label><span>GitHub URL</span><input [disabled]="isSubmitting()" [(ngModel)]="seeker.github_url" type="text" /></label>
-                      <label><span>LinkedIn URL</span><input [disabled]="isSubmitting()" [(ngModel)]="seeker.linkedin_url" type="text" /></label>
-                    </div>
-                    <div class="actions">
-                      <button type="button" [disabled]="isSubmitting()" (click)="saveSeeker()">
-                        {{ isSubmitting() ? 'Saving...' : 'Save profile' }}
-                      </button>
-                      <button type="button" [disabled]="isSubmitting()" class="secondary" (click)="loadSeeker()">Reload</button>
-                    </div>
-                  }
-                  @if (message()) {
-                    <div class="message">{{ message() }}</div>
-                  }
-                </article>
-              </div>
-
-              <div class="column-stack">
-                <article class="panel-card">
-                  <h3>Skills</h3>
-                  @if (!skills().length) {
-                    <p class="muted">No skills added yet.</p>
-                  } @else {
-                    <div class="chips">
-                      @for (item of skills(); track item.id) {
-                        <span class="chip">{{ item.skill_name }} ({{ item.years_of_experience }}y)</span>
-                      }
-                    </div>
-                  }
-                  <div class="grid skill-inputs">
-                    <label><span>Skill name</span><input [disabled]="isSubmitting()" [(ngModel)]="skill.skill_name" type="text" placeholder="e.g. Python" /></label>
-                    <label><span>Years of experience</span><input [disabled]="isSubmitting()" [(ngModel)]="skill.years_of_experience" type="number" min="0" /></label>
-                  </div>
-                  <button type="button" [disabled]="isSubmitting()" class="secondary" (click)="addSkill()">
-                    {{ isSubmitting() ? 'Adding...' : 'Add skill' }}
+          <div class="profile-layout">
+            <div class="column-stack">
+              <article class="panel-card">
+                <div class="section-head">
+                  <h2>Seeker profile</h2>
+                  <button type="button" [disabled]="isSubmitting()" class="secondary" (click)="editMode.set(!editMode())">
+                    {{ editMode() ? 'Cancel edit' : 'Edit profile' }}
                   </button>
-                </article>
+                </div>
 
-                <article class="panel-card">
-                  <h3>Resume upload</h3>
+                @if (!editMode()) {
+                  <div class="info-grid">
+                    <p><strong>Name:</strong> {{ seeker.first_name }} {{ seeker.last_name }}</p>
+                    <p><strong>Phone:</strong> {{ seeker.phone || '-' }}</p>
+                    <p><strong>Title:</strong> {{ seeker.current_title || '-' }}</p>
+                    <p><strong>GitHub:</strong> {{ seeker.github_url || '-' }}</p>
+                    <p><strong>LinkedIn:</strong> {{ seeker.linkedin_url || '-' }}</p>
+                    <p><strong>Summary:</strong> {{ seeker.summary || '-' }}</p>
+                  </div>
+                } @else {
                   <div class="grid">
-                    <label><span>Title</span><input [disabled]="isSubmitting()" [(ngModel)]="resumeTitle" type="text" placeholder="Backend Resume" /></label>
-                    <label><span>PDF file</span><input [disabled]="isSubmitting()" type="file" accept="application/pdf" (change)="onResumeSelect($event)" class="file-input" /></label>
+                    <label><span>First name</span><input [disabled]="isSubmitting()" [(ngModel)]="seeker.first_name" type="text" /></label>
+                    <label><span>Last name</span><input [disabled]="isSubmitting()" [(ngModel)]="seeker.last_name" type="text" /></label>
+                    <label><span>Phone</span><input [disabled]="isSubmitting()" [(ngModel)]="seeker.phone" type="text" /></label>
+                    <label><span>Current title</span><input [disabled]="isSubmitting()" [(ngModel)]="seeker.current_title" type="text" /></label>
                   </div>
-                  <button type="button" [disabled]="isSubmitting()" class="secondary" (click)="uploadResume()">
-                    {{ isSubmitting() ? 'Uploading...' : 'Upload resume' }}
-                  </button>
-                  @if (resumes().length) {
-                    <div class="list compact">
-                      @for (item of resumes(); track item.id) {
-                        <div class="list-item" style="display: flex; justify-content: space-between; align-items: center;">
-                          <div>
-                            <strong>{{ item.resume_title }}</strong>
-                            @if (item.is_primary) {
-                              <span class="primary-badge">PRIMARY</span>
-                            }
-                            <p class="meta-line">{{ item.parsing_status }} · {{ item.created_at | date: 'medium' }}</p>
-                          </div>
-                          <div style="display: flex; gap: 0.5rem;">
-                            @if (!item.is_primary) {
-                              <button type="button" [disabled]="isSubmitting()" class="secondary" style="padding: 0.2rem 0.5rem; font-size: 0.8rem;" (click)="makePrimary(item.id)">Set Primary</button>
-                            }
-                            <button type="button" [disabled]="isSubmitting()" class="close-btn" style="padding: 0.2rem 0.5rem; font-size: 0.8rem;" (click)="deleteResume(item.id)">Delete</button>
-                          </div>
-                        </div>
-                      }
-                    </div>
-                  }
-                </article>
-              </div>
+                  <label><span>Summary</span><textarea [disabled]="isSubmitting()" [(ngModel)]="seeker.summary" rows="4"></textarea></label>
+                  <div class="grid">
+                    <label><span>GitHub URL</span><input [disabled]="isSubmitting()" [(ngModel)]="seeker.github_url" type="text" /></label>
+                    <label><span>LinkedIn URL</span><input [disabled]="isSubmitting()" [(ngModel)]="seeker.linkedin_url" type="text" /></label>
+                  </div>
+                  <div class="actions">
+                    <button type="button" [disabled]="isSubmitting()" (click)="saveSeeker()">
+                      {{ isSubmitting() ? 'Saving...' : 'Save profile' }}
+                    </button>
+                    <button type="button" [disabled]="isSubmitting()" class="secondary" (click)="loadSeeker()">Reload</button>
+                  </div>
+                }
+                @if (message()) {
+                  <div class="message">{{ message() }}</div>
+                }
+              </article>
             </div>
-          } @else {
-            <article class="panel-card">
-              <div class="section-head">
-                <h2>My applications</h2>
-                <div class="app-filters">
-                  <select [disabled]="isSubmitting()" [ngModel]="applicationStageFilter()" (ngModelChange)="onStageFilterChange($event)" class="filter-select">
-                    @for (stage of availableStages; track stage.value) {
-                      <option [value]="stage.value">{{ stage.label }}</option>
+
+            <div class="column-stack">
+              <article class="panel-card">
+                <h3>Skills</h3>
+                @if (!skills().length) {
+                  <p class="muted">No skills added yet.</p>
+                } @else {
+                  <div class="chips">
+                    @for (item of skills(); track item.id) {
+                      <span class="chip">{{ item.skill_name }} ({{ item.years_of_experience }}y)</span>
                     }
-                  </select>
-                  <button type="button" [disabled]="isSubmitting() || applicationsLoading()" class="secondary" (click)="refreshApplications()">Refresh</button>
+                  </div>
+                }
+                <div class="grid skill-inputs">
+                  <label><span>Skill name</span><input [disabled]="isSubmitting()" [(ngModel)]="skill.skill_name" type="text" placeholder="e.g. Python" /></label>
+                  <label><span>Years of experience</span><input [disabled]="isSubmitting()" [(ngModel)]="skill.years_of_experience" type="number" min="0" /></label>
                 </div>
-              </div>
-              
-              @if (applicationsLoading()) {
-                <div class="empty-card small">Loading applications...</div>
-              } @else if (!applications().length) {
-                <div class="empty-card small">No applications found{{ applicationStageFilter() ? ' for this stage' : '' }}.</div>
-              } @else {
-                <div class="app-grid">
-                  @for (item of applications(); track item.id) {
-                    <div class="app-card">
-                      <div class="app-header">
+                <button type="button" [disabled]="isSubmitting()" class="secondary" (click)="addSkill()">
+                  {{ isSubmitting() ? 'Adding...' : 'Add skill' }}
+                </button>
+              </article>
+
+              <article class="panel-card">
+                <h3>Resume upload</h3>
+                <div class="grid">
+                  <label><span>Title</span><input [disabled]="isSubmitting()" [(ngModel)]="resumeTitle" type="text" placeholder="Backend Resume" /></label>
+                  <label><span>PDF file</span><input [disabled]="isSubmitting()" type="file" accept="application/pdf" (change)="onResumeSelect($event)" class="file-input" /></label>
+                </div>
+                <button type="button" [disabled]="isSubmitting()" class="secondary" (click)="uploadResume()">
+                  {{ isSubmitting() ? 'Uploading...' : 'Upload resume' }}
+                </button>
+                @if (resumes().length) {
+                  <div class="list compact">
+                    @for (item of resumes(); track item.id) {
+                      <div class="list-item" style="display: flex; justify-content: space-between; align-items: center;">
                         <div>
-                          <h3>{{ item.job_title || 'Role (ID: ' + item.job_id + ')' }}</h3>
-                          <p class="meta-line">Applied on {{ item.created_at | date: 'mediumDate' }}</p>
+                          <strong>{{ item.resume_title }}</strong>
+                          @if (item.is_primary) {
+                            <span class="primary-badge">PRIMARY</span>
+                          }
+                          <p class="meta-line">{{ item.parsing_status }} · {{ item.created_at | date: 'medium' }}</p>
                         </div>
-                        <span class="status-pill">{{ item.current_stage }}</span>
+                        <div style="display: flex; gap: 0.5rem;">
+                          @if (!item.is_primary) {
+                            <button type="button" [disabled]="isSubmitting()" class="secondary" style="padding: 0.2rem 0.5rem; font-size: 0.8rem;" (click)="makePrimary(item.id)">Set Primary</button>
+                          }
+                          <button type="button" [disabled]="isSubmitting()" class="close-btn" style="padding: 0.2rem 0.5rem; font-size: 0.8rem;" (click)="deleteResume(item.id)">Delete</button>
+                        </div>
                       </div>
-                      
-                      <div class="app-actions">
-                        <button type="button" class="secondary" (click)="viewJobDetails(item.job_id)">View Job</button>
-                        @if (item.resume_id) {
-                          <button type="button" class="secondary" (click)="viewResume(item.resume_id)">View Resume</button>
-                        }
-                      </div>
-
-                    </div>
-                  }
-                </div>
-              }
-              
-              @if (message()) {
-                <div class="message">{{ message() }}</div>
-              }
-            </article>
-          }
-
+                    }
+                  </div>
+                }
+              </article>
+            </div>
+          </div>
         } @else {
           <article class="panel-card">
             <div class="section-head">
@@ -224,29 +165,6 @@ import { SalaryPipe } from '../../../shared/pipes/salary.pipe';
             }
           </article>
         }
-      }
-
-      @if (viewingJob(); as job) {
-        <div class="modal-overlay" (click)="viewingJob.set(null)">
-          <article class="modal-card" (click)="$event.stopPropagation()">
-            <div class="modal-header">
-              <h2>{{ job.title }}</h2>
-              <button type="button" class="close-btn" (click)="viewingJob.set(null)">Close</button>
-            </div>
-            
-            <div class="modal-section">
-              <p><strong>Location:</strong> {{ job.location_type }} @if(job.location_city) { · {{ job.location_city }} }</p>
-              <p><strong>Experience Required:</strong> {{ job.experience_required || 'Not specified' }}</p>
-              <p><strong>Salary:</strong> {{ job.salary_min | salary:job.salary_max }}</p>
-              <p><strong>Status:</strong> <span class="status-pill">{{ job.status }}</span></p>
-            </div>
-            
-            <div class="modal-section">
-              <h4>Job Description</h4>
-              <p class="description-text">{{ job.description }}</p>
-            </div>
-          </article>
-        </div>
       }
     </section>
   `,
@@ -406,31 +324,11 @@ export class ProfileComponent implements OnInit {
 
   readonly isSeeker = this.auth.isSeeker;
   readonly editMode = signal(false);
-  readonly activeTab = signal<'profile' | 'applications'>('profile');
-  readonly applicationsLoading = this.seekerData.applicationsLoading;
   readonly message = signal('');
-  readonly applicationStageFilter = signal<string>('');
-
-  readonly availableStages = [
-    { value: '', label: 'All stages' },
-    { value: 'applied', label: 'Applied' },
-    { value: 'shortlisted', label: 'Shortlisted' },
-    { value: 'interview_scheduled', label: 'Interview Scheduled' },
-    { value: 'selected', label: 'Selected' },
-    { value: 'rejected', label: 'Rejected' },
-  ];
 
   readonly skills = signal<SeekerSkill[]>([]);
   readonly resumes = this.seekerData.resumes;
   
-  readonly applications = computed(() => {
-    const stage = this.applicationStageFilter();
-    const apps = this.seekerData.applications();
-    if (!stage) return apps;
-    return apps.filter((app) => app.current_stage === stage);
-  });
-
-  readonly viewingJob = signal<Job | null>(null);
   readonly profileExists = signal(false);
   readonly isSubmitting = signal(false);
 
@@ -653,43 +551,5 @@ export class ProfileComponent implements OnInit {
       },
     });
   }
-
-  protected refreshApplications(): void {
-    this.seekerData.loadApplications(true);
-  }
-
-  protected onStageFilterChange(stage: string): void {
-    this.applicationStageFilter.set(stage);
-  }
-
-  protected viewJobDetails(jobId: string): void {
-    this.message.set('');
-    this.api.get<Job>(`${this.api.jobsBase}/${jobId}/`, true).subscribe({
-      next: (job) => {
-        this.viewingJob.set(job);
-      },
-      error: () => {
-        this.message.set('Could not load job details. The job may have been removed.');
-        this.alertService.error('Could not load job details.');
-      },
-    });
-  }
-
-  protected viewResume(resumeId: string): void {
-    this.message.set('Loading resume securely...');
-    
-    this.api.getBlob(`${this.api.profileBase}/seeker/resumes/${resumeId}/download/`, true).subscribe({
-      next: (blob) => {
-        this.message.set('');
-        const fileUrl = window.URL.createObjectURL(blob);
-        window.open(fileUrl, '_blank');
-        setTimeout(() => window.URL.revokeObjectURL(fileUrl), 10000);
-      },
-      error: (error) => {
-        console.error(error);
-        this.message.set('Failed to load resume file.');
-        this.alertService.error('Could not load resume file.');
-      },
-    });
-  }
+  
 }
