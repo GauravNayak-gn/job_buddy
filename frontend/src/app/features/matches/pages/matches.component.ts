@@ -7,14 +7,15 @@ import { ApiService } from '../../../core/services/api.service';
 import { AuthStateService } from '../../../core/services/auth-state.service';
 import { SeekerDataService } from '../../../core/services/seeker-data.service';
 import { AlertService } from '../../../core/services/alert.service';
-import { MatchResponse, JobMatch, SeekerMatch, SeekerProfile, Applicant, InterviewResponse, JobSummary, JobMatchView } from '../../../core/models';
+import { MatchResponse, JobMatch, SeekerMatch, SeekerProfile, Applicant, InterviewResponse, JobSummary, JobMatchView, Job } from '../../../core/models';
 import { extractErrorMessage } from '../../../shared/utils/error-message.util';
 import { SalaryPipe } from '../../../shared/pipes/salary.pipe';
+import { AiAlignmentDrawerComponent } from '../../../shared/components/ai-alignment-drawer/ai-alignment-drawer.component';
 
 @Component({
   selector: 'app-matches-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, SalaryPipe],
+  imports: [CommonModule, FormsModule, SalaryPipe, AiAlignmentDrawerComponent],
   template: `
     <section class="page-card">
       <div class="page-head">
@@ -45,14 +46,14 @@ import { SalaryPipe } from '../../../shared/pipes/salary.pipe';
         @if (jobResults().length) {
           <div class="list">
             @for (item of jobResults(); track item.job_id) {
-              <article class="item">
+              <article class="item" (click)="viewJobMatch(item)">
                 <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap;">
                   <div>
                     <p class="eyebrow" style="margin: 0; color: var(--muted); font-size: 0.85rem; text-transform: uppercase;">{{ item.location_type || 'Location N/A' }} @if (item.location_city) { · {{ item.location_city }} }</p>
                     <h2 style="margin: 0.25rem 0;">{{ item.title }}</h2>
                     <p class="muted" style="margin: 0; font-size: 0.85rem;">Job ID: {{ item.job_id }}</p>
                   </div>
-                  <span class="status-pill" style="background: rgba(42, 157, 143, 0.16); color: #9fe3d8;">Match score: {{ item.similarity_score }}</span>
+                  <span class="status-pill" style="background: rgba(42, 157, 143, 0.16); color: #9fe3d8; font-weight: 700;">Match score: {{ item.similarity_score }}</span>
                 </div>
                 
                 @if (item.description) {
@@ -65,7 +66,10 @@ import { SalaryPipe } from '../../../shared/pipes/salary.pipe';
                 </div>
 
                 @if (auth.isLoggedIn()) {
-                  <div style="display: flex; gap: 1rem; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+                  <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;" (click)="$event.stopPropagation()">
+                    <button type="button" class="secondary" (click)="viewJobMatch(item)">
+                      ✨ AI Alignment Review
+                    </button>
                     @if (appliedJobIds().has(item.job_id)) {
                       <span style="background: rgba(30, 111, 104, 0.14); color: #1e6f68; border-radius: 999px; padding: 0.45rem 0.8rem;">Already applied</span>
                     } @else {
@@ -90,6 +94,7 @@ import { SalaryPipe } from '../../../shared/pipes/salary.pipe';
               }
             </select>
           </label>
+
           <button type="button" [disabled]="isSubmitting()" (click)="loadSeekersForJob()">Find matching seekers</button>
         </div>
 
@@ -119,6 +124,10 @@ import { SalaryPipe } from '../../../shared/pipes/salary.pipe';
                   @if (item.resume_id) {
                     <button type="button" class="secondary" (click)="viewResume(item.resume_id)">View Resume</button>
                   }
+
+                  <button type="button" class="secondary ai-review-btn" (click)="openAiReview(item)">
+                    ✨ AI Review
+                  </button>
 
                   <button type="button" [disabled]="isSubmitting()" class="secondary" (click)="toggleSchedule(item.seeker_id)">
                     {{ schedulingSeekerId() === item.seeker_id ? 'Cancel' : 'Schedule' }}
@@ -179,164 +188,213 @@ import { SalaryPipe } from '../../../shared/pipes/salary.pipe';
               @if (profile.linkedin_url) {
                 <p><strong>LinkedIn:</strong> <a [href]="profile.linkedin_url" target="_blank" rel="noreferrer">{{ profile.linkedin_url }}</a></p>
               }
+              <p><strong>Summary:</strong> {{ profile.summary || '-' }}</p>
             </div>
-            @if (profile.summary) {
-              <div class="profile-section">
-                <h4>Summary</h4>
-                <p>{{ profile.summary }}</p>
-              </div>
-            }
-            @if (profile.skills?.length) {
-              <div class="profile-section">
-                <h4>Skills</h4>
-                <div class="skills-grid">
+            <div class="profile-section">
+              <h3>Skills</h3>
+              @if (!profile.skills?.length) {
+                <p class="muted">No skills details available.</p>
+              } @else {
+                <div class="chips">
                   @for (skill of profile.skills; track skill.id) {
-                    <span class="skill-tag">{{ skill.skill_name }} ({{ skill.years_of_experience }}y)</span>
+                    <span class="chip">{{ skill.skill_name }} ({{ skill.years_of_experience }}y)</span>
                   }
                 </div>
-              </div>
-            }
-            @if (profile.experiences?.length) {
-              <div class="profile-section">
-                <h4>Experience</h4>
-                @for (exp of profile.experiences; track exp.id) {
-                  <div class="experience-item">
-                    <p><strong>{{ exp.role_title }}</strong> at {{ exp.company_name }}</p>
-                    <p class="meta-line">{{ exp.start_date | date: 'MMM yyyy' }} - {{ exp.end_date ? (exp.end_date | date: 'MMM yyyy') : 'Present' }}</p>
-                    @if (exp.description) {
-                      <p>{{ exp.description }}</p>
-                    }
-                  </div>
-                }
-              </div>
-            }
+              }
+            </div>
           </article>
         </div>
       }
-
-      @if (message()) {
-        <div class="empty-card">{{ message() }}</div>
-      }
-
-      @if (error()) {
-        <div class="empty-card error">{{ error() }}</div>
-      }
     </section>
+
+    <!-- Shared AI Review Drawer -->
+    <app-ai-alignment-drawer 
+      [isOpen]="isAiDrawerOpen()"
+      [job]="selectedJob()"
+      [seekerId]="aiSelectedSeekerId()"
+      [seekerName]="aiSelectedSeekerName()"
+      [type]="isSeeker() ? 'seeker-alignment' : 'recruiter-review'"
+      (close)="closeAiDrawer()"
+    />
   `,
   styles: [`
-    .page-card,
-    .empty-card,
-    .item,
-    .modal-card {
+    .page-card {
       background: var(--card);
       border: 1px solid var(--border);
       border-radius: 28px;
       box-shadow: var(--shadow);
+      padding: 2rem;
+      display: grid;
+      gap: 1.5rem;
     }
-    .page-card { display: grid; gap: 1rem; padding: 1.5rem; }
-    .list { display: grid; gap: 1rem; }
-    .item { padding: 1rem 1.2rem; }
-    .hint,
-    .muted { color: var(--muted); }
-    .error { color: var(--error-text); }
-    
-    .controls { display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap; margin-bottom: 1rem; }
-    .controls label { display: grid; gap: 0.25rem; }
-    
-    .applicant-list { display: grid; gap: 1rem; margin-top: 1rem; }
-    .applicant-card { 
+    .list, .applicant-list { display: grid; gap: 1rem; }
+    .item, .applicant-card {
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 1.5rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .item:hover, .applicant-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--accent);
+    }
+    .status-pill {
+      background: var(--pill-bg);
+      border-radius: 999px;
+      color: var(--pill-text);
+      padding: 0.4rem 0.8rem;
+      font-size: 0.8rem;
+    }
+    .controls {
       display: flex;
-      flex-direction: column;
       gap: 1rem;
-      background: var(--card); 
-      border-radius: 18px; 
-      padding: 1.25rem;
-      border: 1px solid var(--border);
+      align-items: flex-end;
+      flex-wrap: wrap;
     }
-    
-    .applicant-header { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
-    .applicant-info { display: grid; gap: 0.25rem; }
-    .applicant-actions { display: flex; gap: 0.75rem; flex-wrap: wrap; }
-    
-    .status-pill { 
-      background: var(--pill-bg); 
-      border-radius: 999px; 
-      color: var(--pill-text); 
-      padding: 0.45rem 0.8rem; 
-      text-transform: capitalize;
-      font-size: 0.85rem;
-      white-space: nowrap;
-      font-weight: 500;
+    .controls label {
+      flex: 1;
+      min-width: 200px;
     }
-    
-    .meta-line { margin: 0; color: var(--muted); font-size: 0.9rem; }
-    
-    .schedule-form { 
-      display: grid; 
-      gap: 1rem; 
-      background: var(--bg);
-      border: 1px solid var(--border);
-      padding: 1rem;
-      border-radius: 12px;
+    .controls button {
+      height: 46px;
     }
-    
-    .error-text { color: var(--error-text); font-size: 0.9rem; margin: 0; }
-    
-    .message { margin-top: 1rem; padding: 1rem; color: var(--accent); }
-    
-    .interview-banner { 
-      background: var(--success-bg); 
-      border: 1px solid var(--success-border);
-      border-radius: 18px; 
-      padding: 1.25rem;
+    .applicant-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 0.75rem;
+    }
+    .applicant-info h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .meta-line {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 0.15rem;
+    }
+    .applicant-actions {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
       margin-top: 1rem;
+    }
+    .applicant-actions button {
+      font-size: 0.8rem;
+      min-height: auto;
+      padding: 0.5rem 0.75rem;
+    }
+    .ai-review-btn {
+      background: linear-gradient(135deg, rgba(30, 111, 104, 0.1) 0%, rgba(217, 93, 57, 0.1) 100%);
+      color: var(--secondary) !important;
+      border: 1px solid rgba(30, 111, 104, 0.3) !important;
+      font-weight: 600 !important;
+    }
+    .ai-review-btn:hover {
+      background: linear-gradient(135deg, rgba(30, 111, 104, 0.2) 0%, rgba(217, 93, 57, 0.2) 100%) !important;
+    }
+    .schedule-form {
+      margin-top: 1rem;
+      padding: 1rem;
+      border: 1px solid var(--border);
+      background: #f8fafc;
+      border-radius: 12px;
+      display: grid;
+      gap: 0.75rem;
+    }
+    .schedule-form button {
+      width: fit-content;
+      font-size: 0.8rem;
+      min-height: auto;
+      padding: 0.45rem 1rem;
+    }
+    .error-text {
+      color: var(--danger-text);
+      font-size: 0.85rem;
+    }
+    .message {
+      color: var(--error-text);
+      font-size: 0.9rem;
+    }
+    .interview-banner {
+      background: var(--success-bg);
+      border: 1px solid var(--success-border);
+      border-radius: 16px;
+      padding: 1.25rem;
       color: var(--success-text);
     }
-    
-    .modal-overlay { 
-      position: fixed; 
-      top: 0; 
-      left: 0; 
-      right: 0; 
-      bottom: 0; 
-      background: rgba(0, 0, 0, 0.7); 
-      display: flex; 
-      align-items: center; 
-      justify-content: center; 
-      z-index: 1000;
-      padding: 2rem;
+    .interview-banner h3 {
+      font-size: 1.1rem;
+      margin-bottom: 0.5rem;
     }
-    .modal-card { 
-      max-width: 700px; 
-      width: 100%; 
-      max-height: 85vh; 
-      overflow-y: auto; 
-      padding: 2rem;
+    .interview-banner a {
+      color: var(--secondary);
+      font-weight: 600;
     }
-    
-    .profile-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
-    .close-btn { 
-      background: var(--danger-bg); 
-      border: none; 
-      border-radius: 8px; 
-      padding: 0.4rem 1rem;
-      cursor: pointer; 
-      font-size: 0.95rem;
-      font-weight: 500;
-      color: var(--danger-text);
-      transition: all 0.2s;
+    /* Modal styles */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(15, 23, 42, 0.3);
+      backdrop-filter: blur(4px);
+      z-index: 1040;
+      display: flex;
+      justify-content: center;
+      align-items: center;
     }
-    .close-btn:hover { background: var(--danger-hover); }
-    
-    .profile-section { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); }
-    .profile-section:first-of-type { border-top: none; padding-top: 0; }
-    .skills-grid { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem; }
-    .skill-tag { background: var(--info-bg); border-radius: 999px; color: var(--info-text); padding: 0.35rem 0.7rem; font-size: 0.9rem; font-weight: 500; }
-    .experience-item { margin-top: 0.8rem; padding: 0.8rem; background: var(--bg); border: 1px solid var(--border); border-radius: 12px; }
-
-    @media (max-width: 768px) {
-      .modal-overlay { padding: 1rem; }
-      .controls { flex-direction: column; align-items: stretch; }
+    .modal-card {
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      width: 500px;
+      max-width: 90vw;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+    .profile-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.5rem;
+    }
+    .profile-header h2 {
+      font-size: 1.25rem;
+    }
+    .profile-header button {
+      min-height: auto;
+      padding: 0.3rem 0.6rem;
+    }
+    .profile-section h3 {
+      font-size: 1rem;
+      border-bottom: 1px dashed var(--border);
+      padding-bottom: 0.25rem;
+      margin-bottom: 0.5rem;
+    }
+    .profile-section p {
+      font-size: 0.875rem;
+      margin-bottom: 0.25rem;
+    }
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+    }
+    .chip {
+      background: #f1f5f9;
+      color: #334155;
+      font-size: 0.75rem;
+      padding: 0.25rem 0.5rem;
+      border-radius: 6px;
+      border: 1px solid rgba(24, 33, 47, 0.04);
     }
   `],
 })
@@ -347,53 +405,90 @@ export class MatchesComponent implements OnInit {
   private readonly alertService = inject(AlertService);
 
   readonly isSeeker = this.auth.isSeeker;
-  readonly recruiterJobs = signal<JobSummary[]>([]);
-
-  readonly jobResults = signal<JobMatchView[]>([]);
-  readonly seekerResults = signal<SeekerMatch[]>([]);
+  readonly isSubmitting = signal(false);
   readonly error = signal('');
   readonly message = signal('');
-  readonly interviewMessage = signal('');
 
-  readonly viewingProfile = signal<SeekerProfile | null>(null);
-  readonly schedulingSeekerId = signal('');
-  readonly scheduledInterview = signal<InterviewResponse | null>(null);
-
+  // Seeker Results
+  readonly jobResults = signal<JobMatchView[]>([]);
   readonly resumes = this.seekerData.resumes;
   readonly appliedJobIds = computed(() => new Set(this.seekerData.applications().map((app) => app.job_id)));
-  readonly isSubmitting = signal(false);
-  selectedResumeId = '';
+  readonly selectedResumeId = signal<string>('');
 
+  // Recruiter Results
+  readonly recruiterJobs = signal<JobSummary[]>([]);
+  readonly seekerResults = signal<SeekerMatch[]>([]);
   jobId = '';
+
+  // AI Drawer states
+  readonly isAiDrawerOpen = signal(false);
+  readonly seekerSelectedJob = signal<Job | null>(null);
+  readonly aiSelectedSeekerId = signal<string>('');
+  readonly aiSelectedSeekerName = signal<string>('');
+
+  readonly selectedJob = computed(() => {
+    if (this.isSeeker()) {
+      return this.seekerSelectedJob();
+    }
+    const id = this.jobId;
+    if (!id) return null;
+    const summary = this.recruiterJobs().find((j) => j.id === id);
+    if (!summary) return null;
+    return {
+      id: summary.id,
+      title: summary.title,
+      description: 'Find candidates matching criteria.',
+      location_type: 'remote',
+      location_city: '',
+      salary_min: 0,
+      salary_max: 0,
+      currency: '',
+      experience_required: '',
+      status: 'published',
+    } as Job;
+  });
+
+  // Scheduling states
+  readonly schedulingSeekerId = signal<string>('');
   scheduleDateTime = '';
   scheduleNotes = '';
+  readonly scheduledInterview = signal<InterviewResponse | null>(null);
+  readonly interviewMessage = signal('');
+
+  // Viewing seeker profiles
+  readonly viewingProfile = signal<SeekerProfile | null>(null);
 
   constructor() {
     effect(() => {
       const resumesList = this.resumes();
-      if (!this.selectedResumeId && resumesList.length) {
+      if (!this.selectedResumeId() && resumesList.length) {
         const primaryResume = resumesList.find((r) => r.is_primary);
-        this.selectedResumeId = primaryResume ? primaryResume.id : resumesList[0].id;
+        this.selectedResumeId.set(primaryResume ? primaryResume.id : resumesList[0].id);
       }
-    });
+    }, { allowSignalWrites: true });
   }
 
   ngOnInit(): void {
-    if (!this.isSeeker() && this.auth.isLoggedIn()) {
-      this.api.get<JobSummary[]>(`${this.api.jobsBase}/my/`, true).subscribe({
-        next: (jobs) => this.recruiterJobs.set(jobs),
-      });
-    }
-    if (this.isSeeker() && this.auth.isLoggedIn()) {
+    if (!this.auth.isLoggedIn()) return;
+    if (this.isSeeker()) {
       this.seekerData.loadResumes();
       this.seekerData.loadApplications();
+    } else {
+      this.loadRecruiterJobs();
     }
+  }
+
+  private loadRecruiterJobs(): void {
+    this.api.get<JobSummary[]>(`${this.api.jobsBase}/my/`, true).subscribe({
+      next: (jobs) => this.recruiterJobs.set(jobs),
+      error: () => this.error.set('Unable to load recruiter jobs summary.'),
+    });
   }
 
   protected apply(jobId: string): void {
     this.message.set('');
-    if (!this.selectedResumeId) {
-      this.message.set('Select a resume first from the dropdown above.');
+    const resumeId = this.selectedResumeId();
+    if (!resumeId) {
       this.alertService.warning('Please select a resume before applying.');
       return;
     }
@@ -401,7 +496,7 @@ export class MatchesComponent implements OnInit {
     this.isSubmitting.set(true);
     this.api.post(`${this.api.applicationsBase}/apply/`, {
       job_id: jobId,
-      resume_id: this.selectedResumeId,
+      resume_id: resumeId,
       cover_letter: 'Applied via AI Matches.',
     }, true).subscribe({
       next: () => {
@@ -412,10 +507,7 @@ export class MatchesComponent implements OnInit {
       },
       error: (error) => {
         this.isSubmitting.set(false);
-        let errMsg = 'Unable to apply for this job.';
-        if (error?.error && typeof error.error === 'object') {
-          errMsg = JSON.stringify(error.error);
-        }
+        const errMsg = extractErrorMessage(error);
         this.message.set(errMsg);
         this.alertService.error(errMsg, 'Application Failed');
       },
@@ -427,7 +519,6 @@ export class MatchesComponent implements OnInit {
     this.message.set('');
     const seekerId = this.auth.userId();
     
-    // Attempt to use the selected or primary resume for matching, otherwise let the backend fallback
     const resumesList = this.resumes();
     const matchResume = resumesList.find((r) => r.is_primary) || resumesList[0];
     const resumeQuery = matchResume ? `?resume_id=${matchResume.id}` : '';
@@ -439,7 +530,7 @@ export class MatchesComponent implements OnInit {
         const results = res.results ?? [];
         if (!results.length) {
           this.jobResults.set([]);
-          this.message.set('No matches yet. Upload resume and ensure a recruiter published jobs.');
+          this.message.set('No matches yet. Ensure your resume is uploaded.');
           return;
         }
 
@@ -448,7 +539,7 @@ export class MatchesComponent implements OnInit {
             map((job) => ({ 
               job_id: item.job_id, 
               title: job.title || item.job_id, 
-              similarity_score: item.similarity_score,
+              similarity_score: Math.round(item.similarity_score * 100),
               description: job.description,
               location_type: job.location_type,
               location_city: job.location_city,
@@ -457,7 +548,7 @@ export class MatchesComponent implements OnInit {
               salary_max: job.salary_max,
               status: job.status
             })),
-            catchError(() => of({ job_id: item.job_id, title: item.job_id, similarity_score: item.similarity_score })),
+            catchError(() => of({ job_id: item.job_id, title: item.job_id, similarity_score: Math.round(item.similarity_score * 100) })),
           ),
         );
 
@@ -465,7 +556,7 @@ export class MatchesComponent implements OnInit {
         forkJoin(detailCalls).subscribe({
           next: (rows) => {
             this.isSubmitting.set(false);
-            this.jobResults.set(rows);
+            this.jobResults.set(rows as JobMatchView[]);
           },
           error: () => {
             this.isSubmitting.set(false);
@@ -501,7 +592,6 @@ export class MatchesComponent implements OnInit {
           return;
         }
 
-        // Fetch applications AND profiles in parallel
         const applications$ = this.api.get<Applicant[]>(`${this.api.applicationsBase}/job/${job_id}/`, true).pipe(
           catchError(() => of([] as Applicant[]))
         );
@@ -525,6 +615,7 @@ export class MatchesComponent implements OnInit {
 
               return {
                 ...match,
+                similarity_score: Math.round(match.similarity_score * 100),
                 application_id: app?.id,
                 seeker_email: app?.seeker_email,
                 current_stage: app?.current_stage,
@@ -560,7 +651,6 @@ export class MatchesComponent implements OnInit {
 
   protected viewResume(resumeId: string): void {
     if (!resumeId) {
-      this.message.set('No resume found for this seeker.');
       this.alertService.warning('No resume is attached.');
       return;
     }
@@ -596,7 +686,6 @@ export class MatchesComponent implements OnInit {
 
   protected scheduleInterview(match: SeekerMatch): void {
     if (!match.application_id) {
-      this.interviewMessage.set('Cannot schedule: Seeker has not applied yet.');
       this.alertService.warning('Candidate has not applied to this job yet.');
       return;
     }
@@ -627,7 +716,7 @@ export class MatchesComponent implements OnInit {
           this.isSubmitting.set(false);
           this.scheduledInterview.set(interview);
           this.interviewMessage.set('Interview scheduled and email notification queued.');
-          this.alertService.success('Interview scheduled and notification email queued!', 'Scheduled');
+          this.alertService.success('Interview scheduled successfully!', 'Scheduled');
           this.schedulingSeekerId.set('');
           this.scheduleDateTime = '';
           this.scheduleNotes = '';
@@ -639,5 +728,33 @@ export class MatchesComponent implements OnInit {
           this.alertService.error(errMsg, 'Scheduling Failed');
         },
       });
+  }
+
+  // AI reviews implementation
+  protected viewJobMatch(item: JobMatchView): void {
+    const jobDetail: Job = {
+      id: item.job_id,
+      title: item.title,
+      description: item.description || 'Details for matched role.',
+      location_type: item.location_type || 'remote',
+      location_city: item.location_city || '',
+      salary_min: item.salary_min || 0,
+      salary_max: item.salary_max || 0,
+      experience_required: item.experience_required || '',
+      status: item.status || 'published'
+    };
+    this.seekerSelectedJob.set(jobDetail);
+    this.isAiDrawerOpen.set(true);
+  }
+
+  protected openAiReview(match: SeekerMatch): void {
+    this.aiSelectedSeekerId.set(match.seeker_id);
+    this.aiSelectedSeekerName.set(match.first_name ? `${match.first_name} ${match.last_name}` : (match.seeker_email || 'Candidate'));
+    this.isAiDrawerOpen.set(true);
+  }
+
+  protected closeAiDrawer(): void {
+    this.isAiDrawerOpen.set(false);
+    this.seekerSelectedJob.set(null);
   }
 }

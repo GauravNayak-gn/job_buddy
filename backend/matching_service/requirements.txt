@@ -10,3 +10,5 @@ PyJWT==2.10.1
 sentence-transformers==5.1.1
 numpy==2.2.6
 pgvector==0.3.6
+google-generativeai==0.8.6
+
