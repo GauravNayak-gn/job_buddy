@@ -119,18 +119,25 @@ const DEFAULT_QUESTIONS = [
               <p class="section-subtitle">Add custom questions for seekers to answer when they apply.</p>
               
               <div class="add-question-box">
-                <input 
+                <textarea 
                   [disabled]="isSubmitting()" 
                   [ngModel]="newQuestion()" 
                   (ngModelChange)="newQuestion.set($event)" 
-                  type="text" 
-                  placeholder="e.g. How many years of experience do you have with Angular?" 
+                  rows="2"
+                  [placeholder]="editingQuestionIndex() !== null ? 'Edit screening question...' : 'e.g. How many years of experience do you have with Angular?'" 
                   (keyup.enter)="addQuestion()"
                   class="question-input"
-                />
-                <button type="button" [disabled]="isSubmitting() || !newQuestion().trim()" class="add-q-btn" (click)="addQuestion()">
-                  + Add
-                </button>
+                ></textarea>
+                <div class="add-question-actions">
+                  @if (editingQuestionIndex() !== null) {
+                    <button type="button" [disabled]="isSubmitting()" class="cancel-q-btn" (click)="cancelEditQuestion()">
+                      Cancel
+                    </button>
+                  }
+                  <button type="button" [disabled]="isSubmitting() || !newQuestion().trim()" class="add-q-btn" (click)="addQuestion()">
+                    {{ editingQuestionIndex() !== null ? 'Save Changes' : '+ Add Question' }}
+                  </button>
+                </div>
               </div>
 
               <div class="questions-list">
@@ -141,14 +148,23 @@ const DEFAULT_QUESTIONS = [
                 } @else {
                   <div class="questions-grid">
                     @for (q of screeningQuestions(); track $index) {
-                      <div class="question-item">
+                      <div class="question-item" [class.editing]="editingQuestionIndex() === $index">
                         <div class="q-content">
                           <span class="q-index">Q{{ $index + 1 }}</span>
                           <span class="q-text" [title]="q">{{ q }}</span>
                         </div>
-                        <button type="button" [disabled]="isSubmitting()" class="delete-q-btn" (click)="removeQuestion($index)" title="Remove question">
-                          &times;
-                        </button>
+                        <div class="q-actions-mini">
+                          <button type="button" [disabled]="isSubmitting()" class="edit-q-btn" (click)="editQuestion($index)" title="Edit question">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 16px; height: 16px;">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" />
+                            </svg>
+                          </button>
+                          <button type="button" [disabled]="isSubmitting()" class="delete-q-btn" (click)="removeQuestion($index)" title="Remove question">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 16px; height: 16px;">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                            </svg>
+                          </button>
+                        </div>
                       </div>
                     }
                   </div>
@@ -297,11 +313,19 @@ const DEFAULT_QUESTIONS = [
 
     .add-question-box {
       display: flex;
+      flex-direction: column;
       gap: 0.75rem;
     }
 
     .question-input {
-      flex: 1;
+      width: 100%;
+      resize: vertical;
+    }
+
+    .add-question-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.75rem;
     }
 
     .add-q-btn {
@@ -376,15 +400,54 @@ const DEFAULT_QUESTIONS = [
       white-space: nowrap;
     }
 
+    .q-actions-mini {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .edit-q-btn {
+      background: transparent;
+      color: var(--muted);
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      transition: all 0.2s ease;
+    }
+
+    .edit-q-btn:hover {
+      background: var(--bg-hover);
+      color: var(--text);
+    }
+
+    .cancel-q-btn {
+      white-space: nowrap;
+      background: var(--secondary-btn-bg);
+      color: var(--secondary-btn-text);
+      border: 1px solid var(--border);
+    }
+
+    .cancel-q-btn:hover {
+      background: var(--secondary-btn-hover-bg);
+      color: var(--secondary-btn-hover-text);
+    }
+
+    .question-item.editing {
+      border-color: var(--accent);
+      background: var(--bg-hover);
+    }
+
     .delete-q-btn {
       background: transparent;
       color: var(--muted);
       border: none;
-      font-size: 1.5rem;
-      padding: 0;
-      min-height: auto;
-      height: 24px;
-      width: 24px;
+      height: 32px;
+      width: 32px;
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -466,17 +529,44 @@ export class PostJobComponent implements OnInit {
 
   readonly newQuestion = signal('');
   readonly screeningQuestions = signal<string[]>([...DEFAULT_QUESTIONS]);
+  readonly editingQuestionIndex = signal<number | null>(null);
 
   protected addQuestion(): void {
     const val = this.newQuestion().trim();
-    if (val) {
+    if (!val) return;
+
+    const editIdx = this.editingQuestionIndex();
+    if (editIdx !== null) {
+      this.screeningQuestions.update(list => {
+        const copy = [...list];
+        copy[editIdx] = val;
+        return copy;
+      });
+      this.editingQuestionIndex.set(null);
+    } else {
       this.screeningQuestions.update(list => [...list, val]);
-      this.newQuestion.set('');
     }
+    this.newQuestion.set('');
   }
 
   protected removeQuestion(index: number): void {
     this.screeningQuestions.update(list => list.filter((_, i) => i !== index));
+    if (this.editingQuestionIndex() === index) {
+      this.cancelEditQuestion();
+    } else if (this.editingQuestionIndex() !== null && this.editingQuestionIndex()! > index) {
+      this.editingQuestionIndex.update(idx => idx !== null ? idx - 1 : null);
+    }
+  }
+
+  protected editQuestion(index: number): void {
+    const val = this.screeningQuestions()[index];
+    this.newQuestion.set(val);
+    this.editingQuestionIndex.set(index);
+  }
+
+  protected cancelEditQuestion(): void {
+    this.editingQuestionIndex.set(null);
+    this.newQuestion.set('');
   }
 
   ngOnInit(): void {
@@ -618,5 +708,6 @@ export class PostJobComponent implements OnInit {
     this.form.skill_name = 'Python';
     this.screeningQuestions.set([...DEFAULT_QUESTIONS]);
     this.newQuestion.set('');
+    this.editingQuestionIndex.set(null);
   }
 }
