@@ -32,8 +32,9 @@ import { extractErrorMessage } from '../../../shared/utils/error-message.util';
         
         <article class="form-container">
           
-          <!-- Left Column: Specs -->
+          <!-- Left Column: Specs & Description -->
           <div class="form-column">
+            <!-- Section 1: Job Specifications -->
             <div class="form-section">
               <h2 class="section-title">
                 <span class="step-num">1</span> Job Specifications
@@ -89,10 +90,7 @@ import { extractErrorMessage } from '../../../shared/utils/error-message.util';
                 </label>
               </div>
             </div>
-          </div>
-          
-          <!-- Right Column: Description & Questions -->
-          <div class="form-column">
+
             <!-- Section 2: Job Description -->
             <div class="form-section">
               <h2 class="section-title">
@@ -103,7 +101,10 @@ import { extractErrorMessage } from '../../../shared/utils/error-message.util';
                 <textarea [disabled]="isSubmitting()" [(ngModel)]="form.description" rows="5" placeholder="Outline job responsibilities, stack details, and benefit packages..."></textarea>
               </label>
             </div>
-
+          </div>
+          
+          <!-- Right Column: Screening Questions & Actions -->
+          <div class="form-column">
             <!-- Section 3: Screening Questions -->
             <div class="form-section">
               <h2 class="section-title">
