@@ -32,135 +32,141 @@ import { extractErrorMessage } from '../../../shared/utils/error-message.util';
         
         <article class="form-container">
           
-          <!-- Section 1: Job Details -->
-          <div class="form-section">
-            <h2 class="section-title">
-              <span class="step-num">1</span> Job Specifications
-            </h2>
-            <div class="grid">
-              <label>
-                <span>Job Title <span class="required">*</span></span>
-                <input [disabled]="isSubmitting()" [(ngModel)]="form.title" type="text" placeholder="e.g. Senior Angular Developer" />
-              </label>
-              
-              <label>
-                <span>Category <span class="required">*</span></span>
-                <select [disabled]="isSubmitting()" [(ngModel)]="form.category">
-                  <option value="">Select category</option>
-                  @for (category of categories(); track category.id) {
-                    <option [value]="category.id">{{ category.name }}</option>
-                  }
-                </select>
-              </label>
-              
-              <label>
-                <span>Location type</span>
-                <select [disabled]="isSubmitting()" [(ngModel)]="form.location_type">
-                  <option value="remote">Remote</option>
-                  <option value="hybrid">Hybrid</option>
-                  <option value="onsite">Onsite</option>
-                </select>
-              </label>
-              
-              <label>
-                <span>Location city</span>
-                <input [disabled]="isSubmitting()" [(ngModel)]="form.location_city" type="text" placeholder="e.g. Bangalore" />
-              </label>
-              
-              <label>
-                <span>Salary min (Annual)</span>
-                <input [disabled]="isSubmitting()" [(ngModel)]="form.salary_min" type="number" placeholder="Min salary" />
-              </label>
-              
-              <label>
-                <span>Salary max (Annual)</span>
-                <input [disabled]="isSubmitting()" [(ngModel)]="form.salary_max" type="number" placeholder="Max salary" />
-              </label>
-              
-              <label>
-                <span>Experience required</span>
-                <input [disabled]="isSubmitting()" [(ngModel)]="form.experience_required" type="text" placeholder="e.g. 3+ years" />
-              </label>
-              
-              <label>
-                <span>Primary skill required</span>
-                <input [disabled]="isSubmitting()" [(ngModel)]="form.skill_name" type="text" placeholder="e.g. Angular" />
-              </label>
+          <!-- Left Column: Specs -->
+          <div class="form-column">
+            <div class="form-section">
+              <h2 class="section-title">
+                <span class="step-num">1</span> Job Specifications
+              </h2>
+              <div class="grid">
+                <label>
+                  <span>Job Title <span class="required">*</span></span>
+                  <input [disabled]="isSubmitting()" [(ngModel)]="form.title" type="text" placeholder="e.g. Senior Angular Developer" />
+                </label>
+                
+                <label>
+                  <span>Category <span class="required">*</span></span>
+                  <select [disabled]="isSubmitting()" [(ngModel)]="form.category">
+                    <option value="">Select category</option>
+                    @for (category of categories(); track category.id) {
+                      <option [value]="category.id">{{ category.name }}</option>
+                    }
+                  </select>
+                </label>
+                
+                <label>
+                  <span>Location type</span>
+                  <select [disabled]="isSubmitting()" [(ngModel)]="form.location_type">
+                    <option value="remote">Remote</option>
+                    <option value="hybrid">Hybrid</option>
+                    <option value="onsite">Onsite</option>
+                  </select>
+                </label>
+                
+                <label>
+                  <span>Location city</span>
+                  <input [disabled]="isSubmitting()" [(ngModel)]="form.location_city" type="text" placeholder="e.g. Bangalore" />
+                </label>
+                
+                <label>
+                  <span>Salary min (Annual)</span>
+                  <input [disabled]="isSubmitting()" [(ngModel)]="form.salary_min" type="number" placeholder="Min salary" />
+                </label>
+                
+                <label>
+                  <span>Salary max (Annual)</span>
+                  <input [disabled]="isSubmitting()" [(ngModel)]="form.salary_max" type="number" placeholder="Max salary" />
+                </label>
+                
+                <label>
+                  <span>Experience required</span>
+                  <input [disabled]="isSubmitting()" [(ngModel)]="form.experience_required" type="text" placeholder="e.g. 3+ years" />
+                </label>
+                
+                <label>
+                  <span>Primary skill required</span>
+                  <input [disabled]="isSubmitting()" [(ngModel)]="form.skill_name" type="text" placeholder="e.g. Angular" />
+                </label>
+              </div>
             </div>
           </div>
           
-          <!-- Section 2: Job Description -->
-          <div class="form-section">
-            <h2 class="section-title">
-              <span class="step-num">2</span> Job Description
-            </h2>
-            <label class="desc-label">
-              <span>Outline job responsibilities, stack details, and benefit packages <span class="required">*</span></span>
-              <textarea [disabled]="isSubmitting()" [(ngModel)]="form.description" rows="8" placeholder="Outline job responsibilities, stack details, and benefit packages..."></textarea>
-            </label>
-          </div>
-
-          <!-- Section 3: Screening Questions -->
-          <div class="form-section">
-            <h2 class="section-title">
-              <span class="step-num">3</span> Screening Questions (Optional)
-            </h2>
-            <p class="section-subtitle">Add custom questions for seekers to answer when they apply. This helps filter applicants more efficiently.</p>
-            
-            <div class="add-question-box">
-              <input 
-                [disabled]="isSubmitting()" 
-                [ngModel]="newQuestion()" 
-                (ngModelChange)="newQuestion.set($event)" 
-                type="text" 
-                placeholder="e.g. How many years of experience do you have with Angular?" 
-                (keyup.enter)="addQuestion()"
-                class="question-input"
-              />
-              <button type="button" [disabled]="isSubmitting() || !newQuestion().trim()" class="add-q-btn" (click)="addQuestion()">
-                + Add Question
-              </button>
+          <!-- Right Column: Description & Questions -->
+          <div class="form-column">
+            <!-- Section 2: Job Description -->
+            <div class="form-section">
+              <h2 class="section-title">
+                <span class="step-num">2</span> Job Description
+              </h2>
+              <label class="desc-label">
+                <span>Outline job responsibilities, stack details, and benefit packages <span class="required">*</span></span>
+                <textarea [disabled]="isSubmitting()" [(ngModel)]="form.description" rows="5" placeholder="Outline job responsibilities, stack details, and benefit packages..."></textarea>
+              </label>
             </div>
 
-            <div class="questions-list">
-              @if (!screeningQuestions().length) {
-                <div class="no-questions">
-                  ❓ No screening questions added yet. Candidates will only submit their resume and cover letter.
-                </div>
-              } @else {
-                <div class="questions-grid">
-                  @for (q of screeningQuestions(); track $index) {
-                    <div class="question-item">
-                      <div class="q-content">
-                        <span class="q-index">Q{{ $index + 1 }}</span>
-                        <span class="q-text" [title]="q">{{ q }}</span>
+            <!-- Section 3: Screening Questions -->
+            <div class="form-section">
+              <h2 class="section-title">
+                <span class="step-num">3</span> Screening Questions (Optional)
+              </h2>
+              <p class="section-subtitle">Add custom questions for seekers to answer when they apply.</p>
+              
+              <div class="add-question-box">
+                <input 
+                  [disabled]="isSubmitting()" 
+                  [ngModel]="newQuestion()" 
+                  (ngModelChange)="newQuestion.set($event)" 
+                  type="text" 
+                  placeholder="e.g. How many years of experience do you have with Angular?" 
+                  (keyup.enter)="addQuestion()"
+                  class="question-input"
+                />
+                <button type="button" [disabled]="isSubmitting() || !newQuestion().trim()" class="add-q-btn" (click)="addQuestion()">
+                  + Add
+                </button>
+              </div>
+
+              <div class="questions-list">
+                @if (!screeningQuestions().length) {
+                  <div class="no-questions">
+                    ❓ No screening questions added.
+                  </div>
+                } @else {
+                  <div class="questions-grid">
+                    @for (q of screeningQuestions(); track $index) {
+                      <div class="question-item">
+                        <div class="q-content">
+                          <span class="q-index">Q{{ $index + 1 }}</span>
+                          <span class="q-text" [title]="q">{{ q }}</span>
+                        </div>
+                        <button type="button" [disabled]="isSubmitting()" class="delete-q-btn" (click)="removeQuestion($index)" title="Remove question">
+                          &times;
+                        </button>
                       </div>
-                      <button type="button" [disabled]="isSubmitting()" class="delete-q-btn" (click)="removeQuestion($index)" title="Remove question">
-                        &times;
-                      </button>
-                    </div>
-                  }
-                </div>
+                    }
+                  </div>
+                }
+              </div>
+            </div>
+
+            <div class="actions">
+              @if (editingJobId()) {
+                <button type="button" [disabled]="isSubmitting()" class="btn-primary" (click)="updateJob()">
+                  {{ isSubmitting() ? 'Saving...' : 'Save Changes' }}
+                </button>
+                <button type="button" [disabled]="isSubmitting()" class="btn-secondary" (click)="cancelEdit()">Cancel</button>
+              } @else {
+                <button type="button" [disabled]="isSubmitting()" class="btn-primary" (click)="createJob()">
+                  {{ isSubmitting() ? 'Creating...' : 'Create Job' }}
+                </button>
               }
             </div>
-          </div>
 
-          <div class="actions">
-            @if (editingJobId()) {
-              <button type="button" [disabled]="isSubmitting()" class="btn-primary" (click)="updateJob()">
-                {{ isSubmitting() ? 'Saving...' : 'Save Changes' }}
-              </button>
-              <button type="button" [disabled]="isSubmitting()" class="btn-secondary" (click)="cancelEdit()">Cancel</button>
-            } @else {
-              <button type="button" [disabled]="isSubmitting()" class="btn-primary" (click)="createJob()">
-                {{ isSubmitting() ? 'Creating...' : 'Create Job' }}
-              </button>
+            @if (message()) {
+              <div class="message-banner">{{ message() }}</div>
             }
           </div>
 
-          @if (message()) {
-            <div class="message-banner">{{ message() }}</div>
-          }
         </article>
       }
     </section>
@@ -174,7 +180,7 @@ import { extractErrorMessage } from '../../../shared/utils/error-message.util';
       display: grid;
       gap: 2rem;
       padding: 2.5rem;
-      max-width: 900px;
+      max-width: 1200px;
       margin: 2rem auto;
     }
 
@@ -195,9 +201,16 @@ import { extractErrorMessage } from '../../../shared/utils/error-message.util';
     }
 
     .form-container {
+      display: grid;
+      gap: 2rem;
+      grid-template-columns: 1.15fr 0.85fr;
+      align-items: start;
+    }
+
+    .form-column {
       display: flex;
       flex-direction: column;
-      gap: 2.5rem;
+      gap: 2rem;
     }
 
     .form-section {
@@ -244,6 +257,12 @@ import { extractErrorMessage } from '../../../shared/utils/error-message.util';
       display: grid;
       gap: 1.5rem;
       grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    @media (max-width: 1024px) {
+      .form-container {
+        grid-template-columns: 1fr;
+      }
     }
 
     @media (max-width: 768px) {

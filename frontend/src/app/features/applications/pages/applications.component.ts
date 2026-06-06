@@ -295,12 +295,17 @@ import { SalaryPipe } from '../../../shared/pipes/salary.pipe';
       max-width: 90vw;
       max-height: 85vh;
       overflow-y: auto;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
       padding: 2rem;
       display: flex;
       flex-direction: column;
       gap: 1.5rem;
       box-shadow: var(--shadow);
       transition: background-color 0.5s ease, border-color 0.5s ease, box-shadow 0.5s ease;
+    }
+    .modal-card::-webkit-scrollbar {
+      display: none;
     }
     .modal-header {
       display: flex;

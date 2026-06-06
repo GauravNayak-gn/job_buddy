@@ -467,6 +467,12 @@ import { AiAlignmentDrawerComponent } from '../../../shared/components/ai-alignm
       max-height: 70vh;
       overflow-y: auto;
       padding-right: 0.5rem;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+
+    .applicant-list::-webkit-scrollbar {
+      display: none;
     }
 
     .applicant-card {
