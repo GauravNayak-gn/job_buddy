@@ -59,7 +59,30 @@ REST_FRAMEWORK = {
 
 KAFKA_BOOTSTRAP_SERVERS = config('KAFKA_BOOTSTRAP_SERVERS', default='localhost:9092')
 EMBEDDING_MODEL_NAME = config('EMBEDDING_MODEL_NAME', default='all-MiniLM-L6-v2')
+GEMINI_API_KEY = config('GEMINI_API_KEY', default='')
+GEMINI_MODEL_NAME = config('GEMINI_MODEL_NAME', default='gemini-2.5-flash')
+
+# Multi-Provider AI Configuration (Supports Gemini, OpenAI, OpenRouter, etc.)
+AI_PROVIDER = config('AI_PROVIDER', default='gemini') # 'gemini' or 'openai'
+AI_API_KEY = config('AI_API_KEY', default=config('GEMINI_API_KEY', default=''))
+AI_API_BASE = config('AI_API_BASE', default='https://api.openai.com/v1')
+AI_MODEL_NAME = config('AI_MODEL_NAME', default=config('GEMINI_MODEL_NAME', default='gemini-2.5-flash'))
+
+
+
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': config('REDIS_URL', default='redis://127.0.0.1:6379/0'),
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            "SERIALIZER": "django_redis.serializers.json.JSONSerializer",
+        },
+    }
+}
 
 CORS_ALLOW_ALL_ORIGINS = True
 STATIC_URL = '/static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+

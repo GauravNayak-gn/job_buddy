@@ -57,11 +57,31 @@ class VerifyOTPView(APIView):
         user_dao.verify_user(user)
         return Response({"message": "Email verified."})
 
+from accounts.services.redis_client import RedisClient
+
+def get_client_ip(request):
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[0].strip()
+    else:
+        ip = request.META.get('REMOTE_ADDR')
+    return ip
+
 class LoginView(APIView):
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
+        email = serializer.validated_data['email'].strip().lower()
+        ip = get_client_ip(request)
+        rate_limit_key = f"rate_limit_login:{ip}:{email}"
+        
+        if RedisClient.is_rate_limited(rate_limit_key, limit=5, period=60):
+            return Response(
+                {"error": "Too many login attempts. Please try again in a minute."},
+                status=status.HTTP_429_TOO_MANY_REQUESTS
+            )
+            
         user, error = auth_service.authenticate_user(
             serializer.validated_data['email'],
             serializer.validated_data['password']
@@ -71,6 +91,7 @@ class LoginView(APIView):
             
         tokens = auth_service.generate_tokens_for_user(user)
         return Response(tokens)
+
 
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]

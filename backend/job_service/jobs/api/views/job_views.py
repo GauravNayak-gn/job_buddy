@@ -2,10 +2,10 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated, AllowAny
-from django.core.cache import cache
 
 from jobs.api.serializers.job_serializers import JobSerializer, JobCategorySerializer
 from jobs.services import job_service
+from jobs.services.redis_client import RedisClient
 from jobs.dao import job_dao
 
 def request_user_is_recruiter(user):
@@ -17,13 +17,20 @@ class HealthView(APIView):
 
 class JobCategoryListView(APIView):
     def get(self, request):
+        cache_key = "job_categories_list"
+        cached = RedisClient.get(cache_key)
+        if cached:
+            return Response(cached)
+            
         categories = job_dao.get_job_categories()
-        return Response(JobCategorySerializer(categories, many=True).data)
+        data = JobCategorySerializer(categories, many=True).data
+        RedisClient.set(cache_key, data, timeout=3600)  # cache for 1 hour
+        return Response(data)
 
 class JobListView(APIView):
     def get(self, request):
         cache_key = f"jobs_list_{request.GET.urlencode()}"
-        cached = cache.get(cache_key)
+        cached = RedisClient.get(cache_key)
         if cached:
             return Response(cached)
 
@@ -33,7 +40,7 @@ class JobListView(APIView):
 
         jobs = job_dao.get_active_jobs(location_type=location_type, category=category, search=search)
         data = JobSerializer(jobs, many=True).data
-        cache.set(cache_key, data, timeout=300)
+        RedisClient.set(cache_key, data, timeout=300)
         return Response(data)
 
 class JobCreateView(APIView):
@@ -58,10 +65,23 @@ class JobDetailView(APIView):
     def get(self, request, job_id):
         try:
             user_id = getattr(request.user, 'id', '')
+            cache_key = f"job_detail_{job_id}"
+            
+            # Only cache for public detail view (where user is not authenticated)
+            if not user_id:
+                cached = RedisClient.get(cache_key)
+                if cached:
+                    return Response(cached)
+                    
             job = job_service.get_job_for_detail(job_id, user_id)
-            return Response(JobSerializer(job).data)
+            data = JobSerializer(job).data
+            
+            if not user_id:
+                RedisClient.set(cache_key, data, timeout=300)
+            return Response(data)
         except (ValueError, job_dao.Job.DoesNotExist):
             return Response({"error": "Job not found."}, status=status.HTTP_404_NOT_FOUND)
+
 
     def patch(self, request, job_id):
         if not getattr(request.user, 'is_authenticated', False):

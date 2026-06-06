@@ -1,24 +1,15 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { ApiService } from '../core/api.service';
-import { AuthStateService } from '../core/auth-state.service';
-
-interface Job {
-  id: string;
-  title: string;
-  description: string;
-  location_type: string;
-  location_city: string;
-  experience_required: string;
-  salary_min: number | null;
-  salary_max: number | null;
-}
+import { ApiService } from '../../../core/services/api.service';
+import { AuthStateService } from '../../../core/services/auth-state.service';
+import { Job } from '../../../core/models';
+import { SalaryPipe } from '../../../shared/pipes/salary.pipe';
 
 @Component({
   selector: 'app-home-page',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, SalaryPipe],
   template: `
     <section class="hero-card">
       <div>
@@ -62,7 +53,7 @@ interface Job {
               <p>{{ job.description }}</p>
               <div class="job-footer">
                 <span>{{ job.experience_required || 'Experience not specified' }}</span>
-                <span>{{ formatSalary(job.salary_min, job.salary_max) }}</span>
+                <span>{{ job.salary_min | salary:job.salary_max }}</span>
               </div>
             </article>
           }
@@ -159,18 +150,5 @@ export class HomeComponent implements OnInit {
         this.loading.set(false);
       },
     });
-  }
-
-  protected formatSalary(min: number | null, max: number | null): string {
-    if (min == null && max == null) {
-      return 'Salary not disclosed';
-    }
-    if (min != null && max != null) {
-      return `INR ${min} - ${max}`;
-    }
-    if (min != null) {
-      return `From INR ${min}`;
-    }
-    return `Up to INR ${max}`;
   }
 }

@@ -1,36 +1,49 @@
-import { Routes, Router, CanActivateFn } from '@angular/router';
-import { inject } from '@angular/core';
-import { AuthStateService } from './core/auth-state.service';
-import { HomeComponent } from './pages/home.component';
-import { JobsComponent } from './pages/jobs.component';
-import { LoginComponent } from './pages/login.component';
-import { ProfileComponent } from './pages/profile.component';
-import { PostJobComponent } from './pages/post-job.component';
-import { NotificationsComponent } from './pages/notifications.component';
-import { MatchesComponent } from './pages/matches.component';
-
-const authGuard: CanActivateFn = () => {
-  const auth = inject(AuthStateService);
-  const router = inject(Router);
-  return auth.isLoggedIn() ? true : router.createUrlTree(['/login']);
-};
-
-const recruiterGuard: CanActivateFn = () => {
-  const auth = inject(AuthStateService);
-  const router = inject(Router);
-  if (!auth.isLoggedIn()) {
-    return router.createUrlTree(['/login']);
-  }
-  return auth.isRecruiter() ? true : router.createUrlTree(['/']);
-};
+import { Routes } from '@angular/router';
+import { authGuard } from './core/guards/auth.guard';
+import { recruiterGuard } from './core/guards/recruiter.guard';
 
 export const routes: Routes = [
-  { path: '', component: HomeComponent },
-  { path: 'jobs', component: JobsComponent },
-  { path: 'login', component: LoginComponent },
-  { path: 'profile', component: ProfileComponent, canActivate: [authGuard] },
-  { path: 'post-job', component: PostJobComponent, canActivate: [recruiterGuard] },
-  { path: 'notifications', component: NotificationsComponent, canActivate: [authGuard] },
-  { path: 'matches', component: MatchesComponent, canActivate: [authGuard] },
+  {
+    path: '',
+    loadComponent: () => import('./features/home/pages/home.component').then((m) => m.HomeComponent),
+  },
+  {
+    path: 'jobs',
+    loadComponent: () => import('./features/jobs/pages/jobs.component').then((m) => m.JobsComponent),
+  },
+  {
+    path: 'login',
+    loadComponent: () => import('./features/auth/pages/login.component').then((m) => m.LoginComponent),
+  },
+  {
+    path: 'profile',
+    loadComponent: () => import('./features/profile/pages/profile.component').then((m) => m.ProfileComponent),
+    canActivate: [authGuard],
+  },
+  {
+    path: 'applications',
+    loadComponent: () => import('./features/applications/pages/applications.component').then((m) => m.ApplicationsComponent),
+    canActivate: [authGuard],
+  },
+  {
+    path: 'post-job',
+    loadComponent: () => import('./features/post-job/pages/post-job.component').then((m) => m.PostJobComponent),
+    canActivate: [recruiterGuard],
+  },
+  {
+    path: 'manage-jobs',
+    loadComponent: () => import('./features/manage-jobs/pages/manage-jobs.component').then((m) => m.ManageJobsComponent),
+    canActivate: [recruiterGuard],
+  },
+  {
+    path: 'notifications',
+    loadComponent: () => import('./features/notifications/pages/notifications.component').then((m) => m.NotificationsComponent),
+    canActivate: [authGuard],
+  },
+  {
+    path: 'matches',
+    loadComponent: () => import('./features/matches/pages/matches.component').then((m) => m.MatchesComponent),
+    canActivate: [authGuard],
+  },
   { path: '**', redirectTo: '' },
 ];

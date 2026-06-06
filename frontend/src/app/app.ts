@@ -1,78 +1,21 @@
-import { CommonModule } from '@angular/common';
-import { Component, computed, inject } from '@angular/core';
-import { Router } from '@angular/router';
-import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
-import { AuthStateService } from './core/auth-state.service';
-import { ApiService } from './core/api.service';
-import { finalize } from 'rxjs/operators';
+import { Component } from '@angular/core';
+import { RouterOutlet } from '@angular/router';
+import { NavbarComponent } from './layout/navbar/navbar.component';
+import { ChatbotSidebarComponent } from './shared/components/chatbot-sidebar/chatbot-sidebar.component';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [RouterOutlet, NavbarComponent, ChatbotSidebarComponent],
   template: `
     <div class="app-shell">
-      <header class="topbar">
-        <a routerLink="/" class="brand">
-          <span class="brand-mark" aria-hidden="true">
-            <span class="brand-initials">JB</span>
-          </span>
-          <div>
-            <strong>Job Buddy</strong>
-            <span>Microservice Job Portal</span>
-          </div>
-        </a>
-
-        <nav class="nav-links">
-          <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Home</a>
-          <a routerLink="/jobs" routerLinkActive="active">Jobs</a>
-          @if (auth.isLoggedIn()) {
-            <a routerLink="/profile" routerLinkActive="active">Profile</a>
-            <a routerLink="/notifications" routerLinkActive="active">Notifications</a>
-            <a routerLink="/matches" routerLinkActive="active">AI Match</a>
-          }
-          @if (isRecruiter()) {
-            <a routerLink="/post-job" routerLinkActive="active">Post Job</a>
-          }
-        </nav>
-
-        <div class="session-box">
-          @if (auth.isLoggedIn()) {
-            <span class="user-pill">{{ auth.role() }} account</span>
-            <button type="button" class="logout" (click)="logout()">Logout</button>
-          } @else {
-            <a routerLink="/login" class="login-link">Login</a>
-          }
-        </div>
-      </header>
-
+      <app-navbar />
       <main class="content">
         <router-outlet />
       </main>
+      <app-chatbot-sidebar />
     </div>
   `,
   styleUrl: './app.css',
 })
-export class App {
-  readonly auth = inject(AuthStateService);
-  readonly api = inject(ApiService);
-  readonly router = inject(Router);
-  readonly isRecruiter = computed(() => this.auth.role() === 'recruiter');
-
-  protected logout(): void {
-    const refresh = this.auth.refreshToken();
-    const clearAndRedirect = () => {
-      this.auth.clearSession();
-      void this.router.navigateByUrl('/login');
-    };
-
-    if (!refresh) {
-      clearAndRedirect();
-      return;
-    }
-
-    this.api.post(`${this.api.authBase}/logout/`, { refresh }, true)
-      .pipe(finalize(clearAndRedirect))
-      .subscribe();
-  }
-}
+export class App {}

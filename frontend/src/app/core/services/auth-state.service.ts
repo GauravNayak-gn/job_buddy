@@ -1,13 +1,5 @@
 import { Injectable, computed, signal } from '@angular/core';
-
-export type UserRole = 'seeker' | 'recruiter' | '';
-
-interface SessionState {
-  access: string;
-  refresh: string;
-  role: UserRole;
-  userId: string;
-}
+import { UserRole, SessionState } from '../models';
 
 const STORAGE_KEY = 'job-buddy-session';
 
@@ -21,6 +13,7 @@ export class AuthStateService {
   readonly userId = computed(() => this.state().userId);
   readonly isLoggedIn = computed(() => Boolean(this.state().access));
   readonly isRecruiter = computed(() => this.state().role === 'recruiter');
+  readonly isSeeker = computed(() => this.state().role === 'seeker');
 
   setSession(session: SessionState): void {
     this.state.set(session);
