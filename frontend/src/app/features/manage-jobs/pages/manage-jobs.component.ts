@@ -16,12 +16,12 @@ import { AiAlignmentDrawerComponent } from '../../../shared/components/ai-alignm
   template: `
     <section class="page-card">
       <div class="page-head">
-        <div>
-          <p class="eyebrow">Recruiter workspace</p>
-          <h1>Manage Jobs & Applicants</h1>
+        <div class="title-block">
+          <span class="eyebrow">Recruiter workspace</span>
+          <h1>Manage Jobs</h1>
         </div>
         <div class="actions-header">
-          <button type="button" routerLink="/post-job">Post New Job</button>
+          <button type="button" routerLink="/post-job" class="post-job-btn">Post New Job</button>
         </div>
       </div>
 
@@ -37,7 +37,6 @@ import { AiAlignmentDrawerComponent } from '../../../shared/components/ai-alignm
           <article class="jobs-panel">
             <div class="list-head">
               <h2>My Job Postings</h2>
-              <button type="button" [disabled]="isSubmitting() || jobsLoading()" class="secondary" (click)="loadMyJobs()">Refresh</button>
             </div>
             
             @if (message()) {
@@ -46,7 +45,10 @@ import { AiAlignmentDrawerComponent } from '../../../shared/components/ai-alignm
 
             <!-- Search & Filters -->
             <div class="job-filters">
-              <input type="text" [ngModel]="searchQuery()" (ngModelChange)="searchQuery.set($event)" placeholder="Search job title/desc..." class="search-input" />
+              <div class="search-row">
+                <input type="text" [ngModel]="searchQuery()" (ngModelChange)="searchQuery.set($event)" placeholder="Search job title..." class="search-input" />
+                <button type="button" [disabled]="isSubmitting() || jobsLoading()" class="secondary refresh-btn" (click)="loadMyJobs()">Refresh</button>
+              </div>
               <div class="filter-row">
                 <select [ngModel]="statusFilter()" (ngModelChange)="statusFilter.set($event)">
                   <option value="">All Statuses</option>
@@ -249,11 +251,11 @@ import { AiAlignmentDrawerComponent } from '../../../shared/components/ai-alignm
     .page-card {
       background: var(--card);
       border: 1px solid var(--border);
-      border-radius: 28px;
+      border-radius: 24px;
       box-shadow: var(--shadow);
-      padding: 2rem;
+      padding: 1.25rem 1.5rem;
       display: grid;
-      gap: 1.5rem;
+      gap: 1rem;
     }
 
     .page-head {
@@ -261,13 +263,39 @@ import { AiAlignmentDrawerComponent } from '../../../shared/components/ai-alignm
       justify-content: space-between;
       align-items: center;
       flex-wrap: wrap;
-      gap: 1rem;
+      gap: 0.5rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.5rem;
+    }
+    
+    .title-block {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .page-head h1 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      margin: 0;
+      color: var(--text);
+    }
+    
+    .page-head .eyebrow {
+      font-size: 0.72rem;
+      margin-bottom: 0.1rem;
+    }
+    
+    .post-job-btn {
+      min-height: auto;
+      height: 36px;
+      font-size: 0.85rem;
+      padding: 0.4rem 1rem;
     }
 
     .manage-layout {
       display: grid;
-      gap: 2rem;
-      grid-template-columns: 5fr 5fr;
+      gap: 1.5rem;
+      grid-template-columns: 4fr 6fr;
     }
 
     @media (max-width: 1024px) {
@@ -281,22 +309,22 @@ import { AiAlignmentDrawerComponent } from '../../../shared/components/ai-alignm
       background: var(--bg-panel);
       border: 1px solid var(--border);
       border-radius: 18px;
-      padding: 1.5rem;
+      padding: 1rem;
       display: flex;
       flex-direction: column;
-      gap: 1.25rem;
+      gap: 0.75rem;
     }
 
     .list-head {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      border-bottom: 1px solid var(--border);
-      padding-bottom: 0.4rem;
+      padding-bottom: 0;
+      margin-bottom: 0.1rem;
     }
 
     .list-head h2 {
-      font-size: 1.15rem;
+      font-size: 1.1rem;
       font-weight: 600;
     }
 
@@ -590,14 +618,25 @@ import { AiAlignmentDrawerComponent } from '../../../shared/components/ai-alignm
     .job-filters {
       display: flex;
       flex-direction: column;
-      gap: 0.75rem;
+      gap: 0.5rem;
       border-bottom: 1px solid var(--border);
-      padding-bottom: 1.25rem;
-      margin-bottom: 0.5rem;
+      padding-bottom: 0.75rem;
+      margin-bottom: 0.25rem;
+    }
+    .search-row {
+      display: flex;
+      gap: 0.5rem;
     }
     .search-input {
-      font-size: 0.9rem;
-      padding: 0.6rem 0.9rem;
+      flex: 1;
+      font-size: 0.85rem;
+      padding: 0.5rem 0.75rem;
+    }
+    .refresh-btn {
+      min-height: auto;
+      height: 38px;
+      font-size: 0.8rem;
+      padding: 0.4rem 0.75rem;
     }
     .filter-row {
       display: grid;
@@ -605,8 +644,8 @@ import { AiAlignmentDrawerComponent } from '../../../shared/components/ai-alignm
       gap: 0.5rem;
     }
     .filter-row select {
-      font-size: 0.85rem;
-      padding: 0.5rem 0.75rem;
+      font-size: 0.8rem;
+      padding: 0.45rem 0.6rem;
       cursor: pointer;
     }
   `],
