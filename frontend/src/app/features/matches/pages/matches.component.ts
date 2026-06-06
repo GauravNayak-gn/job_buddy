@@ -229,7 +229,7 @@ import { AiAlignmentDrawerComponent } from '../../../shared/components/ai-alignm
     }
     .list, .applicant-list { display: grid; gap: 1rem; }
     .item, .applicant-card {
-      background: #ffffff;
+      background: var(--bg-panel);
       border: 1px solid var(--border);
       border-radius: 18px;
       padding: 1.5rem;
@@ -300,7 +300,7 @@ import { AiAlignmentDrawerComponent } from '../../../shared/components/ai-alignm
       margin-top: 1rem;
       padding: 1rem;
       border: 1px solid var(--border);
-      background: #f8fafc;
+      background: var(--bg-alt);
       border-radius: 12px;
       display: grid;
       gap: 0.75rem;
@@ -349,7 +349,7 @@ import { AiAlignmentDrawerComponent } from '../../../shared/components/ai-alignm
       align-items: center;
     }
     .modal-card {
-      background: #ffffff;
+      background: var(--bg-panel);
       border: 1px solid var(--border);
       border-radius: 20px;
       width: 500px;
@@ -389,8 +389,8 @@ import { AiAlignmentDrawerComponent } from '../../../shared/components/ai-alignm
       gap: 0.4rem;
     }
     .chip {
-      background: #f1f5f9;
-      color: #334155;
+      background: var(--bg-hover);
+      color: var(--text);
       font-size: 0.75rem;
       padding: 0.25rem 0.5rem;
       border-radius: 6px;

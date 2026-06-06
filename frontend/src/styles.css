@@ -32,6 +32,68 @@
   --primary-badge-text: #065f46;
   
   --error-text: #9f2f18; /* High-contrast warm red */
+
+  /* Theme variables */
+  --app-shell-bg: linear-gradient(180deg, #fbf7ef 0%, #f0eadf 100%);
+  --topbar-bg: rgba(251, 247, 239, 0.82);
+  --input-bg: #ffffff;
+  --bg-hover: #f1f5f9;
+  --bg-alt: #f8fafc;
+  --bg-panel: #ffffff;
+  --bg-chat-bubble-user: #e0f2fe;
+  --bg-chat-bubble-bot: #f1f5f9;
+  
+  --secondary-btn-bg: #f1f5f9;
+  --secondary-btn-text: #334155;
+  --secondary-btn-hover-bg: #e2e8f0;
+  --secondary-btn-hover-text: #0f172a;
+}
+
+body.dark-mode {
+  --bg: #0f172a; /* Slate 900 */
+  --text: #f8fafc; /* Slate 50 */
+  --muted: #94a3b8; /* Slate 400 */
+  --accent: #f97316; /* Warm orange */
+  --accent-hover: #ea580c;
+  --secondary: #14b8a6; /* Teal */
+  --card: rgba(30, 41, 59, 0.88); /* Slate 800 with transparency */
+  --border: rgba(255, 255, 255, 0.08);
+  
+  --shadow: 0 18px 45px rgba(0, 0, 0, 0.4);
+  
+  --pill-bg: #1e1b4b;
+  --pill-text: #c7d2fe;
+  
+  --success-bg: #064e3b;
+  --success-border: #059669;
+  --success-text: #a7f3d0;
+  
+  --danger-bg: #7f1d1d;
+  --danger-text: #fca5a5;
+  --danger-hover: #991b1b;
+  
+  --info-bg: #1e3a8a;
+  --info-text: #bfdbfe;
+  
+  --primary-badge-bg: #064e3b;
+  --primary-badge-text: #a7f3d0;
+  
+  --error-text: #f87171;
+
+  /* Theme variables override */
+  --app-shell-bg: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+  --topbar-bg: rgba(15, 23, 42, 0.82);
+  --input-bg: #1e293b;
+  --bg-hover: #334155;
+  --bg-alt: #1e293b;
+  --bg-panel: #1e293b;
+  --bg-chat-bubble-user: #0369a1;
+  --bg-chat-bubble-bot: #334155;
+  
+  --secondary-btn-bg: #334155;
+  --secondary-btn-text: #f8fafc;
+  --secondary-btn-hover-bg: #475569;
+  --secondary-btn-hover-text: #ffffff;
 }
 
 html, body {
@@ -79,7 +141,7 @@ button, input, select, textarea {
 }
 
 input, select, textarea {
-  background: #ffffff;
+  background: var(--input-bg);
   border: 1px solid var(--border);
   border-radius: 10px;
   color: var(--text);
@@ -136,14 +198,14 @@ button:hover, .btn-primary:hover {
 }
 
 button.secondary, .btn-secondary {
-  background: #f1f5f9;
-  color: #334155;
+  background: var(--secondary-btn-bg);
+  color: var(--secondary-btn-text);
   border: 1px solid var(--border);
 }
 
 button.secondary:hover, .btn-secondary:hover {
-  background: #e2e8f0;
-  color: #0f172a;
+  background: var(--secondary-btn-hover-bg);
+  color: var(--secondary-btn-hover-text);
   transform: none;
   box-shadow: none;
 }
@@ -166,4 +228,14 @@ pre {
   overflow: auto;
   padding: 1.25rem;
   font-size: 0.875rem;
+}
+
+/* Autofill override for dark/light mode consistency */
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus, 
+input:-webkit-autofill:active {
+  -webkit-text-fill-color: var(--text) !important;
+  transition: background-color 5000s ease-in-out 0s;
+  box-shadow: inset 0 0 20px 20px var(--input-bg) !important;
 }

@@ -7,7 +7,7 @@
   background:
     radial-gradient(circle at top left, rgba(217, 93, 57, 0.18), transparent 25%),
     radial-gradient(circle at top right, rgba(30, 111, 104, 0.18), transparent 30%),
-    linear-gradient(180deg, #fbf7ef 0%, #f0eadf 100%);
+    var(--app-shell-bg);
   color: var(--text);
   min-height: 100vh;
 }

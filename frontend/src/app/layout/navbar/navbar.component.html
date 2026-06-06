@@ -27,6 +27,19 @@
   </nav>
 
   <div class="session-box">
+    <button type="button" class="theme-toggle-btn" (click)="theme.toggleTheme()" [attr.aria-label]="theme.isDarkMode() ? 'Switch to light mode' : 'Switch to dark mode'">
+      @if (theme.isDarkMode()) {
+        <!-- Sun Icon -->
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="theme-icon">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m0 13.5V21M4.978 4.978l1.59 1.59m10.862 10.862l1.59 1.59M3 12h2.25m13.5 0H21M4.978 19.022l1.59-1.59m10.862-10.862l1.59-1.59M12 7.5a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9Z" />
+        </svg>
+      } @else {
+        <!-- Moon Icon -->
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="theme-icon">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25c0 5.385 4.365 9.75 9.75 9.75 3.14 0 5.922-1.488 7.702-3.798Z" />
+        </svg>
+      }
+    </button>
     @if (auth.isLoggedIn()) {
       <span class="user-pill">{{ auth.role() }} account</span>
       <button type="button" class="logout" (click)="logout()">Logout</button>

@@ -253,7 +253,7 @@ import { AiAlignmentDrawerComponent } from '../../../shared/components/ai-alignm
 
     /* Panels styling */
     .jobs-panel, .applicants-panel {
-      background: #ffffff;
+      background: var(--bg-panel);
       border: 1px solid var(--border);
       border-radius: 18px;
       padding: 1.5rem;
@@ -289,7 +289,7 @@ import { AiAlignmentDrawerComponent } from '../../../shared/components/ai-alignm
       border: 1px solid var(--border);
       border-radius: 12px;
       padding: 1rem;
-      background: #f8fafc;
+      background: var(--bg-alt);
       cursor: pointer;
       transition: all 0.2s ease;
       display: flex;
@@ -299,7 +299,7 @@ import { AiAlignmentDrawerComponent } from '../../../shared/components/ai-alignm
 
     .job-card:hover, .job-card.selected {
       border-color: var(--accent);
-      background: #fff;
+      background: var(--bg-panel);
     }
 
     .job-card.selected {
@@ -380,7 +380,7 @@ import { AiAlignmentDrawerComponent } from '../../../shared/components/ai-alignm
     }
 
     .applicant-card {
-      background: #f8fafc;
+      background: var(--bg-alt);
       border: 1px solid var(--border);
       border-radius: 12px;
       padding: 1.25rem;
@@ -415,8 +415,8 @@ import { AiAlignmentDrawerComponent } from '../../../shared/components/ai-alignm
 
     .cover-letter {
       font-size: 0.85rem;
-      color: #334155;
-      background: #fff;
+      color: var(--text);
+      background: var(--bg-panel);
       border: 1px solid var(--border);
       border-radius: 8px;
       padding: 0.75rem;
@@ -449,7 +449,7 @@ import { AiAlignmentDrawerComponent } from '../../../shared/components/ai-alignm
     }
 
     .schedule-form {
-      background: #ffffff;
+      background: var(--bg-panel);
       border: 1px solid var(--border);
       border-radius: 8px;
       padding: 1rem;
@@ -486,7 +486,7 @@ import { AiAlignmentDrawerComponent } from '../../../shared/components/ai-alignm
     }
 
     .modal-card {
-      background: #ffffff;
+      background: var(--bg-panel);
       border: 1px solid var(--border);
       border-radius: 20px;
       width: 500px;
@@ -531,8 +531,8 @@ import { AiAlignmentDrawerComponent } from '../../../shared/components/ai-alignm
     }
 
     .chip {
-      background: #f1f5f9;
-      color: #334155;
+      background: var(--bg-hover);
+      color: var(--text);
       font-size: 0.75rem;
       padding: 0.25rem 0.5rem;
       border-radius: 6px;

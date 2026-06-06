@@ -133,7 +133,7 @@ import { extractErrorMessage } from '../../../shared/utils/error-message.util';
     }
 
     .form-card {
-      background: #ffffff;
+      background: var(--bg-panel);
       border: 1px solid var(--border);
       border-radius: 18px;
       padding: 2rem;

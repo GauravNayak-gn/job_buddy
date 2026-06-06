@@ -104,7 +104,7 @@ import { AiAlignmentDrawerComponent } from '../../../shared/components/ai-alignm
     }
 
     .panel-card {
-      background: #ffffff;
+      background: var(--bg-panel);
       border: 1px solid var(--border);
       border-radius: 18px;
       padding: 1.5rem;
@@ -138,7 +138,7 @@ import { AiAlignmentDrawerComponent } from '../../../shared/components/ai-alignm
     }
 
     .app-card {
-      background: #f8fafc;
+      background: var(--bg-alt);
       border: 1px solid var(--border);
       border-radius: 14px;
       padding: 1.25rem;

@@ -214,7 +214,7 @@ import { extractErrorMessage } from '../../../shared/utils/error-message.util';
     .info-grid { 
       display: grid; 
       gap: 0.8rem; 
-      background: #f8fafc;
+      background: var(--bg-alt);
       padding: 1.25rem;
       border-radius: 16px;
       border: 1px solid var(--border);
@@ -225,7 +225,7 @@ import { extractErrorMessage } from '../../../shared/utils/error-message.util';
     .list.compact .list-item { 
       padding: 1rem; 
       border-radius: 16px; 
-      background: #f8fafc;
+      background: var(--bg-alt);
     }
 
     .app-grid { 
@@ -268,7 +268,28 @@ import { extractErrorMessage } from '../../../shared/utils/error-message.util';
       cursor: pointer;
     }
     
-    .file-input { padding: 0.5rem; background: #ffffff; }
+    .file-input { 
+      padding: 0.5rem; 
+      background: var(--input-bg); 
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+    }
+    .file-input::file-selector-button {
+      background: var(--secondary-btn-bg);
+      color: var(--secondary-btn-text);
+      border: 1px solid var(--border);
+      padding: 0.4rem 0.8rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.2s;
+      margin-right: 0.5rem;
+    }
+    .file-input::file-selector-button:hover {
+      background: var(--secondary-btn-hover-bg);
+      color: var(--secondary-btn-hover-text);
+    }
     
     .muted { color: var(--muted); }
     .meta-line { color: var(--muted); font-size: 0.85rem; margin-top: 0.25rem; margin-bottom: 0; }

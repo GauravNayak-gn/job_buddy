@@ -167,7 +167,7 @@ interface ChatMessage {
       right: -420px; /* Hidden state */
       width: 400px;
       height: 100vh;
-      background: rgba(255, 255, 255, 0.85);
+      background: var(--card);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
       border-left: 1px solid var(--border);
@@ -200,7 +200,7 @@ interface ChatMessage {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      background: linear-gradient(to right, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.7));
+      background: var(--topbar-bg);
     }
 
     .bot-info {
@@ -278,7 +278,7 @@ interface ChatMessage {
       max-width: 80%;
       padding: 0.85rem 1.1rem;
       border-radius: 18px 18px 18px 4px;
-      background: #ffffff;
+      background: var(--bg-panel);
       border: 1px solid var(--border);
       font-size: 0.925rem;
       color: var(--text);
@@ -333,7 +333,7 @@ interface ChatMessage {
     /* Suggestions Area */
     .quick-actions {
       padding: 0.75rem 1.25rem;
-      background: rgba(255, 255, 255, 0.5);
+      background: var(--bg-alt);
       border-top: 1px solid var(--border);
     }
 
@@ -353,8 +353,8 @@ interface ChatMessage {
     }
 
     .suggestion-chip {
-      background: #f1f5f9;
-      color: #475569;
+      background: var(--bg-hover);
+      color: var(--text);
       border: 1px solid rgba(24, 33, 47, 0.05);
       font-size: 0.8rem;
       padding: 0.4rem 0.8rem;
@@ -373,7 +373,7 @@ interface ChatMessage {
     /* Input form */
     .input-form {
       padding: 1rem 1.25rem 1.5rem 1.25rem;
-      background: #ffffff;
+      background: var(--bg-panel);
       border-top: 1px solid var(--border);
       display: flex;
       gap: 0.5rem;
@@ -382,14 +382,14 @@ interface ChatMessage {
     .input-form input {
       flex: 1;
       border: 1px solid var(--border);
-      background: #f8fafc;
+      background: var(--bg-alt);
       padding: 0.75rem 1rem;
       border-radius: 12px;
       font-size: 0.9rem;
     }
 
     .input-form input:focus {
-      background: #fff;
+      background: var(--bg-panel);
     }
 
     .input-form button {
