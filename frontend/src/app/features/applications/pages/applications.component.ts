@@ -66,7 +66,7 @@ import { SalaryPipe } from '../../../shared/pipes/salary.pipe';
                   </div>
                   
                   <div class="app-actions" (click)="$event.stopPropagation()">
-                    <button type="button" class="secondary" (click)="viewJob(item.job_id)">View Job</button>
+                    <button type="button" class="secondary" (click)="viewJob(item.job_id, item)">View Job</button>
                     <button type="button" class="secondary" (click)="viewAiReview(item.job_id)">✨ AI Review</button>
                     @if (item.resume_id) {
                       <button type="button" class="secondary" (click)="viewResume(item.resume_id)">View Resume</button>
@@ -130,6 +130,22 @@ import { SalaryPipe } from '../../../shared/pipes/salary.pipe';
               <h3>Role Description</h3>
               <p class="description-text">{{ selectedJob()?.description }}</p>
             </div>
+
+            @if (selectedApplication()?.screening_answers; as answers) {
+              @if (answers.length > 0) {
+                <div class="detail-section screening-section">
+                  <h3>Your Screening Answers</h3>
+                  <div class="screening-answers-list">
+                    @for (ans of answers; track $index) {
+                      <div class="screening-answer-pair">
+                        <p class="q-text"><strong>Q: {{ ans.question }}</strong></p>
+                        <p class="a-text">A: {{ ans.answer }}</p>
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+            }
           </div>
         </div>
       </div>
@@ -362,6 +378,37 @@ import { SalaryPipe } from '../../../shared/pipes/salary.pipe';
       opacity: 0.9;
       white-space: pre-wrap;
     }
+    .screening-section {
+      border-top: 1px solid var(--border);
+      padding-top: 1.25rem;
+      margin-top: 1.25rem;
+    }
+    .screening-answers-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      background: var(--bg-alt);
+      padding: 1rem;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+    }
+    .screening-answer-pair {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+    .screening-answer-pair .q-text {
+      font-size: 0.875rem;
+      color: var(--text);
+      margin: 0;
+    }
+    .screening-answer-pair .a-text {
+      font-size: 0.875rem;
+      color: var(--muted);
+      margin: 0;
+      padding-left: 0.75rem;
+      border-left: 2px solid var(--accent);
+    }
   `],
 })
 export class ApplicationsComponent implements OnInit {
@@ -379,6 +426,7 @@ export class ApplicationsComponent implements OnInit {
   readonly isDrawerOpen = signal(false);
   readonly isJobDetailsModalOpen = signal(false);
   readonly selectedJob = signal<Job | null>(null);
+  readonly selectedApplication = signal<ApplicationItem | null>(null);
 
   readonly availableStages = [
     { value: '', label: 'All stages' },
@@ -410,9 +458,10 @@ export class ApplicationsComponent implements OnInit {
     this.applicationStageFilter.set(stage);
   }
 
-  protected viewJob(jobId: string): void {
+  protected viewJob(jobId: string, appItem: ApplicationItem): void {
     this.message.set('');
     this.isSubmitting.set(true);
+    this.selectedApplication.set(appItem);
     
     this.api.get<Job>(`${this.api.jobsBase}/${jobId}/`, true).subscribe({
       next: (job) => {
@@ -454,6 +503,7 @@ export class ApplicationsComponent implements OnInit {
   protected closeJobDetailsModal(): void {
     this.isJobDetailsModalOpen.set(false);
     this.selectedJob.set(null);
+    this.selectedApplication.set(null);
   }
 
   protected viewResume(resumeId: string): void {

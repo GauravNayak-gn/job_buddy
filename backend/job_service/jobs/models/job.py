@@ -28,6 +28,7 @@ class Job(models.Model):
     salary_max = models.IntegerField(null=True, blank=True)
     currency = models.CharField(max_length=10, default='INR')
     experience_required = models.CharField(max_length=50, blank=True)
+    screening_questions = models.JSONField(default=list, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
     is_archived = models.BooleanField(default=False)
     archived_at = models.DateTimeField(null=True, blank=True)

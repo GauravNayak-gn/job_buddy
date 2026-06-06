@@ -10,7 +10,7 @@ from applications.tasks.events import (
 from applications.services.job_service_client import fetch_job_details
 from applications.models.application import Application
 
-def handle_apply(user, job_id, resume_id, cover_letter=''):
+def handle_apply(user, job_id, resume_id, cover_letter='', screening_answers=None):
     seeker_id = user.id
     job_details = fetch_job_details(job_id)
     
@@ -26,6 +26,9 @@ def handle_apply(user, job_id, resume_id, cover_letter=''):
     recruiter_id = job_details.get('recruiter_id')
     job_title = job_details.get('title', '')
     
+    if screening_answers is None:
+        screening_answers = []
+
     application = application_dao.create_application(
         job_id=job_id,
         seeker_id=seeker_id,
@@ -33,7 +36,8 @@ def handle_apply(user, job_id, resume_id, cover_letter=''):
         recruiter_id=recruiter_id,
         job_title=job_title,
         resume_id=resume_id,
-        cover_letter=cover_letter
+        cover_letter=cover_letter,
+        screening_answers=screening_answers
     )
     
     application_dao.create_stage_history(

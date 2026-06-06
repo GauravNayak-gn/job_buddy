@@ -26,6 +26,7 @@ class Application(models.Model):
     job_title = models.CharField(max_length=200, blank=True)
     resume_id = models.UUIDField()
     cover_letter = models.TextField(blank=True)
+    screening_answers = models.JSONField(default=list, blank=True)
     current_stage = models.CharField(max_length=30, choices=STAGE_CHOICES, default=STAGE_APPLIED)
     is_withdrawn = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)

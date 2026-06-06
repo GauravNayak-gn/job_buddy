@@ -30,80 +30,136 @@ import { extractErrorMessage } from '../../../shared/utils/error-message.util';
         <div class="empty-card warning">This page is intended for recruiter accounts only.</div>
       } @else {
         
-        <article class="form-card">
-          <h2>{{ editingJobId() ? 'Edit job specifications' : 'Job details' }}</h2>
+        <article class="form-container">
           
-          <div class="grid">
-            <label>
-              <span>Title</span>
-              <input [disabled]="isSubmitting()" [(ngModel)]="form.title" type="text" placeholder="e.g. Senior Angular Developer" />
-            </label>
-            
-            <label>
-              <span>Category</span>
-              <select [disabled]="isSubmitting()" [(ngModel)]="form.category">
-                <option value="">Select category</option>
-                @for (category of categories(); track category.id) {
-                  <option [value]="category.id">{{ category.name }}</option>
-                }
-              </select>
-            </label>
-            
-            <label>
-              <span>Location type</span>
-              <select [disabled]="isSubmitting()" [(ngModel)]="form.location_type">
-                <option value="remote">Remote</option>
-                <option value="hybrid">Hybrid</option>
-                <option value="onsite">Onsite</option>
-              </select>
-            </label>
-            
-            <label>
-              <span>Location city</span>
-              <input [disabled]="isSubmitting()" [(ngModel)]="form.location_city" type="text" placeholder="e.g. Bangalore" />
-            </label>
-            
-            <label>
-              <span>Salary min (Annual)</span>
-              <input [disabled]="isSubmitting()" [(ngModel)]="form.salary_min" type="number" />
-            </label>
-            
-            <label>
-              <span>Salary max (Annual)</span>
-              <input [disabled]="isSubmitting()" [(ngModel)]="form.salary_max" type="number" />
-            </label>
-            
-            <label>
-              <span>Experience required</span>
-              <input [disabled]="isSubmitting()" [(ngModel)]="form.experience_required" type="text" placeholder="e.g. 3+ years" />
-            </label>
-            
-            <label>
-              <span>Primary skill required</span>
-              <input [disabled]="isSubmitting()" [(ngModel)]="form.skill_name" type="text" placeholder="e.g. Angular" />
-            </label>
+          <!-- Section 1: Job Details -->
+          <div class="form-section">
+            <h2 class="section-title">
+              <span class="step-num">1</span> Job Specifications
+            </h2>
+            <div class="grid">
+              <label>
+                <span>Job Title <span class="required">*</span></span>
+                <input [disabled]="isSubmitting()" [(ngModel)]="form.title" type="text" placeholder="e.g. Senior Angular Developer" />
+              </label>
+              
+              <label>
+                <span>Category <span class="required">*</span></span>
+                <select [disabled]="isSubmitting()" [(ngModel)]="form.category">
+                  <option value="">Select category</option>
+                  @for (category of categories(); track category.id) {
+                    <option [value]="category.id">{{ category.name }}</option>
+                  }
+                </select>
+              </label>
+              
+              <label>
+                <span>Location type</span>
+                <select [disabled]="isSubmitting()" [(ngModel)]="form.location_type">
+                  <option value="remote">Remote</option>
+                  <option value="hybrid">Hybrid</option>
+                  <option value="onsite">Onsite</option>
+                </select>
+              </label>
+              
+              <label>
+                <span>Location city</span>
+                <input [disabled]="isSubmitting()" [(ngModel)]="form.location_city" type="text" placeholder="e.g. Bangalore" />
+              </label>
+              
+              <label>
+                <span>Salary min (Annual)</span>
+                <input [disabled]="isSubmitting()" [(ngModel)]="form.salary_min" type="number" placeholder="Min salary" />
+              </label>
+              
+              <label>
+                <span>Salary max (Annual)</span>
+                <input [disabled]="isSubmitting()" [(ngModel)]="form.salary_max" type="number" placeholder="Max salary" />
+              </label>
+              
+              <label>
+                <span>Experience required</span>
+                <input [disabled]="isSubmitting()" [(ngModel)]="form.experience_required" type="text" placeholder="e.g. 3+ years" />
+              </label>
+              
+              <label>
+                <span>Primary skill required</span>
+                <input [disabled]="isSubmitting()" [(ngModel)]="form.skill_name" type="text" placeholder="e.g. Angular" />
+              </label>
+            </div>
           </div>
           
-          <label class="desc-label">
-            <span>Description</span>
-            <textarea [disabled]="isSubmitting()" [(ngModel)]="form.description" rows="8" placeholder="Outline job responsibilities, stack details, and benefit packages..."></textarea>
-          </label>
-          
+          <!-- Section 2: Job Description -->
+          <div class="form-section">
+            <h2 class="section-title">
+              <span class="step-num">2</span> Job Description
+            </h2>
+            <label class="desc-label">
+              <span>Outline job responsibilities, stack details, and benefit packages <span class="required">*</span></span>
+              <textarea [disabled]="isSubmitting()" [(ngModel)]="form.description" rows="8" placeholder="Outline job responsibilities, stack details, and benefit packages..."></textarea>
+            </label>
+          </div>
+
+          <!-- Section 3: Screening Questions -->
+          <div class="form-section">
+            <h2 class="section-title">
+              <span class="step-num">3</span> Screening Questions (Optional)
+            </h2>
+            <p class="section-subtitle">Add custom questions for seekers to answer when they apply. This helps filter applicants more efficiently.</p>
+            
+            <div class="add-question-box">
+              <input 
+                [disabled]="isSubmitting()" 
+                [ngModel]="newQuestion()" 
+                (ngModelChange)="newQuestion.set($event)" 
+                type="text" 
+                placeholder="e.g. How many years of experience do you have with Angular?" 
+                (keyup.enter)="addQuestion()"
+                class="question-input"
+              />
+              <button type="button" [disabled]="isSubmitting() || !newQuestion().trim()" class="add-q-btn" (click)="addQuestion()">
+                + Add Question
+              </button>
+            </div>
+
+            <div class="questions-list">
+              @if (!screeningQuestions().length) {
+                <div class="no-questions">
+                  ❓ No screening questions added yet. Candidates will only submit their resume and cover letter.
+                </div>
+              } @else {
+                <div class="questions-grid">
+                  @for (q of screeningQuestions(); track $index) {
+                    <div class="question-item">
+                      <div class="q-content">
+                        <span class="q-index">Q{{ $index + 1 }}</span>
+                        <span class="q-text" [title]="q">{{ q }}</span>
+                      </div>
+                      <button type="button" [disabled]="isSubmitting()" class="delete-q-btn" (click)="removeQuestion($index)" title="Remove question">
+                        &times;
+                      </button>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+
           <div class="actions">
             @if (editingJobId()) {
-              <button type="button" [disabled]="isSubmitting()" (click)="updateJob()">
-                {{ isSubmitting() ? 'Saving...' : 'Save changes' }}
+              <button type="button" [disabled]="isSubmitting()" class="btn-primary" (click)="updateJob()">
+                {{ isSubmitting() ? 'Saving...' : 'Save Changes' }}
               </button>
-              <button type="button" [disabled]="isSubmitting()" class="secondary" (click)="cancelEdit()">Cancel</button>
+              <button type="button" [disabled]="isSubmitting()" class="btn-secondary" (click)="cancelEdit()">Cancel</button>
             } @else {
-              <button type="button" [disabled]="isSubmitting()" (click)="createJob()">
-                {{ isSubmitting() ? 'Creating...' : 'Create job' }}
+              <button type="button" [disabled]="isSubmitting()" class="btn-primary" (click)="createJob()">
+                {{ isSubmitting() ? 'Creating...' : 'Create Job' }}
               </button>
             }
           </div>
 
           @if (message()) {
-            <div class="message">{{ message() }}</div>
+            <div class="message-banner">{{ message() }}</div>
           }
         </article>
       }
@@ -116,10 +172,10 @@ import { extractErrorMessage } from '../../../shared/utils/error-message.util';
       border-radius: 28px;
       box-shadow: var(--shadow);
       display: grid;
-      gap: 1.5rem;
-      padding: 2rem;
-      max-width: 800px;
-      margin: 0 auto;
+      gap: 2rem;
+      padding: 2.5rem;
+      max-width: 900px;
+      margin: 2rem auto;
     }
 
     .page-head {
@@ -129,55 +185,227 @@ import { extractErrorMessage } from '../../../shared/utils/error-message.util';
       flex-wrap: wrap;
       gap: 1rem;
       border-bottom: 1px solid var(--border);
-      padding-bottom: 1rem;
+      padding-bottom: 1.25rem;
     }
 
-    .form-card {
+    .page-head h1 {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .form-container {
+      display: flex;
+      flex-direction: column;
+      gap: 2.5rem;
+    }
+
+    .form-section {
       background: var(--bg-panel);
       border: 1px solid var(--border);
-      border-radius: 18px;
+      border-radius: 20px;
       padding: 2rem;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
       display: flex;
       flex-direction: column;
       gap: 1.25rem;
     }
 
-    .form-card h2 {
-      font-size: 1.3rem;
+    .section-title {
+      font-size: 1.25rem;
       font-weight: 600;
       color: var(--text);
-      border-bottom: 1px dashed var(--border);
-      padding-bottom: 0.5rem;
-      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .step-num {
+      background: var(--accent);
+      color: white;
+      font-size: 0.9rem;
+      font-weight: 700;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .section-subtitle {
+      font-size: 0.875rem;
+      color: var(--muted);
+      margin-top: -0.5rem;
     }
 
     .grid {
       display: grid;
-      gap: 1.25rem;
+      gap: 1.5rem;
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    @media (max-width: 600px) {
+    @media (max-width: 768px) {
       .grid {
         grid-template-columns: 1fr;
       }
+      .page-card {
+        padding: 1.5rem;
+        border-radius: 20px;
+      }
+      .form-section {
+        padding: 1.25rem;
+      }
+    }
+
+    .required {
+      color: var(--accent);
     }
 
     .desc-label {
       display: grid;
-      gap: 0.4rem;
-      margin-top: 0.5rem;
+      gap: 0.5rem;
+    }
+
+    .add-question-box {
+      display: flex;
+      gap: 0.75rem;
+    }
+
+    .question-input {
+      flex: 1;
+    }
+
+    .add-q-btn {
+      white-space: nowrap;
+      background: var(--secondary);
+      color: white;
+    }
+
+    .add-q-btn:hover {
+      background: var(--secondary);
+      filter: brightness(1.1);
+    }
+
+    .questions-list {
+      background: var(--bg-alt);
+      border: 1px dashed var(--border);
+      border-radius: 12px;
+      padding: 1.25rem;
+    }
+
+    .no-questions {
+      color: var(--muted);
+      font-size: 0.875rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .questions-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .question-item {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.75rem 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      transition: border-color 0.2s ease;
+    }
+
+    .question-item:hover {
+      border-color: var(--accent);
+    }
+
+    .q-content {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      min-width: 0;
+    }
+
+    .q-index {
+      background: var(--pill-bg);
+      color: var(--pill-text);
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.2rem 0.5rem;
+      border-radius: 6px;
+    }
+
+    .q-text {
+      font-size: 0.9rem;
+      color: var(--text);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .delete-q-btn {
+      background: transparent;
+      color: var(--muted);
+      border: none;
+      font-size: 1.5rem;
+      padding: 0;
+      min-height: auto;
+      height: 24px;
+      width: 24px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: all 0.2s ease;
+    }
+
+    .delete-q-btn:hover {
+      background: var(--danger-bg);
+      color: var(--danger-text);
+      transform: none;
+      box-shadow: none;
     }
 
     .actions {
       display: flex;
-      gap: 0.75rem;
-      margin-top: 1rem;
+      gap: 1rem;
+      justify-content: flex-end;
     }
 
-    .message {
-      margin-top: 1rem;
+    .btn-primary {
+      background: var(--accent);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-hover);
+    }
+
+    .btn-secondary {
+      background: var(--secondary-btn-bg);
+      color: var(--secondary-btn-text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: var(--secondary-btn-hover-bg);
+      color: var(--secondary-btn-hover-text);
+    }
+
+    .message-banner {
+      background: var(--danger-bg);
       color: var(--error-text);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1rem;
+      font-size: 0.9rem;
       font-weight: 500;
     }
   `],
@@ -209,6 +437,21 @@ export class PostJobComponent implements OnInit {
     skill_name: 'Python',
   };
 
+  readonly newQuestion = signal('');
+  readonly screeningQuestions = signal<string[]>([]);
+
+  protected addQuestion(): void {
+    const val = this.newQuestion().trim();
+    if (val) {
+      this.screeningQuestions.update(list => [...list, val]);
+      this.newQuestion.set('');
+    }
+  }
+
+  protected removeQuestion(index: number): void {
+    this.screeningQuestions.update(list => list.filter((_, i) => i !== index));
+  }
+
   ngOnInit(): void {
     this.api.get<Category[]>(`${this.api.jobsBase}/categories/`).subscribe({
       next: (categories) => this.categories.set(categories),
@@ -235,11 +478,18 @@ export class PostJobComponent implements OnInit {
         this.form.salary_min = job.salary_min ?? 0;
         this.form.salary_max = job.salary_max ?? 0;
         this.form.experience_required = job.experience_required || '';
+        
+        const categoryObj = (job as any).category;
+        this.form.category = categoryObj && typeof categoryObj === 'object' ? categoryObj.id : (categoryObj || '');
+
         if ((job as any).skills && (job as any).skills.length) {
           this.form.skill_name = (job as any).skills[0].skill_name;
         } else {
           this.form.skill_name = '';
         }
+        
+        this.screeningQuestions.set((job as any).screening_questions || []);
+
         this.isSubmitting.set(false);
       },
       error: (err) => {
@@ -262,6 +512,7 @@ export class PostJobComponent implements OnInit {
       currency: this.form.currency,
       experience_required: this.form.experience_required,
       skills: this.form.skill_name ? [{ skill_name: this.form.skill_name, is_required: true }] : [],
+      screening_questions: this.screeningQuestions(),
     };
 
     this.isSubmitting.set(true);
@@ -298,6 +549,7 @@ export class PostJobComponent implements OnInit {
       currency: this.form.currency,
       experience_required: this.form.experience_required,
       skills: this.form.skill_name ? [{ skill_name: this.form.skill_name, is_required: true }] : [],
+      screening_questions: this.screeningQuestions(),
     };
 
     this.isSubmitting.set(true);
@@ -337,5 +589,7 @@ export class PostJobComponent implements OnInit {
     this.form.currency = 'INR';
     this.form.experience_required = '2 years';
     this.form.skill_name = 'Python';
+    this.screeningQuestions.set([]);
+    this.newQuestion.set('');
   }
 }

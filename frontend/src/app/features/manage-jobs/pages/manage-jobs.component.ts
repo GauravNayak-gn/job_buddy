@@ -159,6 +159,20 @@ import { AiAlignmentDrawerComponent } from '../../../shared/components/ai-alignm
 
                       <p class="cover-letter">{{ application.cover_letter || 'No cover letter provided.' }}</p>
 
+                      @if (application.screening_answers && application.screening_answers.length > 0) {
+                        <div class="screening-responses">
+                          <h4>Screening Answers</h4>
+                          <div class="responses-list">
+                            @for (resp of application.screening_answers; track $index) {
+                              <div class="response-pair">
+                                <p class="resp-q"><strong>Q: {{ resp.question }}</strong></p>
+                                <p class="resp-a">A: {{ resp.answer }}</p>
+                              </div>
+                            }
+                          </div>
+                        </div>
+                      }
+
                       <div class="applicant-actions">
                         <button type="button" class="secondary" (click)="viewProfile(application.seeker_id)">Profile</button>
                         
@@ -498,6 +512,53 @@ import { AiAlignmentDrawerComponent } from '../../../shared/components/ai-alignm
       padding: 0.75rem;
       white-space: pre-line;
       line-height: 1.45;
+    }
+
+    .screening-responses {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .screening-responses h4 {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--accent);
+      margin: 0;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-bottom: 1px dashed var(--border);
+      padding-bottom: 0.25rem;
+    }
+
+    .responses-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .response-pair {
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+    }
+
+    .resp-q {
+      font-size: 0.82rem;
+      color: var(--text);
+      margin: 0;
+    }
+
+    .resp-a {
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin: 0;
+      padding-left: 0.75rem;
+      border-left: 2px solid var(--accent);
     }
 
     .applicant-actions {

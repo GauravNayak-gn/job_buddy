@@ -114,6 +114,57 @@ import { extractErrorMessage } from '../../../shared/utils/error-message.util';
       [type]="'seeker-alignment'"
       (close)="closeDrawer()"
     />
+
+    <!-- Screening Questions Modal Overlay -->
+    @if (screeningJob(); as job) {
+      <div class="modal-overlay" (click)="closeScreeningModal()">
+        <article class="modal-card" (click)="$event.stopPropagation()">
+          <div class="modal-header">
+            <h2>Screening Questions</h2>
+            <p class="subtitle">Applying for: {{ job.title }}</p>
+            <button type="button" class="close-btn" (click)="closeScreeningModal()">&times;</button>
+          </div>
+          
+          <div class="modal-body">
+            <p class="instructions">Please answer the questions below to proceed with your application.</p>
+            
+            <div class="questions-container">
+              @for (item of screeningAnswers(); track $index) {
+                <label class="question-field">
+                  <span class="q-label">Q{{ $index + 1 }}: {{ item.question }} <span class="required">*</span></span>
+                  <textarea 
+                    [ngModel]="item.answer" 
+                    (ngModelChange)="updateAnswer($index, $event)"
+                    [disabled]="isSubmitting()" 
+                    rows="3" 
+                    placeholder="Type your answer..."
+                  ></textarea>
+                </label>
+              }
+            </div>
+          </div>
+          
+          <div class="modal-footer">
+            <button 
+              type="button" 
+              [disabled]="isSubmitting() || !isScreeningValid()" 
+              (click)="submitWithAnswers()"
+              class="submit-btn"
+            >
+              {{ isSubmitting() ? 'Submitting...' : 'Submit Application' }}
+            </button>
+            <button 
+              type="button" 
+              [disabled]="isSubmitting()" 
+              class="btn-secondary" 
+              (click)="closeScreeningModal()"
+            >
+              Cancel
+            </button>
+          </div>
+        </article>
+      </div>
+    }
   `,
   styles: [`
     .page-card,
@@ -140,6 +191,145 @@ import { extractErrorMessage } from '../../../shared/utils/error-message.util';
     @media (max-width: 980px) {
       .filters { grid-template-columns: 1fr; }
     }
+
+    /* Modal Styling */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(15, 23, 42, 0.4);
+      backdrop-filter: blur(4px);
+      z-index: 1100;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      width: 600px;
+      max-width: 90vw;
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .modal-header {
+      padding: 1.5rem;
+      border-bottom: 1px solid var(--border);
+      position: relative;
+    }
+
+    .modal-header h2 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      margin: 0;
+      color: var(--text);
+    }
+
+    .modal-header .subtitle {
+      font-size: 0.875rem;
+      color: var(--muted);
+      margin-top: 0.25rem;
+      margin-bottom: 0;
+    }
+
+    .close-btn {
+      position: absolute;
+      top: 1.25rem;
+      right: 1.25rem;
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      font-size: 1.75rem;
+      cursor: pointer;
+      line-height: 1;
+      padding: 0;
+      min-height: auto;
+    }
+
+    .close-btn:hover {
+      color: var(--text);
+    }
+
+    .modal-body {
+      padding: 1.5rem;
+      overflow-y: auto;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .instructions {
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin: 0;
+    }
+
+    .questions-container {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .question-field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .q-label {
+      font-weight: 600;
+      font-size: 0.95rem;
+      color: var(--text);
+    }
+
+    .required {
+      color: var(--accent);
+    }
+
+    .modal-footer {
+      padding: 1.25rem 1.5rem;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.75rem;
+      background: var(--bg-alt);
+    }
+
+    .submit-btn {
+      background: var(--accent);
+      color: white;
+    }
+
+    .submit-btn:hover {
+      background: var(--accent-hover);
+    }
+
+    .submit-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .btn-secondary {
+      background: var(--secondary-btn-bg);
+      color: var(--secondary-btn-text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: var(--secondary-btn-hover-bg);
+      color: var(--secondary-btn-hover-text);
+    }
   `],
 })
 export class JobsComponent implements OnInit {
@@ -163,6 +353,11 @@ export class JobsComponent implements OnInit {
   // Drawer state signals
   readonly isDrawerOpen = signal(false);
   readonly selectedJob = signal<Job | null>(null);
+
+  // Screening questions modal state signals
+  readonly showScreeningModal = signal(false);
+  readonly screeningJob = signal<Job | null>(null);
+  readonly screeningAnswers = signal<{ question: string; answer: string; }[]>([]);
 
   readonly filters = {
     location_type: '',
@@ -218,6 +413,14 @@ export class JobsComponent implements OnInit {
       return;
     }
 
+    const job = this.jobs().find(j => j.id === jobId);
+    if (job && job.screening_questions && job.screening_questions.length > 0) {
+      this.screeningJob.set(job);
+      this.screeningAnswers.set(job.screening_questions.map(q => ({ question: q, answer: '' })));
+      this.showScreeningModal.set(true);
+      return;
+    }
+
     this.isSubmitting.set(true);
     const payload = { job_id: jobId, resume_id: this.selectedResumeId, cover_letter: '' };
     this.api.post(`${this.api.applicationsBase}/apply/`, payload, true).subscribe({
@@ -229,6 +432,55 @@ export class JobsComponent implements OnInit {
       error: (error) => {
         this.isSubmitting.set(false);
         this.message.set(extractErrorMessage(error));
+        this.alertService.error(extractErrorMessage(error), 'Apply Failed');
+      },
+    });
+  }
+
+  protected updateAnswer(index: number, val: string): void {
+    this.screeningAnswers.update(answers => {
+      const copy = [...answers];
+      copy[index] = { ...copy[index], answer: val };
+      return copy;
+    });
+  }
+
+  protected isScreeningValid(): boolean {
+    return this.screeningAnswers().every(item => item.answer.trim().length > 0);
+  }
+
+  protected closeScreeningModal(): void {
+    this.showScreeningModal.set(false);
+    this.screeningJob.set(null);
+    this.screeningAnswers.set([]);
+  }
+
+  protected submitWithAnswers(): void {
+    const job = this.screeningJob();
+    if (!job) return;
+    const resumeId = this.selectedResumeId;
+    if (!resumeId) {
+      this.alertService.warning('Please select a resume before applying.');
+      return;
+    }
+
+    this.isSubmitting.set(true);
+    const payload = {
+      job_id: job.id,
+      resume_id: resumeId,
+      cover_letter: 'Applied with screening answers.',
+      screening_answers: this.screeningAnswers()
+    };
+
+    this.api.post(`${this.api.applicationsBase}/apply/`, payload, true).subscribe({
+      next: () => {
+        this.isSubmitting.set(false);
+        this.closeScreeningModal();
+        this.alertService.success('Application submitted successfully!', 'Applied');
+        this.seekerData.loadApplications(true);
+      },
+      error: (error) => {
+        this.isSubmitting.set(false);
         this.alertService.error(extractErrorMessage(error), 'Apply Failed');
       },
     });
