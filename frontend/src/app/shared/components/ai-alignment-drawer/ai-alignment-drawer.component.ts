@@ -215,7 +215,7 @@ import { ApiService } from '../../../core/services/api.service';
     }
 
     .close-btn:hover {
-      background-color: rgba(15, 23, 42, 0.05);
+      background-color: var(--bg-hover);
       color: var(--text);
     }
 
@@ -274,7 +274,7 @@ import { ApiService } from '../../../core/services/api.service';
 
     .circle-bg {
       fill: none;
-      stroke: #f1f5f9;
+      stroke: var(--border);
       stroke-width: 3.2;
     }
 
@@ -330,7 +330,7 @@ import { ApiService } from '../../../core/services/api.service';
       padding-left: 1.2rem;
       font-size: 0.88rem;
       line-height: 1.5;
-      color: #334155;
+      color: var(--text);
     }
 
     .insight-block li {
@@ -343,7 +343,7 @@ import { ApiService } from '../../../core/services/api.service';
     
     .pitch-text {
       font-style: italic;
-      color: #334155;
+      color: var(--text);
       font-size: 0.9rem;
       line-height: 1.5;
     }
@@ -352,27 +352,27 @@ import { ApiService } from '../../../core/services/api.service';
       border-left: 4px solid #10b981;
     }
     .success-block h4 {
-      color: #065f46;
+      color: var(--success-text);
     }
 
     .warning-block {
       border-left: 4px solid #f59e0b;
     }
     .warning-block h4 {
-      color: #92400e;
+      color: var(--danger-text);
     }
 
     .info-block {
       border-left: 4px solid #3b82f6;
     }
     .info-block h4 {
-      color: #1e40af;
+      color: var(--info-text);
     }
 
     .recommendation-text, .hint {
       font-size: 0.88rem;
       line-height: 1.5;
-      color: #334155;
+      color: var(--text);
     }
 
     .questions-list {
