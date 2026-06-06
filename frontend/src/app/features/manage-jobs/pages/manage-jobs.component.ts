@@ -111,7 +111,12 @@ import { AiAlignmentDrawerComponent } from '../../../shared/components/ai-alignm
           <!-- Right Panel: Applicants List -->
           <article class="applicants-panel">
             <div class="list-head">
-              <h2>Applicants {{ selectedJob() ? 'for "' + selectedJob()!.title + '"' : '' }}</h2>
+              <div class="list-title-area">
+                <h2>Applicants</h2>
+                @if (selectedJob(); as job) {
+                  <p class="job-subtitle" [title]="job.title">for {{ job.title }}</p>
+                }
+              </div>
               <div class="applicants-ctrl">
                 <select [disabled]="isSubmitting()" [ngModel]="applicationSortBy()" (ngModelChange)="onSortChange($event)" class="sort-select">
                   <option value="-created_at">Newest first</option>
@@ -287,11 +292,11 @@ import { AiAlignmentDrawerComponent } from '../../../shared/components/ai-alignm
       justify-content: space-between;
       align-items: center;
       border-bottom: 1px solid var(--border);
-      padding-bottom: 0.75rem;
+      padding-bottom: 0.4rem;
     }
 
     .list-head h2 {
-      font-size: 1.25rem;
+      font-size: 1.15rem;
       font-weight: 600;
     }
 
@@ -303,6 +308,12 @@ import { AiAlignmentDrawerComponent } from '../../../shared/components/ai-alignm
       max-height: 70vh;
       overflow-y: auto;
       padding-right: 0.5rem;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+
+    .job-grid::-webkit-scrollbar {
+      display: none;
     }
 
     .job-card {
@@ -384,8 +395,25 @@ import { AiAlignmentDrawerComponent } from '../../../shared/components/ai-alignm
       align-items: center;
     }
 
+    .list-title-area {
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+      min-width: 0;
+    }
+
+    .job-subtitle {
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 260px;
+    }
+
     .sort-select {
-      max-width: 140px;
+      min-width: 130px;
       font-size: 0.8rem;
       padding: 0.4rem;
     }
