@@ -46,7 +46,7 @@ import { AiAlignmentDrawerComponent } from '../../../shared/components/ai-alignm
         @if (jobResults().length) {
           <div class="list">
             @for (item of jobResults(); track item.job_id) {
-              <article class="item" (click)="viewJobMatch(item)">
+              <article class="item">
                 <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap;">
                   <div>
                     <p class="eyebrow" style="margin: 0; color: var(--muted); font-size: 0.85rem; text-transform: uppercase;">{{ item.location_type || 'Location N/A' }} @if (item.location_city) { · {{ item.location_city }} }</p>
@@ -284,8 +284,13 @@ import { AiAlignmentDrawerComponent } from '../../../shared/components/ai-alignm
       border: 1px solid var(--border);
       border-radius: 18px;
       padding: 1.5rem;
-      cursor: pointer;
       transition: all 0.2s ease;
+    }
+    .applicant-card {
+      cursor: pointer;
+    }
+    .item {
+      cursor: default;
     }
     .item:hover, .applicant-card:hover {
       transform: translateY(-2px);
