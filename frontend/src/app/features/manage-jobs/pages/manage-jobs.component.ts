@@ -44,6 +44,26 @@ import { AiAlignmentDrawerComponent } from '../../../shared/components/ai-alignm
               <div class="message">{{ message() }}</div>
             }
 
+            <!-- Search & Filters -->
+            <div class="job-filters">
+              <input type="text" [ngModel]="searchQuery()" (ngModelChange)="searchQuery.set($event)" placeholder="Search job title/desc..." class="search-input" />
+              <div class="filter-row">
+                <select [ngModel]="statusFilter()" (ngModelChange)="statusFilter.set($event)">
+                  <option value="">All Statuses</option>
+                  <option value="published">Published</option>
+                  <option value="draft">Draft</option>
+                  <option value="closed">Closed</option>
+                  <option value="archived">Archived</option>
+                </select>
+                <select [ngModel]="locationFilter()" (ngModelChange)="locationFilter.set($event)">
+                  <option value="">All Locations</option>
+                  <option value="remote">Remote</option>
+                  <option value="hybrid">Hybrid</option>
+                  <option value="onsite">On-site</option>
+                </select>
+              </div>
+            </div>
+
             @if (jobsLoading()) {
               <div class="empty-card small">Loading recruiter jobs...</div>
             } @else if (!myJobs().length) {
@@ -242,7 +262,7 @@ import { AiAlignmentDrawerComponent } from '../../../shared/components/ai-alignm
     .manage-layout {
       display: grid;
       gap: 2rem;
-      grid-template-columns: 1.2fr 1.8fr;
+      grid-template-columns: 5fr 5fr;
     }
 
     @media (max-width: 1024px) {
@@ -538,6 +558,29 @@ import { AiAlignmentDrawerComponent } from '../../../shared/components/ai-alignm
       border-radius: 6px;
       border: 1px solid rgba(24, 33, 47, 0.04);
     }
+
+    .job-filters {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 1.25rem;
+      margin-bottom: 0.5rem;
+    }
+    .search-input {
+      font-size: 0.9rem;
+      padding: 0.6rem 0.9rem;
+    }
+    .filter-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+    }
+    .filter-row select {
+      font-size: 0.85rem;
+      padding: 0.5rem 0.75rem;
+      cursor: pointer;
+    }
   `],
 })
 export class ManageJobsComponent implements OnInit {
@@ -551,7 +594,37 @@ export class ManageJobsComponent implements OnInit {
   readonly message = signal('');
   
   // Jobs lists
-  readonly myJobs = signal<RecruiterJob[]>([]);
+  readonly allMyJobs = signal<RecruiterJob[]>([]);
+  readonly searchQuery = signal<string>('');
+  readonly statusFilter = signal<string>('');
+  readonly locationFilter = signal<string>('');
+
+  readonly myJobs = computed(() => {
+    const query = this.searchQuery().toLowerCase().trim();
+    const status = this.statusFilter();
+    const location = this.locationFilter();
+    let jobs = this.allMyJobs();
+
+    if (query) {
+      jobs = jobs.filter(j => 
+        j.title.toLowerCase().includes(query) || 
+        (j.description && j.description.toLowerCase().includes(query))
+      );
+    }
+    if (status) {
+      if (status === 'archived') {
+        jobs = jobs.filter(j => j.is_archived);
+      } else {
+        jobs = jobs.filter(j => j.status === status && !j.is_archived);
+      }
+    }
+    if (location) {
+      jobs = jobs.filter(j => j.location_type?.toLowerCase() === location.toLowerCase());
+    }
+
+    return jobs;
+  });
+
   readonly jobsLoading = signal(false);
   readonly selectedJobId = signal<string>('');
   readonly selectedJob = signal<RecruiterJob | null>(null);
@@ -594,7 +667,7 @@ export class ManageJobsComponent implements OnInit {
     
     this.api.get<RecruiterJob[]>(`${this.api.jobsBase}/my/`, true).subscribe({
       next: (jobs) => {
-        this.myJobs.set(jobs);
+        this.allMyJobs.set(jobs);
         this.jobsLoading.set(false);
         // Automatically select first job if none selected
         if (jobs.length && !this.selectedJobId()) {
