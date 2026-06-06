@@ -23,11 +23,7 @@ interface ChatMessage {
       (click)="toggleOpen()"
       aria-label="Toggle AI Assistant"
     >
-      @if (isOpen()) {
-        <span class="close-icon">&times;</span>
-      } @else {
-        <span class="chat-icon">💬</span>
-      }
+      <span class="chat-icon">💬</span>
       <span class="fab-pulse"></span>
     </button>
 
@@ -49,7 +45,22 @@ interface ChatMessage {
         @for (msg of messages(); track msg.id) {
           <div class="message-row" [class.user-row]="msg.sender === 'user'">
             <div class="bubble" [class.user-bubble]="msg.sender === 'user'">
-              <p>{{ msg.text }}</p>
+              <p style="white-space: pre-wrap; margin: 0;">{{ msg.text }}</p>
+              
+              <!-- Inline suggestions inside the welcome bubble -->
+              @if (msg.id === 'welcome') {
+                <div class="welcome-suggestions">
+                  <p class="suggestions-title">Suggestions:</p>
+                  <div class="chips-container">
+                    @for (chip of suggestionChips; track chip) {
+                      <button type="button" class="suggestion-chip" (click)="selectChip(chip)">
+                        {{ chip }}
+                      </button>
+                    }
+                  </div>
+                </div>
+              }
+              
               <span class="time">{{ msg.timestamp | date: 'shortTime' }}</span>
             </div>
           </div>
@@ -62,18 +73,6 @@ interface ChatMessage {
             </div>
           </div>
         }
-      </div>
-
-      <!-- Quick Action Suggestions -->
-      <div class="quick-actions">
-        <p class="suggestions-title">Suggestions:</p>
-        <div class="chips-container">
-          @for (chip of suggestionChips; track chip) {
-            <button type="button" class="suggestion-chip" (click)="selectChip(chip)">
-              {{ chip }}
-            </button>
-          }
-        </div>
       </div>
 
       <!-- Message Input Form -->
@@ -127,19 +126,14 @@ interface ChatMessage {
     }
 
     .chat-fab.active {
-      background: #1e293b;
-      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.3);
+      opacity: 0;
+      pointer-events: none;
+      transform: scale(0);
     }
 
     .chat-icon {
       font-size: 28px;
       color: #fff;
-    }
-
-    .close-icon {
-      font-size: 32px;
-      color: #fff;
-      line-height: 1;
     }
 
     .fab-pulse {
@@ -263,6 +257,12 @@ interface ChatMessage {
       display: flex;
       flex-direction: column;
       gap: 1rem;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+
+    .message-pane::-webkit-scrollbar {
+      display: none;
     }
 
     .message-row {
@@ -330,15 +330,15 @@ interface ChatMessage {
       40% { transform: scale(1); opacity: 1; }
     }
 
-    /* Suggestions Area */
-    .quick-actions {
-      padding: 0.75rem 1.25rem;
-      background: var(--bg-alt);
+    /* Suggestions Area (Inline) */
+    .welcome-suggestions {
+      margin-top: 0.75rem;
       border-top: 1px solid var(--border);
+      padding-top: 0.75rem;
     }
 
     .suggestions-title {
-      font-size: 0.8rem;
+      font-size: 0.75rem;
       color: var(--muted);
       font-weight: 600;
       margin-bottom: 0.5rem;
@@ -350,14 +350,15 @@ interface ChatMessage {
       display: flex;
       flex-wrap: wrap;
       gap: 0.5rem;
+      margin-top: 0.25rem;
     }
 
     .suggestion-chip {
       background: var(--bg-hover);
       color: var(--text);
-      border: 1px solid rgba(24, 33, 47, 0.05);
-      font-size: 0.8rem;
-      padding: 0.4rem 0.8rem;
+      border: 1px solid var(--border);
+      font-size: 0.78rem;
+      padding: 0.35rem 0.75rem;
       border-radius: 999px;
       cursor: pointer;
       min-height: auto;
@@ -366,7 +367,7 @@ interface ChatMessage {
 
     .suggestion-chip:hover {
       background: var(--accent);
-      color: #fff;
+      color: #ffffff;
       border-color: var(--accent);
     }
 
