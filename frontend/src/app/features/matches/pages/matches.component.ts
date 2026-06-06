@@ -211,8 +211,8 @@ import { AiAlignmentDrawerComponent } from '../../../shared/components/ai-alignm
     <app-ai-alignment-drawer 
       [isOpen]="isAiDrawerOpen()"
       [job]="selectedJob()"
-      [seekerId]="aiSelectedSeekerId()"
-      [seekerName]="aiSelectedSeekerName()"
+      [seekerId]="isSeeker() ? (auth.userId() || '') : aiSelectedSeekerId()"
+      [seekerName]="isSeeker() ? 'Your Seeker Profile' : aiSelectedSeekerName()"
       [type]="isSeeker() ? 'seeker-alignment' : 'recruiter-review'"
       (close)="closeAiDrawer()"
     />
@@ -418,7 +418,7 @@ export class MatchesComponent implements OnInit {
   // Recruiter Results
   readonly recruiterJobs = signal<JobSummary[]>([]);
   readonly seekerResults = signal<SeekerMatch[]>([]);
-  jobId = '';
+  readonly jobId = signal<string>('');
 
   // AI Drawer states
   readonly isAiDrawerOpen = signal(false);
@@ -430,7 +430,7 @@ export class MatchesComponent implements OnInit {
     if (this.isSeeker()) {
       return this.seekerSelectedJob();
     }
-    const id = this.jobId;
+    const id = this.jobId();
     if (!id) return null;
     const summary = this.recruiterJobs().find((j) => j.id === id);
     if (!summary) return null;
@@ -574,12 +574,12 @@ export class MatchesComponent implements OnInit {
   protected loadSeekersForJob(): void {
     this.error.set('');
     this.message.set('');
-    if (!this.jobId.trim()) {
+    if (!this.jobId().trim()) {
       this.error.set('Select a job first.');
       return;
     }
 
-    const job_id = this.jobId.trim();
+    const job_id = this.jobId().trim();
 
     this.isSubmitting.set(true);
     this.api.get<MatchResponse<SeekerMatch>>(`${this.api.matchBase}/seekers-for-job/${job_id}/`, true).subscribe({

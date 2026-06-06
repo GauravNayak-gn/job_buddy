@@ -438,13 +438,32 @@ export class AiAlignmentDrawerComponent implements OnChanges {
   };
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['isOpen'] && this.isOpen) {
+    console.log('AiAlignmentDrawer - ngOnChanges() triggered', {
+      isOpen: this.isOpen,
+      changes: {
+        isOpen: changes['isOpen'] ? { previous: changes['isOpen'].previousValue, current: changes['isOpen'].currentValue } : null,
+        job: changes['job'] ? { previous: changes['job'].previousValue, current: changes['job'].currentValue } : null,
+        seekerId: changes['seekerId'] ? { previous: changes['seekerId'].previousValue, current: changes['seekerId'].currentValue } : null
+      }
+    });
+    if (this.isOpen && (changes['isOpen'] || changes['job'] || changes['seekerId'])) {
       this.runAiReview();
     }
   }
 
   private runAiReview(): void {
+    console.log('AiAlignmentDrawer - runAiReview() called', {
+      job: this.job,
+      jobId: this.job?.id,
+      seekerId: this.seekerId,
+      isOpen: this.isOpen,
+      type: this.type
+    });
     if (!this.job?.id || !this.seekerId) {
+      console.warn('AiAlignmentDrawer - runAiReview() aborted: job.id or seekerId is falsy.', {
+        jobId: this.job?.id,
+        seekerId: this.seekerId
+      });
       this.loading.set(false);
       return;
     }

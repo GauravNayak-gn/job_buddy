@@ -63,4 +63,4 @@ class KafkaConsumerClient:
                 else:
                     cls.publish_to_dlq(topic, payload, e)
         return False
-```
+
