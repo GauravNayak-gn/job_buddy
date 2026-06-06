@@ -45,20 +45,24 @@ interface ChatMessage {
         @for (msg of messages(); track msg.id) {
           <div class="message-row" [class.user-row]="msg.sender === 'user'">
             <div class="bubble" [class.user-bubble]="msg.sender === 'user'">
-              <p style="white-space: pre-wrap; margin: 0;">{{ msg.text }}</p>
-              
-              <!-- Inline suggestions inside the welcome bubble -->
-              @if (msg.id === 'welcome') {
-                <div class="welcome-suggestions">
-                  <p class="suggestions-title">Suggestions:</p>
-                  <div class="chips-container">
-                    @for (chip of suggestionChips; track chip) {
-                      <button type="button" class="suggestion-chip" (click)="selectChip(chip)">
-                        {{ chip }}
-                      </button>
-                    }
+              @if (msg.sender === 'user') {
+                <p style="white-space: pre-wrap; margin: 0;">{{ msg.text }}</p>
+              } @else {
+                <div class="formatted-message" [innerHTML]="formatMarkdown(msg.text)"></div>
+                
+                <!-- Inline suggestions inside the welcome bubble -->
+                @if (msg.id === 'welcome') {
+                  <div class="welcome-suggestions">
+                    <p class="suggestions-title">Suggestions:</p>
+                    <div class="chips-container">
+                      @for (chip of suggestionChips; track chip) {
+                        <button type="button" class="suggestion-chip" (click)="selectChip(chip)">
+                          {{ chip }}
+                        </button>
+                      }
+                    </div>
                   </div>
-                </div>
+                }
               }
               
               <span class="time">{{ msg.timestamp | date: 'shortTime' }}</span>
@@ -284,6 +288,46 @@ interface ChatMessage {
       color: var(--text);
       line-height: 1.45;
       box-shadow: 0 2px 5px rgba(24, 33, 47, 0.03);
+    }
+
+    .formatted-message p {
+      margin: 0 0 0.5rem 0;
+      line-height: 1.45;
+    }
+    .formatted-message p:last-child {
+      margin-bottom: 0;
+    }
+    .formatted-message h3, .formatted-message h4, .formatted-message h5 {
+      margin: 0.75rem 0 0.4rem 0;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .formatted-message ul, .formatted-message ol {
+      margin: 0 0 0.5rem 0;
+      padding-left: 1.25rem;
+    }
+    .formatted-message li {
+      margin-bottom: 0.25rem;
+      line-height: 1.4;
+    }
+    .formatted-message code {
+      background: var(--bg-hover);
+      padding: 0.15rem 0.3rem;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 0.85em;
+    }
+    .formatted-message pre {
+      background: var(--bg-hover);
+      padding: 0.75rem;
+      border-radius: 8px;
+      overflow-x: auto;
+      margin: 0.5rem 0;
+    }
+    .formatted-message pre code {
+      background: transparent;
+      padding: 0;
+      border-radius: 0;
     }
 
     .user-bubble {
@@ -538,6 +582,108 @@ export class ChatbotSidebarComponent {
       this.isTyping.set(false);
       this.scrollToBottom();
     }, 1200);
+  }
+
+  formatMarkdown(text: string): string {
+    if (!text) return '';
+    
+    // 1. Escape HTML
+    let escaped = text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+      
+    // 2. Parse multiline code blocks
+    escaped = escaped.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
+    // Parse inline code blocks
+    escaped = escaped.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+    // 3. Process line by line
+    const lines = escaped.split('\n');
+    const resultHtml = [];
+    let listType: 'ul' | 'ol' | null = null;
+
+    for (let line of lines) {
+      const trimmed = line.trim();
+      
+      // Headers
+      if (trimmed.startsWith('### ')) {
+        if (listType) { resultHtml.push(listType === 'ul' ? '</ul>' : '</ol>'); listType = null; }
+        resultHtml.push(`<h5>${trimmed.substring(4)}</h5>`);
+        continue;
+      }
+      if (trimmed.startsWith('## ')) {
+        if (listType) { resultHtml.push(listType === 'ul' ? '</ul>' : '</ol>'); listType = null; }
+        resultHtml.push(`<h4>${trimmed.substring(3)}</h4>`);
+        continue;
+      }
+      if (trimmed.startsWith('# ')) {
+        if (listType) { resultHtml.push(listType === 'ul' ? '</ul>' : '</ol>'); listType = null; }
+        resultHtml.push(`<h3>${trimmed.substring(2)}</h3>`);
+        continue;
+      }
+
+      // Bullet Lists
+      if (trimmed.startsWith('* ') || trimmed.startsWith('- ')) {
+        if (listType !== 'ul') {
+          if (listType === 'ol') { resultHtml.push('</ol>'); }
+          resultHtml.push('<ul>');
+          listType = 'ul';
+        }
+        let content = trimmed.substring(2);
+        content = this.formatInlineMarkdown(content);
+        resultHtml.push(`<li>${content}</li>`);
+        continue;
+      }
+
+      // Numbered Lists
+      const numMatch = trimmed.match(/^(\d+)\.\s(.*)/);
+      if (numMatch) {
+        if (listType !== 'ol') {
+          if (listType === 'ul') { resultHtml.push('</ul>'); }
+          resultHtml.push('<ol>');
+          listType = 'ol';
+        }
+        let content = numMatch[2];
+        content = this.formatInlineMarkdown(content);
+        resultHtml.push(`<li>${content}</li>`);
+        continue;
+      }
+
+      // If it's an empty line, close any lists and add spacer
+      if (!trimmed) {
+        if (listType) {
+          resultHtml.push(listType === 'ul' ? '</ul>' : '</ol>');
+          listType = null;
+        }
+        resultHtml.push('<div class="spacer" style="height: 0.5rem;"></div>');
+        continue;
+      }
+
+      // Plain Paragraph line
+      if (listType) {
+        resultHtml.push(listType === 'ul' ? '</ul>' : '</ol>');
+        listType = null;
+      }
+      let formattedLine = this.formatInlineMarkdown(line);
+      resultHtml.push(`<p>${formattedLine}</p>`);
+    }
+
+    if (listType) {
+      resultHtml.push(listType === 'ul' ? '</ul>' : '</ol>');
+    }
+
+    return resultHtml.join('\n');
+  }
+
+  private formatInlineMarkdown(text: string): string {
+    // Bold
+    let formatted = text.replace(/\*\*([\s\S]*?)\*\*/g, '<strong>$1</strong>');
+    formatted = formatted.replace(/__([\s\S]*?)__/g, '<strong>$1</strong>');
+    // Italics
+    formatted = formatted.replace(/\*([\s\S]*?)\*/g, '<em>$1</em>');
+    formatted = formatted.replace(/_([\s\S]*?)_/g, '<em>$1</em>');
+    return formatted;
   }
 
   private scrollToBottom(): void {
