@@ -175,7 +175,7 @@ interface ChatMessage {
       z-index: 999;
       display: flex;
       flex-direction: column;
-      transition: right 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: right 0.4s cubic-bezier(0.16, 1, 0.3, 1), background 0.75s ease, border-color 0.75s ease, box-shadow 0.75s ease;
     }
 
     .sidebar-container.open {

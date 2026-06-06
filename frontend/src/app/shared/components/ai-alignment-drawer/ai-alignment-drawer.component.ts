@@ -156,7 +156,7 @@ import { ApiService } from '../../../core/services/api.service';
       box-shadow: -12px 0 40px rgba(15, 23, 42, 0.15);
       display: flex;
       flex-direction: column;
-      transition: right 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: right 0.4s cubic-bezier(0.16, 1, 0.3, 1), background 0.75s ease, border-color 0.75s ease, box-shadow 0.75s ease;
     }
 
     @media (max-width: 500px) {
