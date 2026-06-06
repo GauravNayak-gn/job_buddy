@@ -151,12 +151,12 @@ import { ApiService } from '../../../core/services/api.service';
       right: -480px;
       width: 460px;
       height: 100vh;
-      background: #fbfaf7;
+      background: var(--bg-panel);
       border-left: 1px solid var(--border);
       box-shadow: -12px 0 40px rgba(15, 23, 42, 0.15);
       display: flex;
       flex-direction: column;
-      transition: right 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: right 0.4s cubic-bezier(0.16, 1, 0.3, 1), background 0.75s ease, border-color 0.75s ease, box-shadow 0.75s ease;
     }
 
     @media (max-width: 500px) {
@@ -173,7 +173,7 @@ import { ApiService } from '../../../core/services/api.service';
     /* Header */
     .drawer-header {
       padding: 1.25rem 1.5rem;
-      background: #fff;
+      background: var(--bg-panel);
       border-bottom: 1px solid var(--border);
       display: flex;
       justify-content: space-between;
@@ -215,7 +215,7 @@ import { ApiService } from '../../../core/services/api.service';
     }
 
     .close-btn:hover {
-      background-color: rgba(15, 23, 42, 0.05);
+      background-color: var(--bg-hover);
       color: var(--text);
     }
 
@@ -230,7 +230,7 @@ import { ApiService } from '../../../core/services/api.service';
     }
 
     .overview-card {
-      background: #fff;
+      background: var(--bg-panel);
       padding: 1.25rem;
       border-radius: 16px;
       border: 1px solid var(--border);
@@ -251,7 +251,7 @@ import { ApiService } from '../../../core/services/api.service';
 
     /* Score Ring */
     .score-section {
-      background: #fff;
+      background: var(--bg-panel);
       padding: 1.25rem;
       border-radius: 16px;
       border: 1px solid var(--border);
@@ -274,7 +274,7 @@ import { ApiService } from '../../../core/services/api.service';
 
     .circle-bg {
       fill: none;
-      stroke: #f1f5f9;
+      stroke: var(--border);
       stroke-width: 3.2;
     }
 
@@ -316,7 +316,7 @@ import { ApiService } from '../../../core/services/api.service';
       padding: 1.25rem;
       border-radius: 16px;
       border: 1px solid var(--border);
-      background: #fff;
+      background: var(--bg-panel);
     }
 
     .insight-block h4 {
@@ -330,7 +330,7 @@ import { ApiService } from '../../../core/services/api.service';
       padding-left: 1.2rem;
       font-size: 0.88rem;
       line-height: 1.5;
-      color: #334155;
+      color: var(--text);
     }
 
     .insight-block li {
@@ -343,7 +343,7 @@ import { ApiService } from '../../../core/services/api.service';
     
     .pitch-text {
       font-style: italic;
-      color: #334155;
+      color: var(--text);
       font-size: 0.9rem;
       line-height: 1.5;
     }
@@ -352,27 +352,27 @@ import { ApiService } from '../../../core/services/api.service';
       border-left: 4px solid #10b981;
     }
     .success-block h4 {
-      color: #065f46;
+      color: var(--success-text);
     }
 
     .warning-block {
       border-left: 4px solid #f59e0b;
     }
     .warning-block h4 {
-      color: #92400e;
+      color: var(--danger-text);
     }
 
     .info-block {
       border-left: 4px solid #3b82f6;
     }
     .info-block h4 {
-      color: #1e40af;
+      color: var(--info-text);
     }
 
     .recommendation-text, .hint {
       font-size: 0.88rem;
       line-height: 1.5;
-      color: #334155;
+      color: var(--text);
     }
 
     .questions-list {

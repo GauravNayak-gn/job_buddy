@@ -9,6 +9,7 @@ export interface Job {
   salary_max: number | null;
   status?: string;
   created_at?: string;
+  screening_questions?: string[];
 }
 
 export interface RecruiterJob {
@@ -25,6 +26,7 @@ export interface RecruiterJob {
   is_archived: boolean;
   archived_at: string | null;
   created_at: string;
+  screening_questions?: string[];
 }
 
 export interface Category {

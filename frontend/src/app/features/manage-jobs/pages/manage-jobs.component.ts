@@ -16,12 +16,12 @@ import { AiAlignmentDrawerComponent } from '../../../shared/components/ai-alignm
   template: `
     <section class="page-card">
       <div class="page-head">
-        <div>
-          <p class="eyebrow">Recruiter workspace</p>
-          <h1>Manage Jobs & Applicants</h1>
+        <div class="title-block">
+          <span class="eyebrow">Recruiter workspace</span>
+          <h1>Manage Jobs</h1>
         </div>
         <div class="actions-header">
-          <button type="button" routerLink="/post-job">Post New Job</button>
+          <button type="button" routerLink="/post-job" class="post-job-btn">Post New Job</button>
         </div>
       </div>
 
@@ -37,12 +37,34 @@ import { AiAlignmentDrawerComponent } from '../../../shared/components/ai-alignm
           <article class="jobs-panel">
             <div class="list-head">
               <h2>My Job Postings</h2>
-              <button type="button" [disabled]="isSubmitting() || jobsLoading()" class="secondary" (click)="loadMyJobs()">Refresh</button>
             </div>
             
             @if (message()) {
               <div class="message">{{ message() }}</div>
             }
+
+            <!-- Search & Filters -->
+            <div class="job-filters">
+              <div class="search-row">
+                <input type="text" [ngModel]="searchQuery()" (ngModelChange)="searchQuery.set($event)" placeholder="Search job title..." class="search-input" />
+                <button type="button" [disabled]="isSubmitting() || jobsLoading()" class="secondary refresh-btn" (click)="loadMyJobs()">Refresh</button>
+              </div>
+              <div class="filter-row">
+                <select [ngModel]="statusFilter()" (ngModelChange)="statusFilter.set($event)">
+                  <option value="">All Statuses</option>
+                  <option value="published">Published</option>
+                  <option value="draft">Draft</option>
+                  <option value="closed">Closed</option>
+                  <option value="archived">Archived</option>
+                </select>
+                <select [ngModel]="locationFilter()" (ngModelChange)="locationFilter.set($event)">
+                  <option value="">All Locations</option>
+                  <option value="remote">Remote</option>
+                  <option value="hybrid">Hybrid</option>
+                  <option value="onsite">On-site</option>
+                </select>
+              </div>
+            </div>
 
             @if (jobsLoading()) {
               <div class="empty-card small">Loading recruiter jobs...</div>
@@ -91,7 +113,12 @@ import { AiAlignmentDrawerComponent } from '../../../shared/components/ai-alignm
           <!-- Right Panel: Applicants List -->
           <article class="applicants-panel">
             <div class="list-head">
-              <h2>Applicants {{ selectedJob() ? 'for "' + selectedJob()!.title + '"' : '' }}</h2>
+              <div class="list-title-area">
+                <h2>Applicants</h2>
+                @if (selectedJob(); as job) {
+                  <p class="job-subtitle" [title]="job.title">for {{ job.title }}</p>
+                }
+              </div>
               <div class="applicants-ctrl">
                 <select [disabled]="isSubmitting()" [ngModel]="applicationSortBy()" (ngModelChange)="onSortChange($event)" class="sort-select">
                   <option value="-created_at">Newest first</option>
@@ -131,6 +158,20 @@ import { AiAlignmentDrawerComponent } from '../../../shared/components/ai-alignm
                       </div>
 
                       <p class="cover-letter">{{ application.cover_letter || 'No cover letter provided.' }}</p>
+
+                      @if (application.screening_answers && application.screening_answers.length > 0) {
+                        <div class="screening-responses">
+                          <h4>Screening Answers</h4>
+                          <div class="responses-list">
+                            @for (resp of application.screening_answers; track $index) {
+                              <div class="response-pair">
+                                <p class="resp-q"><strong>Q: {{ resp.question }}</strong></p>
+                                <p class="resp-a">A: {{ resp.answer }}</p>
+                              </div>
+                            }
+                          </div>
+                        </div>
+                      }
 
                       <div class="applicant-actions">
                         <button type="button" class="secondary" (click)="viewProfile(application.seeker_id)">Profile</button>
@@ -224,11 +265,11 @@ import { AiAlignmentDrawerComponent } from '../../../shared/components/ai-alignm
     .page-card {
       background: var(--card);
       border: 1px solid var(--border);
-      border-radius: 28px;
+      border-radius: 24px;
       box-shadow: var(--shadow);
-      padding: 2rem;
+      padding: 1.25rem 1.5rem;
       display: grid;
-      gap: 1.5rem;
+      gap: 1rem;
     }
 
     .page-head {
@@ -236,13 +277,39 @@ import { AiAlignmentDrawerComponent } from '../../../shared/components/ai-alignm
       justify-content: space-between;
       align-items: center;
       flex-wrap: wrap;
-      gap: 1rem;
+      gap: 0.5rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.5rem;
+    }
+    
+    .title-block {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .page-head h1 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      margin: 0;
+      color: var(--text);
+    }
+    
+    .page-head .eyebrow {
+      font-size: 0.72rem;
+      margin-bottom: 0.1rem;
+    }
+    
+    .post-job-btn {
+      min-height: auto;
+      height: 36px;
+      font-size: 0.85rem;
+      padding: 0.4rem 1rem;
     }
 
     .manage-layout {
       display: grid;
-      gap: 2rem;
-      grid-template-columns: 1.2fr 1.8fr;
+      gap: 1.5rem;
+      grid-template-columns: 4fr 6fr;
     }
 
     @media (max-width: 1024px) {
@@ -253,25 +320,25 @@ import { AiAlignmentDrawerComponent } from '../../../shared/components/ai-alignm
 
     /* Panels styling */
     .jobs-panel, .applicants-panel {
-      background: #ffffff;
+      background: var(--bg-panel);
       border: 1px solid var(--border);
       border-radius: 18px;
-      padding: 1.5rem;
+      padding: 1rem;
       display: flex;
       flex-direction: column;
-      gap: 1.25rem;
+      gap: 0.75rem;
     }
 
     .list-head {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      border-bottom: 1px solid var(--border);
-      padding-bottom: 0.75rem;
+      padding-bottom: 0;
+      margin-bottom: 0.1rem;
     }
 
     .list-head h2 {
-      font-size: 1.25rem;
+      font-size: 1.1rem;
       font-weight: 600;
     }
 
@@ -283,13 +350,19 @@ import { AiAlignmentDrawerComponent } from '../../../shared/components/ai-alignm
       max-height: 70vh;
       overflow-y: auto;
       padding-right: 0.5rem;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+
+    .job-grid::-webkit-scrollbar {
+      display: none;
     }
 
     .job-card {
       border: 1px solid var(--border);
       border-radius: 12px;
       padding: 1rem;
-      background: #f8fafc;
+      background: var(--bg-alt);
       cursor: pointer;
       transition: all 0.2s ease;
       display: flex;
@@ -299,7 +372,7 @@ import { AiAlignmentDrawerComponent } from '../../../shared/components/ai-alignm
 
     .job-card:hover, .job-card.selected {
       border-color: var(--accent);
-      background: #fff;
+      background: var(--bg-panel);
     }
 
     .job-card.selected {
@@ -364,8 +437,25 @@ import { AiAlignmentDrawerComponent } from '../../../shared/components/ai-alignm
       align-items: center;
     }
 
+    .list-title-area {
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+      min-width: 0;
+    }
+
+    .job-subtitle {
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 260px;
+    }
+
     .sort-select {
-      max-width: 140px;
+      min-width: 130px;
       font-size: 0.8rem;
       padding: 0.4rem;
     }
@@ -377,10 +467,16 @@ import { AiAlignmentDrawerComponent } from '../../../shared/components/ai-alignm
       max-height: 70vh;
       overflow-y: auto;
       padding-right: 0.5rem;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+
+    .applicant-list::-webkit-scrollbar {
+      display: none;
     }
 
     .applicant-card {
-      background: #f8fafc;
+      background: var(--bg-alt);
       border: 1px solid var(--border);
       border-radius: 12px;
       padding: 1.25rem;
@@ -415,13 +511,60 @@ import { AiAlignmentDrawerComponent } from '../../../shared/components/ai-alignm
 
     .cover-letter {
       font-size: 0.85rem;
-      color: #334155;
-      background: #fff;
+      color: var(--text);
+      background: var(--bg-panel);
       border: 1px solid var(--border);
       border-radius: 8px;
       padding: 0.75rem;
       white-space: pre-line;
       line-height: 1.45;
+    }
+
+    .screening-responses {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .screening-responses h4 {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--accent);
+      margin: 0;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-bottom: 1px dashed var(--border);
+      padding-bottom: 0.25rem;
+    }
+
+    .responses-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .response-pair {
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+    }
+
+    .resp-q {
+      font-size: 0.82rem;
+      color: var(--text);
+      margin: 0;
+    }
+
+    .resp-a {
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin: 0;
+      padding-left: 0.75rem;
+      border-left: 2px solid var(--accent);
     }
 
     .applicant-actions {
@@ -449,7 +592,7 @@ import { AiAlignmentDrawerComponent } from '../../../shared/components/ai-alignm
     }
 
     .schedule-form {
-      background: #ffffff;
+      background: var(--bg-panel);
       border: 1px solid var(--border);
       border-radius: 8px;
       padding: 1rem;
@@ -486,7 +629,7 @@ import { AiAlignmentDrawerComponent } from '../../../shared/components/ai-alignm
     }
 
     .modal-card {
-      background: #ffffff;
+      background: var(--bg-panel);
       border: 1px solid var(--border);
       border-radius: 20px;
       width: 500px;
@@ -531,12 +674,46 @@ import { AiAlignmentDrawerComponent } from '../../../shared/components/ai-alignm
     }
 
     .chip {
-      background: #f1f5f9;
-      color: #334155;
+      background: var(--bg-hover);
+      color: var(--text);
       font-size: 0.75rem;
       padding: 0.25rem 0.5rem;
       border-radius: 6px;
       border: 1px solid rgba(24, 33, 47, 0.04);
+    }
+
+    .job-filters {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.75rem;
+      margin-bottom: 0.25rem;
+    }
+    .search-row {
+      display: flex;
+      gap: 0.5rem;
+    }
+    .search-input {
+      flex: 1;
+      font-size: 0.85rem;
+      padding: 0.5rem 0.75rem;
+    }
+    .refresh-btn {
+      min-height: auto;
+      height: 38px;
+      font-size: 0.8rem;
+      padding: 0.4rem 0.75rem;
+    }
+    .filter-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+    }
+    .filter-row select {
+      font-size: 0.8rem;
+      padding: 0.45rem 0.6rem;
+      cursor: pointer;
     }
   `],
 })
@@ -551,7 +728,37 @@ export class ManageJobsComponent implements OnInit {
   readonly message = signal('');
   
   // Jobs lists
-  readonly myJobs = signal<RecruiterJob[]>([]);
+  readonly allMyJobs = signal<RecruiterJob[]>([]);
+  readonly searchQuery = signal<string>('');
+  readonly statusFilter = signal<string>('');
+  readonly locationFilter = signal<string>('');
+
+  readonly myJobs = computed(() => {
+    const query = this.searchQuery().toLowerCase().trim();
+    const status = this.statusFilter();
+    const location = this.locationFilter();
+    let jobs = this.allMyJobs();
+
+    if (query) {
+      jobs = jobs.filter(j => 
+        j.title.toLowerCase().includes(query) || 
+        (j.description && j.description.toLowerCase().includes(query))
+      );
+    }
+    if (status) {
+      if (status === 'archived') {
+        jobs = jobs.filter(j => j.is_archived);
+      } else {
+        jobs = jobs.filter(j => j.status === status && !j.is_archived);
+      }
+    }
+    if (location) {
+      jobs = jobs.filter(j => j.location_type?.toLowerCase() === location.toLowerCase());
+    }
+
+    return jobs;
+  });
+
   readonly jobsLoading = signal(false);
   readonly selectedJobId = signal<string>('');
   readonly selectedJob = signal<RecruiterJob | null>(null);
@@ -594,7 +801,7 @@ export class ManageJobsComponent implements OnInit {
     
     this.api.get<RecruiterJob[]>(`${this.api.jobsBase}/my/`, true).subscribe({
       next: (jobs) => {
-        this.myJobs.set(jobs);
+        this.allMyJobs.set(jobs);
         this.jobsLoading.set(false);
         // Automatically select first job if none selected
         if (jobs.length && !this.selectedJobId()) {

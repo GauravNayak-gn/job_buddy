@@ -5,6 +5,7 @@ export interface ApplicationItem {
   resume_id?: string;
   current_stage: string;
   created_at?: string;
+  screening_answers?: { question: string; answer: string; }[];
 }
 
 export interface Applicant {
@@ -17,6 +18,7 @@ export interface Applicant {
   cover_letter: string;
   current_stage: string;
   created_at: string;
+  screening_answers?: { question: string; answer: string; }[];
 }
 
 export interface InterviewResponse {

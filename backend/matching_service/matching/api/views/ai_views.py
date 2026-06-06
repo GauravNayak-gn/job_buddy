@@ -1,5 +1,6 @@
 import logging
 from django.db import connection
+from django.core.cache import cache
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
@@ -31,6 +32,7 @@ class AiAlignmentReviewView(APIView):
             "experiences": []
         }
         resume_text = ""
+        resume_updated_at = ""
 
         try:
             with connection.cursor() as cursor:
@@ -70,14 +72,15 @@ class AiAlignmentReviewView(APIView):
                         for r in cursor.fetchall()
                     ]
 
-                    # Query raw resume text (primary or most recent)
+                    # Query raw resume text (primary or most recent) and its updated_at timestamp
                     cursor.execute(
-                        "SELECT raw_text FROM profile_schema.resumes WHERE seeker_id = %s ORDER BY is_primary DESC, updated_at DESC LIMIT 1",
+                        "SELECT raw_text, updated_at FROM profile_schema.resumes WHERE seeker_id = %s ORDER BY is_primary DESC, updated_at DESC LIMIT 1",
                         [profile_id]
                     )
                     res_row = cursor.fetchone()
                     if res_row:
                         resume_text = res_row[0] or ""
+                        resume_updated_at = str(res_row[1]) if res_row[1] else ""
 
         except Exception as e:
             logger.error(f"Error fetching seeker profile data cross-schema: {str(e)}")
@@ -90,16 +93,17 @@ class AiAlignmentReviewView(APIView):
             "location_city": "",
             "experience_required": ""
         }
+        job_updated_at = ""
 
         try:
             with connection.cursor() as cursor:
                 cursor.execute(
-                    "SELECT title, description, location_type, location_city, experience_required FROM job_schema.jobs WHERE id = %s",
+                    "SELECT title, description, location_type, location_city, experience_required, updated_at FROM job_schema.jobs WHERE id = %s",
                     [job_id]
                 )
                 row = cursor.fetchone()
                 if row:
-                    title, description, location_type, location_city, experience_required = row
+                    title, description, location_type, location_city, experience_required, updated_at = row
                     job_data.update({
                         "title": title,
                         "description": description or "",
@@ -107,15 +111,29 @@ class AiAlignmentReviewView(APIView):
                         "location_city": location_city or "",
                         "experience_required": experience_required or ""
                     })
+                    job_updated_at = str(updated_at) if updated_at else ""
         except Exception as e:
             logger.error(f"Error fetching job details cross-schema: {str(e)}")
 
-        # 3. Call AI Service to perform review
+        # 3. Check cache using composite smart key
+        bypass_cache = request.query_params.get('bypass_cache', '').lower() == 'true'
+        cache_key = f"ai_alignment_review:{seeker_id}:{job_id}:{resume_updated_at}:{job_updated_at}"
+        
+        if not bypass_cache:
+            cached_data = cache.get(cache_key)
+            if cached_data:
+                logger.info(f"Returning cached AI alignment review for seeker {seeker_id} and job {job_id}")
+                return Response(cached_data)
+
+        # 4. Call AI Service to perform review
         review_result = AiService.generate_alignment_review(
             seeker_data=seeker_data,
             resume_text=resume_text,
             job_data=job_data
         )
+
+        # Cache the result for 24 hours (86400 seconds)
+        cache.set(cache_key, review_result, timeout=86400)
 
         return Response(review_result)
 

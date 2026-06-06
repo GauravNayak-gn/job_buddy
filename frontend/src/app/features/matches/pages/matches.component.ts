@@ -216,6 +216,57 @@ import { AiAlignmentDrawerComponent } from '../../../shared/components/ai-alignm
       [type]="isSeeker() ? 'seeker-alignment' : 'recruiter-review'"
       (close)="closeAiDrawer()"
     />
+
+    <!-- Screening Questions Modal Overlay -->
+    @if (screeningJob(); as job) {
+      <div class="modal-overlay" (click)="closeScreeningModal()">
+        <article class="modal-card wide-modal" (click)="$event.stopPropagation()">
+          <div class="modal-header">
+            <h2>Screening Questions</h2>
+            <p class="subtitle">Applying for: {{ job.title }}</p>
+            <button type="button" class="close-btn" (click)="closeScreeningModal()">&times;</button>
+          </div>
+          
+          <div class="modal-body">
+            <p class="instructions">Please answer the questions below to proceed with your application.</p>
+            
+            <div class="questions-container">
+              @for (item of screeningAnswers(); track $index) {
+                <label class="question-field">
+                  <span class="q-label">Q{{ $index + 1 }}: {{ item.question }} <span class="required">*</span></span>
+                  <textarea 
+                    [ngModel]="item.answer" 
+                    (ngModelChange)="updateAnswer($index, $event)"
+                    [disabled]="isSubmitting()" 
+                    rows="3" 
+                    placeholder="Type your answer..."
+                  ></textarea>
+                </label>
+              }
+            </div>
+          </div>
+          
+          <div class="modal-footer">
+            <button 
+              type="button" 
+              [disabled]="isSubmitting() || !isScreeningValid()" 
+              (click)="submitWithAnswers()"
+              class="submit-btn"
+            >
+              {{ isSubmitting() ? 'Submitting...' : 'Submit Application' }}
+            </button>
+            <button 
+              type="button" 
+              [disabled]="isSubmitting()" 
+              class="btn-secondary" 
+              (click)="closeScreeningModal()"
+            >
+              Cancel
+            </button>
+          </div>
+        </article>
+      </div>
+    }
   `,
   styles: [`
     .page-card {
@@ -229,7 +280,7 @@ import { AiAlignmentDrawerComponent } from '../../../shared/components/ai-alignm
     }
     .list, .applicant-list { display: grid; gap: 1rem; }
     .item, .applicant-card {
-      background: #ffffff;
+      background: var(--bg-panel);
       border: 1px solid var(--border);
       border-radius: 18px;
       padding: 1.5rem;
@@ -300,7 +351,7 @@ import { AiAlignmentDrawerComponent } from '../../../shared/components/ai-alignm
       margin-top: 1rem;
       padding: 1rem;
       border: 1px solid var(--border);
-      background: #f8fafc;
+      background: var(--bg-alt);
       border-radius: 12px;
       display: grid;
       gap: 0.75rem;
@@ -349,7 +400,7 @@ import { AiAlignmentDrawerComponent } from '../../../shared/components/ai-alignm
       align-items: center;
     }
     .modal-card {
-      background: #ffffff;
+      background: var(--bg-panel);
       border: 1px solid var(--border);
       border-radius: 20px;
       width: 500px;
@@ -389,12 +440,95 @@ import { AiAlignmentDrawerComponent } from '../../../shared/components/ai-alignm
       gap: 0.4rem;
     }
     .chip {
-      background: #f1f5f9;
-      color: #334155;
+      background: var(--bg-hover);
+      color: var(--text);
       font-size: 0.75rem;
       padding: 0.25rem 0.5rem;
       border-radius: 6px;
       border: 1px solid rgba(24, 33, 47, 0.04);
+    }
+    .modal-card.wide-modal {
+      width: 600px;
+      max-height: 85vh;
+      overflow: hidden;
+      padding: 0;
+    }
+    .modal-header {
+      padding: 1.5rem;
+      border-bottom: 1px solid var(--border);
+      position: relative;
+    }
+    .modal-header h2 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      margin: 0;
+    }
+    .modal-header .subtitle {
+      font-size: 0.875rem;
+      color: var(--muted);
+      margin-top: 0.25rem;
+      margin-bottom: 0;
+    }
+    .modal-body {
+      padding: 1.5rem;
+      overflow-y: auto;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .instructions {
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin: 0;
+    }
+    .questions-container {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+    .question-field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .q-label {
+      font-weight: 600;
+      font-size: 0.95rem;
+      color: var(--text);
+    }
+    .required {
+      color: var(--accent);
+    }
+    .modal-footer {
+      padding: 1.25rem 1.5rem;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.75rem;
+      background: var(--bg-alt);
+    }
+    .submit-btn {
+      background: var(--accent);
+      color: white;
+    }
+    .submit-btn:hover {
+      background: var(--accent-hover);
+    }
+    .submit-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+    .btn-secondary {
+      background: var(--secondary-btn-bg);
+      color: var(--secondary-btn-text);
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover {
+      background: var(--secondary-btn-hover-bg);
+      color: var(--secondary-btn-hover-text);
     }
   `],
 })
@@ -414,6 +548,11 @@ export class MatchesComponent implements OnInit {
   readonly resumes = this.seekerData.resumes;
   readonly appliedJobIds = computed(() => new Set(this.seekerData.applications().map((app) => app.job_id)));
   readonly selectedResumeId = signal<string>('');
+
+  // Screening questions modal state signals
+  readonly showScreeningModal = signal(false);
+  readonly screeningJob = signal<JobMatchView | null>(null);
+  readonly screeningAnswers = signal<{ question: string; answer: string; }[]>([]);
 
   // Recruiter Results
   readonly recruiterJobs = signal<JobSummary[]>([]);
@@ -493,6 +632,14 @@ export class MatchesComponent implements OnInit {
       return;
     }
 
+    const job = this.jobResults().find(j => j.job_id === jobId);
+    if (job && job.screening_questions && job.screening_questions.length > 0) {
+      this.screeningJob.set(job);
+      this.screeningAnswers.set(job.screening_questions.map(q => ({ question: q, answer: '' })));
+      this.showScreeningModal.set(true);
+      return;
+    }
+
     this.isSubmitting.set(true);
     this.api.post(`${this.api.applicationsBase}/apply/`, {
       job_id: jobId,
@@ -510,6 +657,56 @@ export class MatchesComponent implements OnInit {
         const errMsg = extractErrorMessage(error);
         this.message.set(errMsg);
         this.alertService.error(errMsg, 'Application Failed');
+      },
+    });
+  }
+
+  protected updateAnswer(index: number, val: string): void {
+    this.screeningAnswers.update(answers => {
+      const copy = [...answers];
+      copy[index] = { ...copy[index], answer: val };
+      return copy;
+    });
+  }
+
+  protected isScreeningValid(): boolean {
+    return this.screeningAnswers().every(item => item.answer.trim().length > 0);
+  }
+
+  protected closeScreeningModal(): void {
+    this.showScreeningModal.set(false);
+    this.screeningJob.set(null);
+    this.screeningAnswers.set([]);
+  }
+
+  protected submitWithAnswers(): void {
+    const job = this.screeningJob();
+    if (!job) return;
+    const resumeId = this.selectedResumeId();
+    if (!resumeId) {
+      this.alertService.warning('Please select a resume before applying.');
+      return;
+    }
+
+    this.isSubmitting.set(true);
+    const payload = {
+      job_id: job.job_id,
+      resume_id: resumeId,
+      cover_letter: 'Applied via AI Matches with screening answers.',
+      screening_answers: this.screeningAnswers()
+    };
+
+    this.api.post(`${this.api.applicationsBase}/apply/`, payload, true).subscribe({
+      next: () => {
+        this.isSubmitting.set(false);
+        this.closeScreeningModal();
+        this.message.set('Application submitted.');
+        this.alertService.toast('Application submitted successfully!');
+        this.seekerData.loadApplications(true);
+      },
+      error: (error) => {
+        this.isSubmitting.set(false);
+        this.alertService.error(extractErrorMessage(error), 'Apply Failed');
       },
     });
   }
@@ -546,7 +743,8 @@ export class MatchesComponent implements OnInit {
               experience_required: job.experience_required,
               salary_min: job.salary_min,
               salary_max: job.salary_max,
-              status: job.status
+              status: job.status,
+              screening_questions: job.screening_questions
             })),
             catchError(() => of({ job_id: item.job_id, title: item.job_id, similarity_score: Math.round(item.similarity_score * 100) })),
           ),

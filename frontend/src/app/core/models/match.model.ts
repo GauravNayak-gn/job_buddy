@@ -29,4 +29,5 @@ export interface JobMatchView {
   salary_min?: number | null;
   salary_max?: number | null;
   status?: string;
+  screening_questions?: string[];
 }

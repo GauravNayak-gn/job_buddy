@@ -34,13 +34,15 @@ class ApplyView(APIView):
         job_id = serializer.validated_data['job_id']
         resume_id = serializer.validated_data['resume_id']
         cover_letter = serializer.validated_data.get('cover_letter', '')
+        screening_answers = serializer.validated_data.get('screening_answers', [])
 
         try:
             application = application_handler.handle_apply(
                 user=request.user,
                 job_id=job_id,
                 resume_id=resume_id,
-                cover_letter=cover_letter
+                cover_letter=cover_letter,
+                screening_answers=screening_answers
             )
             return Response(ApplicationSerializer(application).data, status=status.HTTP_201_CREATED)
         except ValueError as e:
