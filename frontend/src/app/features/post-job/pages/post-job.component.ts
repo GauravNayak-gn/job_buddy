@@ -381,6 +381,7 @@ const DEFAULT_QUESTIONS = [
       align-items: center;
       gap: 0.75rem;
       min-width: 0;
+      flex: 1;
     }
 
     .q-index {
@@ -407,22 +408,25 @@ const DEFAULT_QUESTIONS = [
     }
 
     .edit-q-btn {
-      background: transparent;
+      background: var(--bg-hover);
       color: var(--muted);
-      border: none;
+      border: 1px solid var(--border);
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
       width: 32px;
       height: 32px;
+      min-height: 0;
+      padding: 0;
       border-radius: 50%;
       transition: all 0.2s ease;
     }
 
     .edit-q-btn:hover {
-      background: var(--bg-hover);
-      color: var(--text);
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
     }
 
     .cancel-q-btn {
@@ -443,11 +447,13 @@ const DEFAULT_QUESTIONS = [
     }
 
     .delete-q-btn {
-      background: transparent;
+      background: var(--bg-hover);
       color: var(--muted);
-      border: none;
+      border: 1px solid var(--border);
       height: 32px;
       width: 32px;
+      min-height: 0;
+      padding: 0;
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -459,6 +465,7 @@ const DEFAULT_QUESTIONS = [
     .delete-q-btn:hover {
       background: var(--danger-bg);
       color: var(--danger-text);
+      border-color: var(--border);
       transform: none;
       box-shadow: none;
     }
