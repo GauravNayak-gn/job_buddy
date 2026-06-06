@@ -8,6 +8,12 @@ import { AlertService } from '../../../core/services/alert.service';
 import { Category, RecruiterJob } from '../../../core/models';
 import { extractErrorMessage } from '../../../shared/utils/error-message.util';
 
+const DEFAULT_QUESTIONS = [
+  'Why are you interested in this role, and what makes you a good fit?',
+  'What is your notice period?',
+  'What is your earliest available start date?'
+];
+
 @Component({
   selector: 'app-post-job-page',
   standalone: true,
@@ -181,7 +187,8 @@ import { extractErrorMessage } from '../../../shared/utils/error-message.util';
       display: grid;
       gap: 2rem;
       padding: 2.5rem;
-      max-width: 1200px;
+      max-width: 1400px;
+      width: 95%;
       margin: 2rem auto;
     }
 
@@ -203,8 +210,8 @@ import { extractErrorMessage } from '../../../shared/utils/error-message.util';
 
     .form-container {
       display: grid;
-      gap: 2rem;
-      grid-template-columns: 1.15fr 0.85fr;
+      gap: 2.5rem;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
       align-items: start;
     }
 
@@ -458,7 +465,7 @@ export class PostJobComponent implements OnInit {
   };
 
   readonly newQuestion = signal('');
-  readonly screeningQuestions = signal<string[]>([]);
+  readonly screeningQuestions = signal<string[]>([...DEFAULT_QUESTIONS]);
 
   protected addQuestion(): void {
     const val = this.newQuestion().trim();
@@ -609,7 +616,7 @@ export class PostJobComponent implements OnInit {
     this.form.currency = 'INR';
     this.form.experience_required = '2 years';
     this.form.skill_name = 'Python';
-    this.screeningQuestions.set([]);
+    this.screeningQuestions.set([...DEFAULT_QUESTIONS]);
     this.newQuestion.set('');
   }
 }
