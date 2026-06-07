@@ -632,7 +632,7 @@ import { extractErrorMessage } from '../../../shared/utils/error-message.util';
     }
 
     .schedule-trigger-btn {
-      background: var(--secondary);
+      background: var(--accent);
       color: #ffffff;
       font-size: 0.82rem;
       font-weight: 600;
@@ -641,15 +641,16 @@ import { extractErrorMessage } from '../../../shared/utils/error-message.util';
       border: none;
       cursor: pointer;
       min-height: auto;
-      box-shadow: 0 2px 5px rgba(30, 111, 104, 0.25);
-      transition: opacity 0.2s;
+      box-shadow: 0 2px 5px rgba(217, 93, 57, 0.2);
+      transition: all 0.2s ease;
       display: flex;
       align-items: center;
       gap: 0.4rem;
     }
 
     .schedule-trigger-btn:hover {
-      opacity: 0.9;
+      background: var(--accent-hover);
+      box-shadow: 0 3px 8px rgba(217, 93, 57, 0.3);
     }
 
     .icon-btn-calendar {
@@ -1125,21 +1126,22 @@ import { extractErrorMessage } from '../../../shared/utils/error-message.util';
     }
 
     .schedule-submit-btn {
-      background: var(--secondary);
+      background: var(--accent);
       color: #ffffff;
       padding: 0.75rem;
       border-radius: 10px;
       font-weight: 600;
       border: none;
       cursor: pointer;
-      box-shadow: 0 3px 6px rgba(30, 111, 104, 0.2);
-      transition: opacity 0.2s;
+      box-shadow: 0 3px 6px rgba(217, 93, 57, 0.2);
+      transition: all 0.2s ease;
       margin-top: 0.5rem;
       font-size: 0.9rem;
     }
 
     .schedule-submit-btn:hover {
-      opacity: 0.9;
+      background: var(--accent-hover);
+      box-shadow: 0 4px 10px rgba(217, 93, 57, 0.3);
     }
 
     .error-msg {
