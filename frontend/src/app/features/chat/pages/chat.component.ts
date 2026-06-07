@@ -379,11 +379,13 @@ import { extractErrorMessage } from '../../../shared/utils/error-message.util';
     }
 
     .sidebar-header {
-      padding: 1.25rem;
+      height: 80px;
+      padding: 0 1.5rem;
       border-bottom: 1px solid var(--border);
       display: flex;
       justify-content: space-between;
       align-items: center;
+      box-sizing: border-box;
     }
 
     .sidebar-header h2 {
@@ -423,10 +425,16 @@ import { extractErrorMessage } from '../../../shared/utils/error-message.util';
     .conversations-list {
       flex: 1;
       overflow-y: auto;
-      padding: 0.5rem;
+      padding: 0.5rem 0.75rem;
       display: flex;
       flex-direction: column;
       gap: 0.4rem;
+      scrollbar-width: none; /* Firefox */
+      -ms-overflow-style: none; /* IE/Edge */
+    }
+
+    .conversations-list::-webkit-scrollbar {
+      display: none; /* Chrome/Safari */
     }
 
     .list-placeholder {
@@ -439,7 +447,7 @@ import { extractErrorMessage } from '../../../shared/utils/error-message.util';
     .conversation-card {
       display: flex;
       gap: 0.75rem;
-      padding: 0.85rem;
+      padding: 0.85rem 0.75rem 0.85rem 0.5rem;
       border-radius: 12px;
       cursor: pointer;
       transition: all 0.2s ease;
@@ -457,7 +465,6 @@ import { extractErrorMessage } from '../../../shared/utils/error-message.util';
       border-left: 4px solid var(--accent);
       border-top-left-radius: 4px;
       border-bottom-left-radius: 4px;
-      padding-left: 0.6rem;
     }
 
     /* Avatars */
@@ -591,13 +598,15 @@ import { extractErrorMessage } from '../../../shared/utils/error-message.util';
     }
 
     .thread-header {
-      padding: 1rem 1.5rem;
+      height: 80px;
+      padding: 0 1.5rem;
       border-bottom: 1px solid var(--border);
       display: flex;
       align-items: center;
       gap: 1rem;
       background: rgba(255,255,255,0.02);
       flex-shrink: 0;
+      box-sizing: border-box;
     }
 
     .header-info {
@@ -738,6 +747,12 @@ import { extractErrorMessage } from '../../../shared/utils/error-message.util';
       flex-direction: column;
       gap: 1rem;
       background: rgba(24, 33, 47, 0.01);
+      scrollbar-width: none; /* Firefox */
+      -ms-overflow-style: none; /* IE/Edge */
+    }
+
+    .messages-history::-webkit-scrollbar {
+      display: none; /* Chrome/Safari */
     }
 
     .loading-messages {
@@ -876,7 +891,7 @@ import { extractErrorMessage } from '../../../shared/utils/error-message.util';
 
     /* Input controls */
     .message-input-area {
-      padding: 1.25rem;
+      padding: 1.5rem;
       border-top: 1px solid var(--border);
       display: flex;
       gap: 0.75rem;
