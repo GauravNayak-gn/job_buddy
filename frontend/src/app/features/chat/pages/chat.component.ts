@@ -396,12 +396,13 @@ import { extractErrorMessage } from '../../../shared/utils/error-message.util';
               <p class="error-msg">No active applications found between you and this seeker. You cannot schedule an interview without a job application.</p>
             } @else {
               <div class="form-group">
-                <label for="appSelect"><strong>Select Job Role</strong></label>
-                <select id="appSelect" [(ngModel)]="schedulerSelectedAppId">
-                  @for (app of availableApplications(); track app.id) {
-                    <option [value]="app.id">{{ app.job_title || 'Role (ID: ' + app.job_id + ')' }}</option>
-                  }
-                </select>
+                <label><strong>Job Role</strong></label>
+                <input 
+                  type="text" 
+                  [value]="selectedConversation()?.job_title || activeApplication()?.job_title || 'Job Role'" 
+                  disabled 
+                  class="disabled-input"
+                />
               </div>
 
               <div class="form-group">
@@ -1856,8 +1857,15 @@ export class ChatComponent implements OnInit, OnDestroy {
       this.chatService.getApplicationsForSeeker(otherId).subscribe((apps) => {
         if (apps && apps.length > 0) {
           this.availableApplications.set(apps);
-          this.activeApplication.set(apps[0]); // Default to first application
-          this.schedulerSelectedAppId = apps[0].id;
+          // Automatically match based on conversation's job_id
+          const match = apps.find((app) => String(app.job_id) === String(conv.job_id));
+          if (match) {
+            this.activeApplication.set(match);
+            this.schedulerSelectedAppId = match.id;
+          } else {
+            this.activeApplication.set(apps[0]);
+            this.schedulerSelectedAppId = apps[0].id;
+          }
         }
       });
     } else {
@@ -1866,7 +1874,12 @@ export class ChatComponent implements OnInit, OnDestroy {
         const matches = apps.filter((app) => String(app.recruiter_id) === String(otherId));
         if (matches.length > 0) {
           this.availableApplications.set(matches);
-          this.activeApplication.set(matches[0]);
+          const match = matches.find((app) => String(app.job_id) === String(conv.job_id));
+          if (match) {
+            this.activeApplication.set(match);
+          } else {
+            this.activeApplication.set(matches[0]);
+          }
         }
       });
     }
@@ -2137,6 +2150,10 @@ export class ChatComponent implements OnInit, OnDestroy {
   protected openSchedulerModal(): void {
     this.schedulerDateTime = '';
     this.schedulerNotes = '';
+    const activeApp = this.activeApplication();
+    if (activeApp) {
+      this.schedulerSelectedAppId = activeApp.id;
+    }
     this.showingSchedulerModal.set(true);
   }
 
