@@ -6,6 +6,8 @@ class Conversation(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     participant_a = models.UUIDField(db_index=True)
     participant_b = models.UUIDField(db_index=True)
+    job_id = models.UUIDField(db_index=True, null=True, blank=True)
+    job_title = models.CharField(max_length=250, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

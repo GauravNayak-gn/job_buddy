@@ -4,6 +4,8 @@ export interface Conversation {
   participant_b: string;
   created_at: string;
   updated_at: string;
+  job_id?: string;
+  job_title?: string;
   // UI helper fields populated dynamically
   other_user_name?: string;
   other_user_title?: string;

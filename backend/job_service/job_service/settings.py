@@ -66,6 +66,15 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'job_service.authentication.JWTAuthentication',
     ),
+    'DEFAULT_THROTTLE_CLASSES': (
+        'job_service.throttling.RoleBasedUserRateThrottle',
+    ),
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '100/day',
+        'role_seeker': '1000/day',
+        'role_recruiter': '5000/day',
+        'role_admin': '10000/day',
+    }
 }
 
 CORS_ALLOW_ALL_ORIGINS = True

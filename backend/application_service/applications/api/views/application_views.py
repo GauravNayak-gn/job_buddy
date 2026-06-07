@@ -1,6 +1,7 @@
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from application_service.permissions import IsSeeker, IsRecruiter
 from rest_framework.views import APIView
 from django.http import Http404
 
@@ -22,12 +23,9 @@ class HealthView(APIView):
 
 
 class ApplyView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsSeeker]
 
     def post(self, request):
-        if not application_service.request_user_is_seeker(request.user):
-            return Response({'error': 'Only seekers can apply.'}, status=status.HTTP_403_FORBIDDEN)
-
         serializer = ApplicationSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
@@ -61,12 +59,9 @@ class MyApplicationListView(APIView):
 
 
 class JobApplicationListView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsRecruiter]
 
     def get(self, request, job_id):
-        if not application_service.request_user_is_recruiter(request.user):
-            return Response({'error': 'Only recruiters can view job applications.'}, status=status.HTTP_403_FORBIDDEN)
-
         sort_by = request.query_params.get('sort_by', '-created_at')
         allowed_sorts = ['current_stage', '-current_stage', 'created_at', '-created_at']
         if sort_by not in allowed_sorts:
@@ -103,12 +98,9 @@ class WithdrawApplicationView(APIView):
 
 
 class UpdateStageView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsRecruiter]
 
     def post(self, request, application_id):
-        if not application_service.request_user_is_recruiter(request.user):
-            return Response({'error': 'Only recruiters can update stage.'}, status=status.HTTP_403_FORBIDDEN)
-
         application = application_service.get_application(application_id)
         if not application:
             raise Http404
@@ -144,12 +136,9 @@ class StageHistoryView(APIView):
 
 
 class ScheduleInterviewView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsRecruiter]
 
     def post(self, request, application_id):
-        if not application_service.request_user_is_recruiter(request.user):
-            return Response({'error': 'Only recruiters can schedule interviews.'}, status=status.HTTP_403_FORBIDDEN)
-
         application = application_service.get_application(application_id)
         if not application:
             raise Http404
@@ -185,12 +174,9 @@ class InterviewDetailView(APIView):
 
 
 class SeekerApplicationForRecruiterView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsRecruiter]
 
     def get(self, request, seeker_id):
-        if not application_service.request_user_is_recruiter(request.user):
-            return Response({'error': 'Only recruiters can view candidate applications.'}, status=status.HTTP_403_FORBIDDEN)
-        
         from applications.models.application import Application
         apps = Application.objects.filter(seeker_id=seeker_id, recruiter_id=request.user.id)
         return Response(ApplicationSerializer(apps, many=True).data)

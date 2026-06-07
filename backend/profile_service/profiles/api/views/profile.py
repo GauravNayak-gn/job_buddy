@@ -2,6 +2,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
+from profile_service.permissions import IsSeeker, IsRecruiter
 
 from profiles.api.serializers.profile import (
     SeekerProfileSerializer, RecruiterProfileSerializer,
@@ -32,7 +33,7 @@ def clear_recruiter_profile_cache(user_id):
     RedisClient.delete(f"profile:recruiter:user:{user_id}")
 
 class SeekerProfileView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsSeeker]
 
     def get(self, request):
         cache_key = f"profile:seeker:user:{request.user.id}"
@@ -70,7 +71,7 @@ class SeekerProfileView(APIView):
 
 
 class RecruiterProfileView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsRecruiter]
 
     def get(self, request):
         cache_key = f"profile:recruiter:user:{request.user.id}"
@@ -114,7 +115,7 @@ class SkillListView(APIView):
 
 
 class SeekerSkillView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsSeeker]
 
     def get(self, request):
         skills, err = profile_service.get_seeker_skills(request.user.id)
@@ -134,7 +135,7 @@ class SeekerSkillView(APIView):
 
 
 class ExperienceView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsSeeker]
 
     def get(self, request):
         experiences, err = profile_service.get_seeker_experiences(request.user.id)
