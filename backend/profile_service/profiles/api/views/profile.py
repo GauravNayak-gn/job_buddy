@@ -8,6 +8,7 @@ from profiles.api.serializers.profile import (
     SkillSerializer, SeekerSkillSerializer, ExperienceSerializer
 )
 from profiles.services import profile as profile_service
+from profiles.models import RecruiterProfile
 
 
 class HealthView(APIView):
@@ -171,3 +172,15 @@ class SeekerProfileByIdView(APIView):
         
         RedisClient.set(cache_key, data, timeout=3600)
         return Response(data)
+
+
+class RecruiterProfileByIdView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, recruiter_id):
+        profile = RecruiterProfile.objects.filter(id=recruiter_id).first()
+        if not profile:
+            profile = RecruiterProfile.objects.filter(user_id=recruiter_id).first()
+        if not profile:
+            return Response({"error": "Profile not found."}, status=status.HTTP_404_NOT_FOUND)
+        return Response(RecruiterProfileSerializer(profile).data)

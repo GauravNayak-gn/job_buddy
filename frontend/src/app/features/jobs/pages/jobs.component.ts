@@ -67,7 +67,7 @@ import { extractErrorMessage } from '../../../shared/utils/error-message.util';
       } @else {
         <div class="job-list">
           @for (job of jobs(); track job.id) {
-            <article class="job-item" (click)="viewJob(job)">
+            <article class="job-item">
               <div class="job-top">
                 <div>
                   <p class="eyebrow">{{ job.location_type }} @if (job.location_city) { · {{ job.location_city }} }</p>
@@ -178,7 +178,7 @@ import { extractErrorMessage } from '../../../shared/utils/error-message.util';
     .page-card { display: grid; gap: 1rem; padding: 1.5rem; }
     .filters { display: grid; gap: 1rem; grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: end; }
     .job-list { display: grid; gap: 1rem; }
-    .job-item { display: grid; gap: 0.8rem; padding: 1.25rem; cursor: pointer; transition: all 0.2s ease; }
+    .job-item { display: grid; gap: 0.8rem; padding: 1.25rem; cursor: default; transition: all 0.2s ease; }
     .job-item:hover { transform: translateY(-2px); border-color: var(--accent); }
     .job-top,
     .job-bottom,

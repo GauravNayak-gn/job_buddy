@@ -1,7 +1,8 @@
 from django.urls import path
 from profiles.api.views.profile import (
     HealthView, SeekerProfileView, RecruiterProfileView,
-    SkillListView, SeekerSkillView, ExperienceView, SeekerProfileByIdView
+    SkillListView, SeekerSkillView, ExperienceView, SeekerProfileByIdView,
+    RecruiterProfileByIdView
 )
 from profiles.api.views.resume import (
     ResumeUploadView, ResumeDetailView, ResumeURLView, ResumeDownloadView
@@ -19,4 +20,5 @@ urlpatterns = [
     path('seeker/resumes/<uuid:resume_id>/url/', ResumeURLView.as_view()),
     path('seeker/resumes/<uuid:resume_id>/download/', ResumeDownloadView.as_view()),
     path('seeker/<uuid:seeker_id>/', SeekerProfileByIdView.as_view()),
+    path('recruiter/<uuid:recruiter_id>/', RecruiterProfileByIdView.as_view()),
 ]

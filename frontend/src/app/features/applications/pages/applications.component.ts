@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { ApiService } from '../../../core/services/api.service';
 import { AuthStateService } from '../../../core/services/auth-state.service';
 import { SeekerDataService } from '../../../core/services/seeker-data.service';
@@ -68,6 +68,7 @@ import { SalaryPipe } from '../../../shared/pipes/salary.pipe';
                   <div class="app-actions" (click)="$event.stopPropagation()">
                     <button type="button" class="secondary" (click)="viewJob(item.job_id, item)">View Job</button>
                     <button type="button" class="secondary" (click)="viewAiReview(item.job_id)">✨ AI Review</button>
+                    <button type="button" class="secondary" (click)="openChatWithRecruiter(item.recruiter_id)" [disabled]="!item.recruiter_id">Chat</button>
                     @if (item.resume_id) {
                       <button type="button" class="secondary" (click)="viewResume(item.resume_id)">View Resume</button>
                     }
@@ -421,6 +422,7 @@ export class ApplicationsComponent implements OnInit {
   readonly auth = inject(AuthStateService);
   private readonly seekerData = inject(SeekerDataService);
   private readonly alertService = inject(AlertService);
+  private readonly router = inject(Router);
 
   readonly isSubmitting = signal(false);
   readonly message = signal('');
@@ -527,5 +529,10 @@ export class ApplicationsComponent implements OnInit {
         this.alertService.error('Could not load resume file.');
       },
     });
+  }
+
+  protected openChatWithRecruiter(recruiterId?: string): void {
+    if (!recruiterId) return;
+    void this.router.navigate(['/chat'], { queryParams: { userId: recruiterId } });
   }
 }

@@ -1,6 +1,7 @@
 export interface ApplicationItem {
   id: string;
   job_id: string;
+  recruiter_id?: string;
   job_title?: string;
   resume_id?: string;
   current_stage: string;
@@ -11,6 +12,7 @@ export interface ApplicationItem {
 export interface Applicant {
   id: string;
   seeker_id: string;
+  recruiter_id?: string;
   seeker_email: string;
   job_id: string;
   job_title: string;

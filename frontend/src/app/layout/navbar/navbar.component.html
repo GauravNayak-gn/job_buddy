@@ -19,6 +19,12 @@
       }
       <a routerLink="/notifications" routerLinkActive="active">Notifications</a>
       <a routerLink="/matches" routerLinkActive="active">AI Match</a>
+      <a routerLink="/chat" routerLinkActive="active" class="chat-nav-link">
+        Chat
+        @if (chatService.hasUnread()) {
+          <span class="nav-unread-dot" title="Unread messages"></span>
+        }
+      </a>
     }
     @if (isRecruiter()) {
       <a routerLink="/post-job" routerLinkActive="active">Post Job</a>
