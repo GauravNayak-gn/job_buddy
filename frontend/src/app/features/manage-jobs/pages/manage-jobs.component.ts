@@ -5,6 +5,7 @@ import { Router, RouterLink } from '@angular/router';
 import { ApiService } from '../../../core/services/api.service';
 import { AuthStateService } from '../../../core/services/auth-state.service';
 import { AlertService } from '../../../core/services/alert.service';
+import { ChatService } from '../../../core/services/chat.service';
 import { RecruiterJob, Applicant, SeekerProfile, InterviewResponse } from '../../../core/models';
 import { extractErrorMessage } from '../../../shared/utils/error-message.util';
 import { AiAlignmentDrawerComponent } from '../../../shared/components/ai-alignment-drawer/ai-alignment-drawer.component';
@@ -175,6 +176,7 @@ import { AiAlignmentDrawerComponent } from '../../../shared/components/ai-alignm
 
                       <div class="applicant-actions">
                         <button type="button" class="secondary" (click)="viewProfile(application.seeker_id)">Profile</button>
+                        <button type="button" class="secondary" (click)="openChatWithCandidate(application.seeker_id)">Chat</button>
                         
                         @if (application.resume_id) {
                           <button type="button" class="secondary" (click)="viewResume(application.resume_id)">View Resume</button>
@@ -722,6 +724,7 @@ export class ManageJobsComponent implements OnInit {
   readonly auth = inject(AuthStateService);
   private readonly alertService = inject(AlertService);
   private readonly router = inject(Router);
+  private readonly chatService = inject(ChatService);
 
   readonly isRecruiter = this.auth.isRecruiter;
   readonly isSubmitting = signal(false);
@@ -957,6 +960,26 @@ export class ManageJobsComponent implements OnInit {
         this.isSubmitting.set(false);
         this.schedulingApplicationId.set('');
         this.alertService.success(`Interview scheduled. Jitsi Link: ${res.jitsi_link}`, 'Interview Generated');
+        
+        // Share details in chat
+        const applicant = this.applicants().find((a) => a.id === applicationId);
+        if (applicant) {
+          const formattedDate = new Date(res.scheduled_at).toLocaleString();
+          const notesStr = res.recruiter_notes ? `\nNotes: ${res.recruiter_notes}` : '';
+          const messageBody = `Interview Scheduled!\n\nRole: ${applicant.job_title || 'Applied Role'}\nDate & Time: ${formattedDate}\nMeeting Link: ${res.jitsi_link}${notesStr}`;
+
+          this.chatService.getOrCreateConversation(applicant.seeker_id).subscribe({
+            next: (conv) => {
+              this.chatService.sendMessage(conv.id, messageBody).subscribe({
+                next: () => {
+                  this.alertService.toast('Interview details shared in chat.');
+                },
+                error: (err) => console.error('Failed to share interview details in chat:', err)
+              });
+            }
+          });
+        }
+
         const jobId = this.selectedJobId();
         if (jobId) this.loadApplicants(jobId);
       },
@@ -965,6 +988,10 @@ export class ManageJobsComponent implements OnInit {
         this.alertService.error(extractErrorMessage(err), 'Failed to Schedule');
       },
     });
+  }
+
+  protected openChatWithCandidate(seekerId: string): void {
+    this.router.navigate(['/chat'], { queryParams: { userId: seekerId } });
   }
 
   protected viewProfile(seekerId: string): void {

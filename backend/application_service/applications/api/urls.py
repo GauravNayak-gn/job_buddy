@@ -10,6 +10,7 @@ from applications.api.views.application_views import (
     StageHistoryView,
     UpdateStageView,
     WithdrawApplicationView,
+    SeekerApplicationForRecruiterView,
 )
 
 urlpatterns = [
@@ -17,6 +18,7 @@ urlpatterns = [
     path('apply/', ApplyView.as_view()),
     path('my/', MyApplicationListView.as_view()),
     path('job/<uuid:job_id>/', JobApplicationListView.as_view()),
+    path('seeker/<uuid:seeker_id>/', SeekerApplicationForRecruiterView.as_view()),
     path('<uuid:application_id>/', ApplicationDetailView.as_view()),
     path('<uuid:application_id>/withdraw/', WithdrawApplicationView.as_view()),
     path('<uuid:application_id>/stage/', UpdateStageView.as_view()),

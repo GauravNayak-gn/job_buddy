@@ -4,3 +4,4 @@ export * from './profile.model';
 export * from './application.model';
 export * from './match.model';
 export * from './notification.model';
+export * from './chat.model';

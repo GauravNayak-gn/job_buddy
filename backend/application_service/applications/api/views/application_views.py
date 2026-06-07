@@ -182,3 +182,16 @@ class InterviewDetailView(APIView):
             return Response({'error': 'Forbidden.'}, status=status.HTTP_403_FORBIDDEN)
 
         return Response(InterviewSerializer(interview).data)
+
+
+class SeekerApplicationForRecruiterView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, seeker_id):
+        if not application_service.request_user_is_recruiter(request.user):
+            return Response({'error': 'Only recruiters can view candidate applications.'}, status=status.HTTP_403_FORBIDDEN)
+        
+        from applications.models.application import Application
+        apps = Application.objects.filter(seeker_id=seeker_id, recruiter_id=request.user.id)
+        return Response(ApplicationSerializer(apps, many=True).data)
+
