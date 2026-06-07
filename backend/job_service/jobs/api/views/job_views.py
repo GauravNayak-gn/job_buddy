@@ -2,14 +2,12 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated, AllowAny
+from job_service.permissions import IsRecruiter
 
 from jobs.api.serializers.job_serializers import JobSerializer, JobCategorySerializer
 from jobs.services import job_service
 from jobs.services.redis_client import RedisClient
 from jobs.dao import job_dao
-
-def request_user_is_recruiter(user):
-    return getattr(user, 'role', '') == 'recruiter'
 
 class HealthView(APIView):
     def get(self, request):
@@ -44,12 +42,9 @@ class JobListView(APIView):
         return Response(data)
 
 class JobCreateView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsRecruiter]
 
     def post(self, request):
-        if not request_user_is_recruiter(request.user):
-            return Response({"error": "Only recruiters can post jobs."}, status=status.HTTP_403_FORBIDDEN)
-        
         serializer = JobSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
@@ -86,6 +81,8 @@ class JobDetailView(APIView):
     def patch(self, request, job_id):
         if not getattr(request.user, 'is_authenticated', False):
             return Response({"error": "Authentication required."}, status=status.HTTP_401_UNAUTHORIZED)
+        if getattr(request.user, 'role', '') != 'recruiter':
+            return Response({"error": "Only recruiters can update jobs."}, status=status.HTTP_403_FORBIDDEN)
         try:
             job = job_dao.get_job_by_id_and_recruiter(job_id, request.user.id)
             
@@ -104,11 +101,9 @@ class JobDetailView(APIView):
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 class JobPublishView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsRecruiter]
 
     def post(self, request, job_id):
-        if not request_user_is_recruiter(request.user):
-            return Response({"error": "Only recruiters can publish jobs."}, status=status.HTTP_403_FORBIDDEN)
         try:
             job = job_dao.get_job_by_id_and_recruiter(job_id, request.user.id)
             job_service.publish_job(job)
@@ -119,11 +114,9 @@ class JobPublishView(APIView):
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 class JobCloseView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsRecruiter]
 
     def post(self, request, job_id):
-        if not request_user_is_recruiter(request.user):
-            return Response({"error": "Only recruiters can close jobs."}, status=status.HTTP_403_FORBIDDEN)
         try:
             job = job_dao.get_job_by_id_and_recruiter(job_id, request.user.id)
             job_service.close_job(job)
@@ -132,11 +125,9 @@ class JobCloseView(APIView):
             return Response({"error": "Job not found."}, status=status.HTTP_404_NOT_FOUND)
 
 class JobArchiveView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsRecruiter]
 
     def post(self, request, job_id):
-        if not request_user_is_recruiter(request.user):
-            return Response({"error": "Only recruiters can archive jobs."}, status=status.HTTP_403_FORBIDDEN)
         try:
             job = job_dao.get_job_by_id_and_recruiter(job_id, request.user.id)
             job_service.archive_job(job)
@@ -145,11 +136,9 @@ class JobArchiveView(APIView):
             return Response({"error": "Job not found."}, status=status.HTTP_404_NOT_FOUND)
 
 class JobRestoreView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsRecruiter]
 
     def post(self, request, job_id):
-        if not request_user_is_recruiter(request.user):
-            return Response({"error": "Only recruiters can restore jobs."}, status=status.HTTP_403_FORBIDDEN)
         try:
             job = job_dao.get_job_by_id_and_recruiter(job_id, request.user.id)
             job_service.restore_job(job)
@@ -158,10 +147,8 @@ class JobRestoreView(APIView):
             return Response({"error": "Job not found."}, status=status.HTTP_404_NOT_FOUND)
 
 class RecruiterJobListView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsRecruiter]
 
     def get(self, request):
-        if not request_user_is_recruiter(request.user):
-            return Response({"error": "Only recruiters can view recruiter jobs."}, status=status.HTTP_403_FORBIDDEN)
         jobs = job_dao.get_recruiter_jobs(request.user.id)
         return Response(JobSerializer(jobs, many=True).data)

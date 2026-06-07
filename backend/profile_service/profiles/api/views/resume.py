@@ -2,6 +2,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
+from profile_service.permissions import IsSeeker
 from rest_framework.parsers import MultiPartParser
 from django.http import FileResponse, Http404
 from django.core.files.storage import default_storage
@@ -12,7 +13,7 @@ from profiles.handlers import resume as resume_handlers
 from profiles.utils import get_presigned_url
 
 class ResumeUploadView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsSeeker]
     parser_classes = [MultiPartParser]
 
     def get(self, request):
@@ -38,7 +39,7 @@ class ResumeUploadView(APIView):
 
 
 class ResumeDetailView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsSeeker]
 
     def delete(self, request, resume_id):
         err = resume_handlers.handle_resume_deletion(request.user.id, resume_id)

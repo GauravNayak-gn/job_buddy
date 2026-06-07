@@ -67,6 +67,15 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'profile_service.authentication.JWTAuthentication',
     ),
+    'DEFAULT_THROTTLE_CLASSES': (
+        'profile_service.throttling.RoleBasedUserRateThrottle',
+    ),
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '100/day',
+        'role_seeker': '1000/day',
+        'role_recruiter': '5000/day',
+        'role_admin': '10000/day',
+    }
 }
 
 # AWS S3
