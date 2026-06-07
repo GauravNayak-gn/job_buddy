@@ -444,6 +444,7 @@ import { extractErrorMessage } from '../../../shared/utils/error-message.util';
       cursor: pointer;
       transition: all 0.2s ease;
       border: 1px solid transparent;
+      border-left: 4px solid transparent;
     }
 
     .conversation-card:hover {
@@ -453,6 +454,10 @@ import { extractErrorMessage } from '../../../shared/utils/error-message.util';
     .conversation-card.active {
       background: var(--bg-hover);
       border-color: var(--border);
+      border-left: 4px solid var(--accent);
+      border-top-left-radius: 4px;
+      border-bottom-left-radius: 4px;
+      padding-left: 0.6rem;
     }
 
     /* Avatars */
@@ -765,15 +770,17 @@ import { extractErrorMessage } from '../../../shared/utils/error-message.util';
     }
 
     .message-row:not(.outgoing) .message-bubble {
-      background: var(--bg-chat-bubble-bot);
+      background: var(--card);
+      border: 1px solid var(--border);
       color: var(--text);
       border-top-left-radius: 4px;
     }
 
     .message-row.outgoing .message-bubble {
-      background: var(--bg-chat-bubble-user);
-      color: var(--text);
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
+      color: #ffffff;
       border-top-right-radius: 4px;
+      box-shadow: 0 4px 12px rgba(217, 93, 57, 0.15);
     }
 
     .message-text {
@@ -788,9 +795,13 @@ import { extractErrorMessage } from '../../../shared/utils/error-message.util';
       opacity: 0.65;
     }
 
+    .message-row.outgoing .message-time {
+      color: rgba(255, 255, 255, 0.85);
+    }
+
     /* Meeting Invitation Card */
     .meeting-card {
-      background: rgba(255, 255, 255, 0.7);
+      background: rgba(255, 255, 255, 0.9);
       border: 1px solid var(--border);
       border-radius: 12px;
       padding: 0.85rem;
@@ -799,10 +810,13 @@ import { extractErrorMessage } from '../../../shared/utils/error-message.util';
       grid-template-columns: auto 1fr;
       gap: 0.75rem;
       align-items: center;
+      color: #0f172a !important;
     }
     
     .dark-mode .meeting-card {
-      background: rgba(15, 23, 42, 0.4);
+      background: rgba(15, 23, 42, 0.85);
+      color: #f8fafc !important;
+      border-color: rgba(255, 255, 255, 0.1);
     }
 
     .meeting-icon-container {
@@ -826,21 +840,23 @@ import { extractErrorMessage } from '../../../shared/utils/error-message.util';
       flex-direction: column;
       gap: 0.15rem;
       font-size: 0.82rem;
-      color: var(--text);
+      color: inherit !important;
     }
 
     .meeting-details strong {
       font-weight: 600;
+      color: inherit !important;
     }
 
     .meeting-details span {
       font-size: 0.75rem;
-      color: var(--muted);
+      color: inherit !important;
+      opacity: 0.85;
     }
 
     .join-btn {
       grid-column: 1 / span 2;
-      background: var(--secondary);
+      background: var(--accent);
       color: #ffffff;
       text-align: center;
       padding: 0.5rem;
@@ -848,13 +864,14 @@ import { extractErrorMessage } from '../../../shared/utils/error-message.util';
       font-size: 0.8rem;
       font-weight: 600;
       text-decoration: none;
-      transition: opacity 0.2s;
+      transition: all 0.2s ease;
       margin-top: 0.25rem;
-      box-shadow: 0 2px 4px rgba(30, 111, 104, 0.2);
+      box-shadow: 0 2px 4px rgba(217, 93, 57, 0.2);
     }
 
     .join-btn:hover {
-      opacity: 0.9;
+      background: var(--accent-hover);
+      box-shadow: 0 3px 6px rgba(217, 93, 57, 0.3);
     }
 
     /* Input controls */
