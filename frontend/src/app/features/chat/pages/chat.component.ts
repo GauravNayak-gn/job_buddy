@@ -49,6 +49,9 @@ import { extractErrorMessage } from '../../../shared/utils/error-message.util';
                     <span class="user-name" [class.unread-name]="hasUnreadMessages(conv)">{{ getDisplayName(conv) }}</span>
                     <span class="time-label">{{ (conv.last_message?.created_at || conv.updated_at) | date: 'shortTime' }}</span>
                   </div>
+                  @if (conv.job_title) {
+                    <div class="job-tag">{{ conv.job_title }}</div>
+                  }
                   <div class="card-row">
                     <span class="last-msg-preview" [class.unread]="hasUnreadMessages(conv)">
                       {{ conv.last_message?.body || getDisplaySubtitle(conv) }}
@@ -85,7 +88,11 @@ import { extractErrorMessage } from '../../../shared/utils/error-message.util';
             
             <div class="header-info">
               <h3>{{ getDisplayName(selectedConversation()!) }}</h3>
-              <p class="subtitle">{{ getDisplaySubtitle(selectedConversation()!) }}</p>
+              @if (selectedConversation()?.job_title) {
+                <span class="header-job-tag">{{ selectedConversation()?.job_title }}</span>
+              } @else {
+                <p class="subtitle">{{ getDisplaySubtitle(selectedConversation()!) }}</p>
+              }
             </div>
 
             <!-- Header Action Controls -->
@@ -521,6 +528,34 @@ import { extractErrorMessage } from '../../../shared/utils/error-message.util';
       font-size: 0.72rem;
       color: var(--muted);
       flex-shrink: 0;
+    }
+
+    .job-tag {
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--accent);
+      background: rgba(99, 102, 241, 0.1);
+      padding: 0.1rem 0.4rem;
+      border-radius: 4px;
+      width: fit-content;
+      margin-top: 0.1rem;
+      margin-bottom: 0.1rem;
+      max-width: 100%;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .header-job-tag {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--accent);
+      background: rgba(99, 102, 241, 0.1);
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+      width: fit-content;
+      margin-top: 0.2rem;
+      display: inline-block;
     }
 
     .subtitle {
@@ -1220,8 +1255,10 @@ export class ChatComponent implements OnInit, OnDestroy {
     // Check if otherUserId was passed as query parameter
     this.route.queryParams.subscribe((params) => {
       const otherUserId = params['userId'];
+      const jobId = params['jobId'];
+      const jobTitle = params['jobTitle'];
       if (otherUserId) {
-        this.startConversationWithUser(otherUserId);
+        this.startConversationWithUser(otherUserId, jobId, jobTitle);
       }
     });
 
@@ -1274,13 +1311,13 @@ export class ChatComponent implements OnInit, OnDestroy {
     });
   }
 
-  private startConversationWithUser(otherUserId: string): void {
-    this.chatService.getOrCreateConversation(otherUserId).subscribe({
+  private startConversationWithUser(otherUserId: string, jobId?: string, jobTitle?: string): void {
+    this.chatService.getOrCreateConversation(otherUserId, jobId, jobTitle).subscribe({
       next: (conv) => {
         // Clear query parameters from URL
         void this.router.navigate([], {
           relativeTo: this.route,
-          queryParams: { userId: null },
+          queryParams: { userId: null, jobId: null, jobTitle: null },
           queryParamsHandling: 'merge',
         });
         

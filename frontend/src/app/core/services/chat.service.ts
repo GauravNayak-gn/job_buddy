@@ -72,8 +72,11 @@ export class ChatService {
     return this.api.get<Conversation[]>(`${this.api.chatBase}/conversations/`, true);
   }
 
-  getOrCreateConversation(otherUserId: string): Observable<Conversation> {
-    return this.api.post<Conversation>(`${this.api.chatBase}/conversations/`, { other_user_id: otherUserId }, true);
+  getOrCreateConversation(otherUserId: string, jobId?: string, jobTitle?: string): Observable<Conversation> {
+    const payload: any = { other_user_id: otherUserId };
+    if (jobId) payload.job_id = jobId;
+    if (jobTitle) payload.job_title = jobTitle;
+    return this.api.post<Conversation>(`${this.api.chatBase}/conversations/`, payload, true);
   }
 
   getMessages(conversationId: string): Observable<Message[]> {

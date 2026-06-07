@@ -26,17 +26,39 @@ class ConversationListCreateView(APIView):
         return Response(ConversationSerializer(items.order_by('-updated_at'), many=True).data)
 
     def post(self, request):
+        if getattr(request.user, 'role', '') != 'recruiter':
+            return Response({'error': 'Only recruiters can initiate chats.'}, status=403)
+
         other_user_id = request.data.get('other_user_id')
+        job_id = request.data.get('job_id')
+        job_title = request.data.get('job_title', '').strip()
+
         if not other_user_id:
             return Response({'error': 'other_user_id is required.'}, status=400)
+        if not job_id:
+            return Response({'error': 'job_id is required.'}, status=400)
 
         user_id = request.user.id
-        conversation = Conversation.objects.filter(participant_a=user_id, participant_b=other_user_id).first()
+        conversation = Conversation.objects.filter(
+            participant_a=user_id,
+            participant_b=other_user_id,
+            job_id=job_id
+        ).first()
+        
         if not conversation:
-            conversation = Conversation.objects.filter(participant_a=other_user_id, participant_b=user_id).first()
+            conversation = Conversation.objects.filter(
+                participant_a=other_user_id,
+                participant_b=user_id,
+                job_id=job_id
+            ).first()
 
         if not conversation:
-            conversation = Conversation.objects.create(participant_a=user_id, participant_b=other_user_id)
+            conversation = Conversation.objects.create(
+                participant_a=user_id,
+                participant_b=other_user_id,
+                job_id=job_id,
+                job_title=job_title
+            )
 
         return Response(ConversationSerializer(conversation).data)
 

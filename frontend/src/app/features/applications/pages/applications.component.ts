@@ -68,7 +68,6 @@ import { SalaryPipe } from '../../../shared/pipes/salary.pipe';
                   <div class="app-actions" (click)="$event.stopPropagation()">
                     <button type="button" class="secondary" (click)="viewJob(item.job_id, item)">View Job</button>
                     <button type="button" class="secondary" (click)="viewAiReview(item.job_id)">✨ AI Review</button>
-                    <button type="button" class="secondary" (click)="openChatWithRecruiter(item.recruiter_id)" [disabled]="!item.recruiter_id">Chat</button>
                     @if (item.resume_id) {
                       <button type="button" class="secondary" (click)="viewResume(item.resume_id)">View Resume</button>
                     }
@@ -531,8 +530,4 @@ export class ApplicationsComponent implements OnInit {
     });
   }
 
-  protected openChatWithRecruiter(recruiterId?: string): void {
-    if (!recruiterId) return;
-    void this.router.navigate(['/chat'], { queryParams: { userId: recruiterId } });
-  }
 }

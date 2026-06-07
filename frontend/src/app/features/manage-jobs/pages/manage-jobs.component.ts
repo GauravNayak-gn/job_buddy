@@ -991,7 +991,13 @@ export class ManageJobsComponent implements OnInit {
   }
 
   protected openChatWithCandidate(seekerId: string): void {
-    this.router.navigate(['/chat'], { queryParams: { userId: seekerId } });
+    const job = this.selectedJob();
+    const queryParams: any = { userId: seekerId };
+    if (job) {
+      queryParams.jobId = job.id;
+      queryParams.jobTitle = job.title;
+    }
+    this.router.navigate(['/chat'], { queryParams });
   }
 
   protected viewProfile(seekerId: string): void {
