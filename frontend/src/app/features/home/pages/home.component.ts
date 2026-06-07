@@ -33,7 +33,7 @@ import { SalaryPipe } from '../../../shared/pipes/salary.pipe';
       <div class="section-heading">
         <div>
           <p class="eyebrow">Featured openings</p>
-          <h2>Published jobs from the Job Service</h2>
+          <h2>Published jobs</h2>
         </div>
         <a routerLink="/jobs" class="inline-link">See all jobs</a>
       </div>
