@@ -4,6 +4,7 @@ import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthStateService } from '../../core/services/auth-state.service';
 import { ApiService } from '../../core/services/api.service';
 import { ThemeService } from '../../core/services/theme.service';
+import { ChatService } from '../../core/services/chat.service';
 import { finalize } from 'rxjs/operators';
 
 @Component({
@@ -16,6 +17,7 @@ import { finalize } from 'rxjs/operators';
 export class NavbarComponent {
   readonly auth = inject(AuthStateService);
   readonly theme = inject(ThemeService);
+  readonly chatService = inject(ChatService);
   private readonly api = inject(ApiService);
   private readonly router = inject(Router);
   readonly isRecruiter = this.auth.isRecruiter;

@@ -124,3 +124,33 @@
 .theme-toggle-btn:active .theme-icon {
   transform: rotate(45deg);
 }
+
+.chat-nav-link {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.nav-unread-dot {
+  width: 7px;
+  height: 7px;
+  background-color: var(--accent);
+  border-radius: 50%;
+  display: inline-block;
+  box-shadow: 0 0 6px var(--accent);
+  animation: pulse-dot 1.6s infinite ease-in-out;
+}
+
+@keyframes pulse-dot {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+    box-shadow: 0 0 4px var(--accent);
+  }
+  50% {
+    transform: scale(1.4);
+    opacity: 0.65;
+    box-shadow: 0 0 9px var(--accent);
+  }
+}

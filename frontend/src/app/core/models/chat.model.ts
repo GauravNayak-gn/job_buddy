@@ -8,7 +8,12 @@ export interface Conversation {
   other_user_name?: string;
   other_user_title?: string;
   other_user_company?: string;
-  last_message?: string;
+  last_message?: {
+    id: string;
+    sender_id: string;
+    body: string;
+    created_at: string;
+  } | null;
 }
 
 export interface Message {

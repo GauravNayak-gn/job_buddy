@@ -46,11 +46,16 @@ import { extractErrorMessage } from '../../../shared/utils/error-message.util';
                 
                 <div class="card-details">
                   <div class="card-row">
-                    <span class="user-name">{{ getDisplayName(conv) }}</span>
-                    <span class="time-label">{{ conv.updated_at | date: 'shortTime' }}</span>
+                    <span class="user-name" [class.unread-name]="hasUnreadMessages(conv)">{{ getDisplayName(conv) }}</span>
+                    <span class="time-label">{{ (conv.last_message?.created_at || conv.updated_at) | date: 'shortTime' }}</span>
                   </div>
                   <div class="card-row">
-                    <span class="subtitle">{{ getDisplaySubtitle(conv) }}</span>
+                    <span class="last-msg-preview" [class.unread]="hasUnreadMessages(conv)">
+                      {{ conv.last_message?.body || getDisplaySubtitle(conv) }}
+                    </span>
+                    @if (hasUnreadMessages(conv)) {
+                      <span class="unread-dot" title="Unread message"></span>
+                    }
                   </div>
                 </div>
               </div>
@@ -496,6 +501,10 @@ import { extractErrorMessage } from '../../../shared/utils/error-message.util';
       text-overflow: ellipsis;
     }
 
+    .user-name.unread-name {
+      font-weight: 700;
+    }
+
     .time-label {
       font-size: 0.72rem;
       color: var(--muted);
@@ -509,6 +518,29 @@ import { extractErrorMessage } from '../../../shared/utils/error-message.util';
       overflow: hidden;
       text-overflow: ellipsis;
       max-width: 100%;
+    }
+
+    .last-msg-preview {
+      font-size: 0.78rem;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 180px;
+    }
+
+    .last-msg-preview.unread {
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    .unread-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: var(--accent);
+      box-shadow: 0 0 8px var(--accent);
+      flex-shrink: 0;
     }
 
     /* Chat thread section */
@@ -659,25 +691,31 @@ import { extractErrorMessage } from '../../../shared/utils/error-message.util';
     }
 
     .kebab-item {
-      background: none;
-      border: none;
-      padding: 0.55rem 0.8rem;
-      font-size: 0.82rem;
-      font-weight: 500;
-      text-align: left;
-      color: var(--text);
-      border-radius: 8px;
-      cursor: pointer;
-      transition: background 0.2s;
-      width: 100%;
-      min-height: auto;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
+      background: none !important;
+      border: none !important;
+      padding: 0.55rem 0.8rem !important;
+      font-size: 0.82rem !important;
+      font-weight: 500 !important;
+      text-align: left !important;
+      color: var(--text) !important;
+      border-radius: 8px !important;
+      cursor: pointer !important;
+      transition: background 0.2s !important;
+      width: 100% !important;
+      min-height: auto !important;
+      display: flex !important;
+      align-items: center !important;
+      gap: 0.5rem !important;
+      justify-content: flex-start !important;
+      box-shadow: none !important;
+      transform: none !important;
     }
 
     .kebab-item:hover {
-      background: var(--bg-hover);
+      background: var(--bg-hover) !important;
+      color: var(--text) !important;
+      transform: none !important;
+      box-shadow: none !important;
     }
 
     .icon-menu {
@@ -1126,12 +1164,23 @@ export class ChatComponent implements OnInit, OnDestroy {
   schedulerNotes = '';
   readonly submittingScheduler = signal(false);
 
+  // Unread messages trackers (Signal map)
+  private readonly lastSeenMessages = signal<Record<string, string>>({});
+
   // Local cache (Signal) to resolve names/company details
   private readonly profilesCache = signal<Record<string, { name: string; subtitle?: string }>>({});
 
   private pollingSub?: Subscription;
 
   ngOnInit(): void {
+    // Load last seen message IDs from local storage
+    const saved = localStorage.getItem('job-buddy-chats-seen');
+    if (saved) {
+      try {
+        this.lastSeenMessages.set(JSON.parse(saved));
+      } catch {}
+    }
+
     this.loadConversations();
 
     // Check if otherUserId was passed as query parameter
@@ -1142,11 +1191,15 @@ export class ChatComponent implements OnInit, OnDestroy {
       }
     });
 
-    // Setup periodic polling to update the active conversation messages every 4 seconds
-    this.pollingSub = interval(4000).subscribe(() => {
+    // Setup periodic polling:
+    // Update active messages every 4 seconds, reload conversations list every 8 seconds
+    this.pollingSub = interval(4000).subscribe((tick) => {
       const active = this.selectedConversation();
       if (active) {
         this.fetchMessagesSilently(active.id);
+      }
+      if (tick % 2 === 0) {
+        this.loadConversationsSilently();
       }
     });
   }
@@ -1175,6 +1228,15 @@ export class ChatComponent implements OnInit, OnDestroy {
         this.loadingConversations.set(false);
         this.alertService.error(extractErrorMessage(err), 'Failed to Load Chats');
       },
+    });
+  }
+
+  private loadConversationsSilently(): void {
+    this.chatService.getConversations().subscribe({
+      next: (data) => {
+        this.conversations.set(data);
+        data.forEach((c) => this.resolveConversationProfiles(c));
+      }
     });
   }
 
@@ -1244,6 +1306,12 @@ export class ChatComponent implements OnInit, OnDestroy {
         this.messages.set(msgs);
         this.loadingMessages.set(false);
         this.scrollToBottom();
+
+        // Mark this conversation as fully read
+        const lastMsg = msgs[msgs.length - 1];
+        if (lastMsg) {
+          this.markConversationAsRead(active.id, lastMsg.id);
+        }
       },
       error: (err) => {
         this.loadingMessages.set(false);
@@ -1259,6 +1327,12 @@ export class ChatComponent implements OnInit, OnDestroy {
         if (msgs.length !== currentCount) {
           this.messages.set(msgs);
           this.scrollToBottom();
+        }
+
+        // Mark this conversation as read
+        const lastMsg = msgs[msgs.length - 1];
+        if (lastMsg) {
+          this.markConversationAsRead(conversationId, lastMsg.id);
         }
       },
     });
@@ -1276,6 +1350,9 @@ export class ChatComponent implements OnInit, OnDestroy {
         this.newMessageText = '';
         this.sendingMessage.set(false);
         this.scrollToBottom();
+
+        // Mark as read
+        this.markConversationAsRead(active.id, newMsg.id);
       },
       error: (err) => {
         this.sendingMessage.set(false);
@@ -1385,6 +1462,31 @@ export class ChatComponent implements OnInit, OnDestroy {
         el.scrollTop = el.scrollHeight;
       } catch {}
     }, 50);
+  }
+
+  // Unread message indicators helpers
+  private markConversationAsRead(convId: string, messageId: string): void {
+    this.lastSeenMessages.update((state) => {
+      const updated = { ...state, [convId]: messageId };
+      localStorage.setItem('job-buddy-chats-seen', JSON.stringify(updated));
+      this.chatService.checkUnreadStatus();
+      return updated;
+    });
+  }
+
+  protected hasUnreadMessages(conv: Conversation): boolean {
+    if (this.selectedConversation()?.id === conv.id) {
+      return false;
+    }
+    const last = conv.last_message;
+    if (!last) {
+      return false;
+    }
+    if (String(last.sender_id) === String(this.auth.userId())) {
+      return false;
+    }
+    const lastSeenId = this.lastSeenMessages()[conv.id];
+    return lastSeenId !== last.id;
   }
 
   // Menu action calls
