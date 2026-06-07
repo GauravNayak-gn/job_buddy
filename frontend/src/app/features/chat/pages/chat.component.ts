@@ -2280,7 +2280,7 @@ export class ChatComponent implements OnInit, OnDestroy {
   }
 
   @HostListener('document:keydown.escape', ['$event'])
-  onEscapePressed(event: KeyboardEvent): void {
+  onEscapePressed(event: any): void {
     this.showingRecruiterModal.set(false);
     this.showingSeekerModal.set(false);
     this.showingJobModal.set(false);
