@@ -1968,7 +1968,7 @@ export class ChatComponent implements OnInit, OnDestroy {
     });
   }
 
-  protected sendChatMessage(): void {
+    protected sendChatMessage(): void {
     const active = this.selectedConversation();
     const text = this.newMessageText.trim();
     if (!active || !text || this.sendingMessage()) return;
@@ -1978,7 +1978,11 @@ export class ChatComponent implements OnInit, OnDestroy {
     this.sendingMessage.set(true);
     this.chatService.sendMessage(active.id, text).subscribe({
       next: (newMsg) => {
-        this.messages.update((msgs) => [...msgs, newMsg]);
+        // Only add if not already present (from WS)
+        const exists = this.messages().some(m => m.id === newMsg.id);
+        if (!exists) {
+          this.messages.update((msgs) => [...msgs, newMsg]);
+        }
         this.sendingMessageText = '';
         this.sendingMessage.set(false);
         this.scrollToBottom();

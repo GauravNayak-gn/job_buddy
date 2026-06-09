@@ -127,7 +127,7 @@ class MessageListCreateView(APIView):
         from chat.services.kafka_client import KafkaProducerClient
         KafkaProducerClient.publish('chat.message_sent', payload)
 
-        # Broadcast via Django Channels
+        # Broadcast via Django Channels (only to recipient, not sender)
         channel_layer = get_channel_layer()
         if channel_layer:
             event_data = {
@@ -135,12 +135,9 @@ class MessageListCreateView(APIView):
                 'message': json.loads(json.dumps(MessageSerializer(message).data, default=str)),
                 'conversation_id': str(conversation.id)
             }
+            # Only broadcast to recipient
             async_to_sync(channel_layer.group_send)(
-                f"user_{conversation.participant_a}",
-                event_data
-            )
-            async_to_sync(channel_layer.group_send)(
-                f"user_{conversation.participant_b}",
+                f"user_{recipient_id}",
                 event_data
             )
 
