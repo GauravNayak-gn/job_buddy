@@ -2,6 +2,10 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
+import json
+
 from .models import Conversation, Message
 from .serializers import ConversationSerializer, MessageSerializer
 
@@ -52,6 +56,7 @@ class ConversationListCreateView(APIView):
                 job_id=job_id
             ).first()
 
+        created = False
         if not conversation:
             conversation = Conversation.objects.create(
                 participant_a=user_id,
@@ -59,6 +64,20 @@ class ConversationListCreateView(APIView):
                 job_id=job_id,
                 job_title=job_title
             )
+            created = True
+
+        if created:
+            
+            channel_layer = get_channel_layer()
+            if channel_layer:
+                event_data = {
+                    'type': 'chat_conversation',
+                    'conversation': json.loads(json.dumps(ConversationSerializer(conversation).data, default=str))
+                }
+                async_to_sync(channel_layer.group_send)(
+                    f"user_{other_user_id}",
+                    event_data
+                )
 
         return Response(ConversationSerializer(conversation).data)
 
@@ -107,6 +126,23 @@ class MessageListCreateView(APIView):
         }
         from chat.services.kafka_client import KafkaProducerClient
         KafkaProducerClient.publish('chat.message_sent', payload)
+
+        # Broadcast via Django Channels
+        channel_layer = get_channel_layer()
+        if channel_layer:
+            event_data = {
+                'type': 'chat_message',
+                'message': json.loads(json.dumps(MessageSerializer(message).data, default=str)),
+                'conversation_id': str(conversation.id)
+            }
+            async_to_sync(channel_layer.group_send)(
+                f"user_{conversation.participant_a}",
+                event_data
+            )
+            async_to_sync(channel_layer.group_send)(
+                f"user_{conversation.participant_b}",
+                event_data
+            )
 
         return Response(MessageSerializer(message).data, status=201)
 
