@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, ElementRef, OnDestroy, OnInit, ViewChild, inject, signal, HostListener } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Subscription, interval } from 'rxjs';
+import { Subscription } from 'rxjs';
 import { AuthStateService } from '../../../core/services/auth-state.service';
 import { ChatService } from '../../../core/services/chat.service';
 import { AlertService } from '../../../core/services/alert.service';
@@ -436,6 +436,7 @@ import { extractErrorMessage } from '../../../shared/utils/error-message.util';
       display: grid;
       grid-template-columns: 320px 1fr;
       height: calc(85vh - 60px);
+      min-height: 0;
       background: var(--card);
       border: 1px solid var(--border);
       border-radius: 24px;
@@ -471,6 +472,7 @@ import { extractErrorMessage } from '../../../shared/utils/error-message.util';
       display: flex;
       flex-direction: column;
       background: var(--bg-alt);
+      min-height: 0;
     }
 
     .sidebar-header {
@@ -860,6 +862,7 @@ import { extractErrorMessage } from '../../../shared/utils/error-message.util';
       overflow: hidden;
       position: relative;
       animation: threadSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      min-height: 0;
     }
 
     @keyframes threadSlideIn {
@@ -1744,7 +1747,8 @@ export class ChatComponent implements OnInit, OnDestroy {
   // Local cache (Signal) to resolve names/company details
   private readonly profilesCache = signal<Record<string, { name: string; subtitle?: string }>>({});
 
-  private pollingSub?: Subscription;
+  private wsSubMessages?: Subscription;
+  private wsSubConversations?: Subscription;
 
   ngOnInit(): void {
     // Load last seen message IDs from local storage
@@ -1767,23 +1771,63 @@ export class ChatComponent implements OnInit, OnDestroy {
       }
     });
 
-    // Setup periodic polling:
-    // Update active messages every 4 seconds, reload conversations list every 8 seconds
-    this.pollingSub = interval(4000).subscribe((tick) => {
+    // Subscribe to new message events via WebSocket
+    this.wsSubMessages = this.chatService.messageReceived$.subscribe(({ message, conversation_id }) => {
       const active = this.selectedConversation();
-      if (active) {
-        this.fetchMessagesSilently(active.id);
-      }
-      if (tick % 2 === 0) {
+      
+      // 1. If this message is for the currently open conversation:
+      if (active && active.id === conversation_id) {
+        const alreadyExists = this.messages().some((m) => m.id === message.id);
+        if (!alreadyExists) {
+          this.messages.update((msgs) => [...msgs, message]);
+          this.scrollToBottom();
+          this.markConversationAsRead(active.id, message.id);
+        }
+      } else {
         this.loadConversationsSilently();
       }
+
+      // 2. Always update the conversations list in the sidebar
+      this.updateSidebarWithNewMessage(message, conversation_id);
+    });
+
+    // Subscribe to new conversation events
+    this.wsSubConversations = this.chatService.conversationReceived$.subscribe((conversation) => {
+      this.loadConversationsSilently();
     });
   }
 
   ngOnDestroy(): void {
-    if (this.pollingSub) {
-      this.pollingSub.unsubscribe();
+    if (this.wsSubMessages) {
+      this.wsSubMessages.unsubscribe();
     }
+    if (this.wsSubConversations) {
+      this.wsSubConversations.unsubscribe();
+    }
+  }
+
+  private updateSidebarWithNewMessage(message: Message, conversationId: string): void {
+    this.conversations.update((list) => {
+      const exists = list.some((c) => c.id === conversationId);
+      if (!exists) {
+        this.loadConversationsSilently();
+        return list;
+      }
+      return list.map((conv) => {
+        if (conv.id === conversationId) {
+          return {
+            ...conv,
+            last_message: message,
+            updated_at: message.created_at || conv.updated_at
+          };
+        }
+        return conv;
+      }).sort((a, b) => {
+        const dateA = new Date(a.last_message?.created_at || a.updated_at).getTime();
+        const dateB = new Date(b.last_message?.created_at || b.updated_at).getTime();
+        return dateB - dateA;
+      });
+    });
   }
 
   // Close kebab menu if clicked anywhere else
@@ -1927,7 +1971,7 @@ export class ChatComponent implements OnInit, OnDestroy {
     });
   }
 
-  protected sendChatMessage(): void {
+    protected sendChatMessage(): void {
     const active = this.selectedConversation();
     const text = this.newMessageText.trim();
     if (!active || !text || this.sendingMessage()) return;
@@ -1937,7 +1981,11 @@ export class ChatComponent implements OnInit, OnDestroy {
     this.sendingMessage.set(true);
     this.chatService.sendMessage(active.id, text).subscribe({
       next: (newMsg) => {
-        this.messages.update((msgs) => [...msgs, newMsg]);
+        // Only add if not already present (from WS)
+        const exists = this.messages().some(m => m.id === newMsg.id);
+        if (!exists) {
+          this.messages.update((msgs) => [...msgs, newMsg]);
+        }
         this.sendingMessageText = '';
         this.sendingMessage.set(false);
         this.scrollToBottom();

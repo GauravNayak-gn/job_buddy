@@ -1,7 +1,7 @@
 import { Injectable, inject, signal, effect } from '@angular/core';
 import { ApiService } from './api.service';
 import { AuthStateService } from './auth-state.service';
-import { Observable, catchError, forkJoin, map, of, Subscription, interval } from 'rxjs';
+import { Observable, catchError, forkJoin, map, of, Subscription, Subject } from 'rxjs';
 import { Conversation, Message } from '../models';
 
 @Injectable({ providedIn: 'root' })
@@ -10,33 +10,93 @@ export class ChatService {
   private readonly auth = inject(AuthStateService);
 
   readonly hasUnread = signal<boolean>(false);
-  private pollSub?: Subscription;
+  
+  readonly messageReceived$ = new Subject<{ message: Message; conversation_id: string }>();
+  readonly conversationReceived$ = new Subject<Conversation>();
+
+  private ws?: WebSocket;
+  private reconnectTimeout?: any;
+  private isConnecting = false;
 
   constructor() {
-    // Start/stop background polling when logged-in state changes
     effect(() => {
       if (this.auth.isLoggedIn()) {
-        this.startPollingUnread();
+        this.connectWebSocket();
+        this.checkUnreadStatus();
       } else {
-        this.stopPollingUnread();
+        this.disconnectWebSocket();
         this.hasUnread.set(false);
       }
     });
   }
 
-  private startPollingUnread(): void {
-    this.stopPollingUnread();
-    this.checkUnreadStatus();
-    this.pollSub = interval(8000).subscribe(() => {
-      this.checkUnreadStatus();
-    });
+  private connectWebSocket(): void {
+    if (this.ws || this.isConnecting) return;
+    const token = this.auth.accessToken();
+    if (!token) return;
+
+    this.isConnecting = true;
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    // Direct WebSocket connection to Nginx on port 80 in development
+    // to bypass dev server proxy limitations.
+    const port = window.location.port === '4200' || window.location.port === '4201' ? '80' : window.location.port;
+    const host = window.location.hostname + (port ? ':' + port : '');
+    const wsUrl = `${protocol}//${host}/api/chat/ws/?token=${token}`;
+
+    this.ws = new WebSocket(wsUrl);
+
+    this.ws.onopen = () => {
+      this.isConnecting = false;
+      if (this.reconnectTimeout) {
+        clearTimeout(this.reconnectTimeout);
+        this.reconnectTimeout = undefined;
+      }
+    };
+
+    this.ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === 'message') {
+          this.messageReceived$.next({
+            message: data.message,
+            conversation_id: data.conversation_id
+          });
+          this.checkUnreadStatus();
+        } else if (data.type === 'conversation') {
+          this.conversationReceived$.next(data.conversation);
+          this.checkUnreadStatus();
+        }
+      } catch (err) {
+        console.error('Error parsing WebSocket message:', err);
+      }
+    };
+
+    this.ws.onclose = () => {
+      this.isConnecting = false;
+      this.ws = undefined;
+      if (this.auth.isLoggedIn()) {
+        this.reconnectTimeout = setTimeout(() => this.connectWebSocket(), 3000);
+      }
+    };
+
+    this.ws.onerror = (err) => {
+      console.error('WebSocket error:', err);
+      if (this.ws) {
+        this.ws.close();
+      }
+    };
   }
 
-  private stopPollingUnread(): void {
-    if (this.pollSub) {
-      this.pollSub.unsubscribe();
-      this.pollSub = undefined;
+  private disconnectWebSocket(): void {
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout);
+      this.reconnectTimeout = undefined;
     }
+    if (this.ws) {
+      this.ws.close();
+      this.ws = undefined;
+    }
+    this.isConnecting = false;
   }
 
   checkUnreadStatus(): void {

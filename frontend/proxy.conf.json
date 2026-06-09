@@ -4,6 +4,7 @@
     "pathRewrite": { "^/api/": "/api/" },
     "changeOrigin": true,
     "secure": false,
-    "logLevel": "debug"
+    "logLevel": "debug",
+    "ws": true
   }
 }
