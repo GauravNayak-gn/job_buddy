@@ -436,6 +436,7 @@ import { extractErrorMessage } from '../../../shared/utils/error-message.util';
       display: grid;
       grid-template-columns: 320px 1fr;
       height: calc(85vh - 60px);
+      min-height: 0;
       background: var(--card);
       border: 1px solid var(--border);
       border-radius: 24px;
@@ -471,6 +472,7 @@ import { extractErrorMessage } from '../../../shared/utils/error-message.util';
       display: flex;
       flex-direction: column;
       background: var(--bg-alt);
+      min-height: 0;
     }
 
     .sidebar-header {
@@ -860,6 +862,7 @@ import { extractErrorMessage } from '../../../shared/utils/error-message.util';
       overflow: hidden;
       position: relative;
       animation: threadSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      min-height: 0;
     }
 
     @keyframes threadSlideIn {
