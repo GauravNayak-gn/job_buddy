@@ -47,7 +47,7 @@
 - RAG chatbot for job-market queries
 - Event-driven architecture with Kafka + Celery fallback
 - Schema-per-service database isolation
-- Real-time chat with unread polling
+- Real-time chat with WebSockets
 - Jitsi Meet integration for video interviews
 - Dark mode with system preference detection
 
@@ -117,9 +117,9 @@
 | Feature | Description |
 |---------|-------------|
 | User Chat | Conversation between recruiter and seeker per job |
-| Unread Indicators | Polling-based unread message detection (8-second interval) |
+| Unread Indicators | WebSocket-driven unread message detection |
 | Chat Message Events | Kafka event published on message sent |
-| WebSocket Support | ASGI configuration for potential real-time upgrade |
+| WebSocket Support | Django Channels ASGI with real-time messaging |
 | In-App Notifications | Create, list, mark read/unread, mark all read |
 | Email Notifications | Gmail SMTP for application stage changes, interview scheduling |
 
@@ -148,7 +148,7 @@
 | Angular Material | 17.3.x | UI component library |
 | TypeScript | 5.9.x | Typed frontend language |
 | Angular CDK | 17.3.x | Component development kit |
-| RxJS | 7.8.x | Reactive state, HTTP, polling |
+| RxJS | 7.8.x | Reactive state, HTTP, WebSocket events |
 | Angular Signals | built-in | Reactive state management (`signal`, `computed`, `effect`) |
 | Angular Router | built-in | Lazy-loaded routes with functional guards |
 | Angular HttpClient | built-in | API communication with JWT interceptor |
@@ -406,7 +406,7 @@
 - `chat/models.py` — `Conversation` (participant_a, participant_b, job_id, job_title) and `Message` (sender, body, conversation FK)
 - `chat/views.py` — REST endpoints for conversations and messages
 - `chat/serializers.py` — Message serialization with user details
-- `chat/consumers.py` — WebSocket consumer (ASGI configuration exists for future upgrade)
+- `chat/consumers.py` — WebSocket consumer (Django Channels AsyncWebsocketConsumer)
 - `chat/services/kafka_client.py` — Publishes `chat.message_sent` events
 - `chat/services/redis_client.py` — Cache for conversation data
 - `chat/tasks/celery_tasks.py` — Async notification tasks
@@ -601,7 +601,7 @@ frontend/src/app/
 
 - **Angular Signals** (`signal()`, `computed()`, `effect()`) for reactive state
 - **localStorage** persistence for session state and theme preference
-- **RxJS** for HTTP calls, polling (`interval(8000)` for chat unread), and parallel requests (`forkJoin`)
+- **RxJS** for HTTP calls, WebSocket event streams, and parallel requests (`forkJoin`)
 - **`AuthStateService`** with computed selectors for centralized session state
 
 ### 9.3 Key Components
@@ -932,7 +932,7 @@ The infrastructure services (Redis, Kafka, Zookeeper, Nginx) are containerized v
 
 1. **Separate databases** per service for true isolation
 2. **Kubernetes** with HPA for auto-scaling each microservice
-3. **Django Channels + WebSocket** for real-time chat (replacing polling)
+3. **Django Channels + WebSocket** for real-time chat (already implemented)
 4. **CDN** for resume file delivery
 5. **Read replicas** for PostgreSQL to distribute query load
 6. **Embedding generation in Celery task** to avoid blocking HTTP requests

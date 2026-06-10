@@ -740,35 +740,44 @@ curl -X POST http://localhost:80/api/chat/conversations/conversation-uuid/messag
    - Creates in-app notification for recipient
    - Sends email notification (optional)
 
-### Step 3: Poll for New Messages (Frontend)
+### Step 3: Receive Messages via WebSocket (Frontend)
+
+The frontend opens a persistent WebSocket connection when the user logs in. Incoming messages are delivered in real time through RxJS Subjects.
 
 ```typescript
-// Chat component uses RxJS interval for polling
-effect(() => {
-  const intervalId = setInterval(() => {
-    if (this.selectedConversation()) {
-      this.chatService.getMessages(this.selectedConversation()!.id)
-        .subscribe(messages => this.messages.set(messages));
-    }
-  }, 8000);  // Poll every 8 seconds
+// Chat service manages WebSocket lifecycle
+private connectWebSocket(): void {
+  const wsUrl = `${protocol}//${host}/api/chat/ws/?token=${token}`;
+  this.ws = new WebSocket(wsUrl);
 
-  return () => clearInterval(intervalId);
-});
+  this.ws.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+    if (data.type === 'message') {
+      this.messageReceived$.next({
+        message: data.message,
+        conversation_id: data.conversation_id
+      });
+    }
+  };
+
+  this.ws.onclose = () => {
+    // Auto-reconnect after 3 seconds
+    setTimeout(() => this.connectWebSocket(), 3000);
+  };
+}
 ```
 
-### Step 4: Unread Detection (Frontend)
+### Step 4: Unread Detection (WebSocket-Driven)
 
 ```typescript
-// Separate interval polling for unread count
-effect(() => {
-  const intervalId = setInterval(() => {
-    this.chatService.getConversations().subscribe(convs => {
-      const unread = convs.filter(c => c.unread_count > 0);
-      this.hasUnread.set(unread.length > 0);
-    });
-  }, 8000);
-  return () => clearInterval(intervalId);
-});
+// Unread status is checked when a WebSocket message arrives
+// Chat service onmessage handler:
+this.ws.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  if (data.type === 'message' || data.type === 'conversation') {
+    this.checkUnreadStatus();  // Fires a REST call to refresh unread count
+  }
+};
 ```
 
 ---

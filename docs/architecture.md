@@ -131,7 +131,7 @@ The application follows a **microservices architecture** where each business dom
 | **Synchronous REST (internal)** | HTTP direct | Service → Service | Application Service fetches job details |
 | **Asynchronous Events** | Apache Kafka | Service → Kafka → Service | Resume upload → embedding, job publish → embedding, stage change → notification |
 | **Async Fallback** | Celery | Service → Celery → DB | Guaranteed delivery when Kafka is down |
-| **Polling** | RxJS `interval()` | Frontend → Backend | Chat unread detection (8s interval) |
+| **WebSocket** | Django Channels ASGI | Frontend ↔ Backend | Real-time chat messaging |
 | **WebSocket** | Django Channels ASGI | Frontend ↔ Backend | Future real-time chat upgrade |
 
 ### 2.3 Service Independence
@@ -383,7 +383,7 @@ chat/
 │                            # Message (conversation FK, sender_id, body, created_at)
 ├── views.py                 # Conversation list/create, message list/send (145 lines)
 ├── serializers.py           # Message serializer with user details
-├── consumers.py             # WebSocket consumer (ASGI configuration, for future real-time upgrade)
+├── consumers.py             # WebSocket consumer (Django Channels AsyncWebsocketConsumer)
 ├── urls.py                  # Chat URL routing
 ├── services/
 │   ├── kafka_client.py      # Singleton producer, publishes chat.message_sent
@@ -400,9 +400,9 @@ chat_service/
 **Key Logic**:
 - **Conversation Creation**: Unique per (participant_a, participant_b, job_id) combination
 - **Message Ordering**: Ordered by `created_at` ascending
-- **Unread Detection**: Frontend polls every 8 seconds, compares message count
+- **Unread Detection**: Triggered via WebSocket events + REST check on login
+- **WebSocket Real-Time Messaging**: Django Channels `AsyncWebsocketConsumer` with JWT auth, auto-reconnect on frontend
 - **Kafka Events**: `chat.message_sent` published for each message (consumed by Notification Service)
-- **WebSocket Support**: ASGI configured with `AuthMiddlewareStack` and `URLRouter` for future WebSocket upgrade
 
 ---
 
@@ -716,14 +716,14 @@ Each service maps to a bounded business domain (auth, profiles, jobs, applicatio
 | Bottleneck | Impact | Mitigation |
 |-----------|--------|------------|
 | Single PostgreSQL instance | All 7 schemas share one DB; write contention at scale | Schema-per-service allows easy migration to separate DBs |
-| Polling-based chat | 8-second polling is not real-time | WebSocket upgrade via Django Channels (ASGI already configured) |
+| Real-time chat | WebSocket with auto-reconnect | Already implemented with Django Channels |
 | Synchronous embedding | Sentence Transformers blocks request thread | Offload to Celery worker (architecture supports) |
 | No horizontal scaling | No K8s/load balancer for auto-scaling | All services are stateless and can be replicated behind Nginx |
 | Synchronous Kafka produce | `future.get(timeout=5)` blocks request | Non-blocking produce + callback pattern |
 
 ### 9.3 Future Improvements
 
-1. **Django Channels + WebSocket** for real-time chat
+1. **Scaling WebSocket connections** with multiple server instances using Redis channel layer
 2. **Separate PostgreSQL databases** per service for true isolation
 3. **Embedding generation in Celery task** to avoid blocking HTTP
 4. **Kubernetes deployment** with HPA per microservice

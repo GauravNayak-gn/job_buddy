@@ -34,7 +34,7 @@
 | **SweetAlert2** | User-facing alerts and confirmations | `alert.service.ts` wraps Swal |
 | **Angular Router** | Lazy-loaded routes, guards | `app.routes.ts` with `loadComponent` |
 | **Angular HttpClient** | API communication with interceptors | `auth.interceptor.ts` injects JWT |
-| **RxJS** | Reactive state, polling, forkJoin | `chat.service.ts`, `matches.component.ts` |
+| **RxJS** | Reactive state, WebSocket events, forkJoin | `chat.service.ts`, `matches.component.ts` |
 | **Angular Signals** | Reactive state management (signal, computed, effect) | All components use signals |
 | **Standalone Components** | No NgModules, fully standalone pattern | `app.config.ts` with `provideHttpClient` |
 
@@ -119,7 +119,7 @@
 | 30 | **Multi-Provider AI** | Gemini + OpenAI/OpenRouter/OpenCode support | High | ✅ |
 | 31 | **AI Chatbot (RAG)** | Semantic search + LLM chatbot on job data | High | ✅ |
 | 32 | **Chat between Users** | Conversation between recruiter and seeker per job | Medium | ✅ |
-| 33 | **Unread Message Detection** | Polling-based unread indicator | Medium | ✅ |
+| 33 | **Unread Message Detection** | WebSocket-triggered unread check | Medium | ✅ |
 | 34 | **Chat Message Events** | Kafka event on message sent | Medium | ✅ |
 | 35 | **In-App Notifications** | Create, list, mark read notifications | Medium | ✅ |
 | 36 | **Email Notifications** | Gmail SMTP for application updates, interview scheduling | Medium | ✅ |
@@ -202,7 +202,7 @@ job-buddy/
 | **Fallback Chain** | Kafka → Celery → DB | `kafka_client.py` → `fallback_to_celery()` |
 | **Layered Architecture** | View → Handler/Service → DAO → Model | Consistent across all services |
 | **Dependency Injection** | Angular `inject()` function | All components use `inject()` |
-| **Observer Pattern** | RxJS Observables, Angular Signals | `chat.service.ts` polling, `effect()` watchers |
+| **Observer Pattern** | RxJS Observables, Angular Signals | `chat.service.ts` WebSocket Subjects, `effect()` watchers |
 | **Strategy Pattern** | `AiService` supports Gemini + OpenAI providers | `ai_service.py:generate_alignment_review()` |
 | **Facade Pattern** | `ApiService` wraps HttpClient | `api.service.ts` |
 
@@ -381,7 +381,7 @@ Event Flow (Async):
 
 - **Angular Signals** for reactive state: `signal()`, `computed()`, `effect()`
 - **LocalStorage persistence** for session state and theme preference
-- **RxJS** for HTTP calls, polling (`interval(8000)` for chat unread), and parallel requests (`forkJoin`)
+- **RxJS** for HTTP calls, WebSocket event Subjects, and parallel requests (`forkJoin`)
 - **Centralized session state** via `AuthStateService` with computed selectors
 
 ## Performance Optimizations
@@ -409,7 +409,7 @@ Event Flow (Async):
 2. **Standalone component architecture** — Angular 20+ best practices
 3. **Reusable AI Alignment Drawer** — shared across 4 feature components
 4. **AI Chatbot Sidebar** with markdown rendering, suggestion chips, typing indicators
-5. **Real-time unread chat polling** with background effect cleanup
+5. **WebSocket real-time chat** with auto-reconnect and background effect cleanup
 6. **Screening questions modal** with dynamic answer management
 7. **Dark mode** with system preference detection + persistence
 8. **Cross-origin proxy config** for local dev (`proxy.conf.json`)
@@ -451,7 +451,7 @@ View (API endpoint)
 
 - **Celery tasks**: Email sending, Kafka fallback retries
 - **Kafka events**: Resume uploaded → Embedding generation; Job published → Embedding generation; Application stage changed → Notification
-- **Polling**: Chat unread status polled every 8 seconds via RxJS `interval()`
+- **WebSocket**: Real-time chat via Django Channels `AsyncWebsocketConsumer`
 
 ## Engineering Decisions Worth Discussing in Interviews
 
@@ -558,14 +558,14 @@ JobEmbedding.objects.annotate(
 ## Current Bottlenecks
 
 1. **Single PostgreSQL instance** — All 7 schemas share one DB; write contention at scale
-2. **Polling-based chat unread** — 8-second polling is not real-time; WebSocket would be better
+2. **WebSocket scaling** — Single-server WebSocket may need Redis channel layer for horizontal scaling
 3. **Synchronous embedding generation** — Sentence Transformers model loaded in-process; blocks request thread
 4. **No horizontal scaling** — No Kubernetes/load balancer configuration for auto-scaling
 5. **Synchronous Kafka produce** — `future.get(timeout=5)` blocks the request thread
 
 ## Future Improvements
 
-1. **Django Channels + WebSocket** for real-time chat instead of polling
+1. **Redis channel layer** for scaling WebSocket across multiple server instances
 2. **Separate databases** per service for true isolation at scale
 3. **Embedding generation in Celery task** to avoid blocking HTTP requests
 4. **Kubernetes deployment** with HPA for each microservice
@@ -631,7 +631,7 @@ JobEmbedding.objects.annotate(
 - Architected 7 Django REST Framework microservices (Auth, Profile, Jobs, Applications, Matching, Notifications, Chat) with schema-per-database isolation and Nginx API Gateway
 - Implemented AI semantic matching pipeline: PDF parse (PyMuPDF) → Sentence Transformers 384-dim embeddings → pgvector cosine similarity → Gemini/OpenAI alignment reviews
 - Built event-driven system with Apache Kafka (6 event types), Celery fallback with retry, and Dead Letter Queue for guaranteed async message delivery
-- Developed Angular 20 SPA with standalone components, Signals state management, lazy-loaded routes, dark mode, and real-time chat polling
+- Developed Angular 20 SPA with standalone components, Signals state management, lazy-loaded routes, dark mode, and WebSocket real-time chat
 - Designed PostgreSQL with pgvector extension, 7 schemas, UUID keys, JSON fields, and composite constraints across 16+ tables
 
 ## Startup Resume Version
@@ -686,7 +686,7 @@ JobEmbedding.objects.annotate(
 13. **Why PyMuPDF?** — Fast, pure Python, handles corrupted PDFs gracefully
 14. **Why Nginx as API Gateway?** — Battle-tested, zero-downtime reloads, SSL termination
 15. **Why Gemini + OpenAI both?** — Vendor lock-in avoidance, cost optimization per use case
-16. **Why polling for chat instead of WebSockets?** — Simpler initial implementation, acceptable for MVP
+16. **Why WebSockets for chat?** — Django Channels enables real-time messaging with auto-reconnect support
 17. **Why 6-digit OTP?** — Balance of security (1M combinations) and usability
 18. **Why no cross-schema FKs?** — True microservice isolation, services can be split to separate DBs
 19. **Why singleton Kafka producer?** — Connection reuse, thread safety, resource efficiency
@@ -764,9 +764,9 @@ JobEmbedding.objects.annotate(
 
 3. **Q**: Why shared SECRET_KEY across services? Isn't that a security risk?  
    **A**: In production, each service would have its own key and validate via the auth service. For this architecture, shared key avoids the callback bottleneck while we demonstrate the pattern.
+4. **Q**: How does real-time chat work?  
 
-4. **Q**: Why polling for chat instead of WebSockets?  
-   **A**: MVP pragmatism — polling 8 seconds is acceptable for a non-realtime chat. WebSocket upgrade (Django Channels) is the documented next step.
+   **A**: It uses Django Channels with an `AsyncWebsocketConsumer`. The frontend opens a WebSocket connection on login with JWT auth, receives messages in real time via RxJS Subjects, and auto-reconnects after 3 seconds if the connection drops.
 
 5. **Q**: Why both Kafka and Celery? They overlap.  
    **A**: Kafka provides the event log and real-time streaming; Celery provides guaranteed execution with retry. The fallback chain ensures no message loss during Kafka outages.
@@ -824,7 +824,7 @@ JobEmbedding.objects.annotate(
 |-----------|-------------|---------------|
 | **Technical Complexity** | 8.5 | 7 microservices, 3 async systems (Kafka, Celery, Redis), AI/ML pipeline, pgvector |
 | **Backend Complexity** | 9.0 | Multiple architectural patterns, event-driven, fallback chains, multi-provider AI, cross-schema queries |
-| **Frontend Complexity** | 7.0 | 10 lazy-loaded feature pages, Signals, real-time polling, reusable AI drawer, chatbot sidebar, dark mode |
+| **Frontend Complexity** | 7.0 | 10 lazy-loaded feature pages, Signals, WebSocket real-time chat, reusable AI drawer, chatbot sidebar, dark mode |
 | **Database Complexity** | 8.0 | 7 schemas, pgvector, JSON fields, UUID keys, cross-schema queries, 16+ tables with unique constraints |
 | **Architecture Quality** | 8.0 | Clean layered architecture, consistent patterns, good separation of concerns, well-organized folder structure |
 | **Resume Strength** | 9.0 | Covers microservices, AI/ML, event-driven, Angular 20, PostgreSQL+pgvector, Docker, JWT, RBAC — extremely strong portfolio project |
@@ -841,7 +841,7 @@ This is an **exceptional portfolio project** that demonstrates proficiency acros
 
 | Feature | Current State | Gap |
 |---------|--------------|-----|
-| **WebSocket Chat** | REST-based polling | No real-time messaging; Django Channels not implemented |
+| **WebSocket Chat** | Django Channels AsyncWebsocketConsumer | Real-time messaging with auto-reconnect |
 | **pgvector IVFFlat Index** | Documented as pending | No index migration file found |
 | **S3 Upload** | Fallback to local storage | S3 config present but local storage used via `utils_local.py` |
 | **Notification Service Kafka Consumer** | Service exists but consumer not fully wired | Management commands exist but consumer run script missing |
