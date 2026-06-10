@@ -859,7 +859,7 @@ export class ManageJobsComponent implements OnInit {
     this.isSubmitting.set(true);
     this.message.set('');
 
-    this.api.post(`${this.api.applicationsBase}/${applicationId}/stage/`, { stage: newStage }, true).subscribe({
+    this.api.post(`${this.api.applicationsBase}/${applicationId}/stage/`, { new_stage: newStage }, true).subscribe({
       next: () => {
         this.isSubmitting.set(false);
         this.alertService.toast(`Stage updated to ${newStage}.`);

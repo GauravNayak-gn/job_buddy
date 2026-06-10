@@ -1,774 +1,971 @@
-# Setup Guide — Running Everything on Your Machine
+# Setup Guide
 
-## What You Will Have Running
-
-After this guide, your machine will run:
-- PostgreSQL with pgvector
-- Redis
-- Kafka + Zookeeper
-- All 7 Django services
-- Nginx as reverse proxy
-- Angular frontend
-
-Everything runs via Docker Compose. You only need Docker installed.
+> **Job Buddy** — Complete development environment setup and installation instructions.
 
 ---
 
-## Prerequisites
+## Table of Contents
 
-### Install Docker on Linux
-```bash
-sudo apt update
-sudo apt install -y docker.io docker-compose-plugin
-sudo usermod -aG docker $USER
-# Log out and log back in after this
-```
-
-### Verify
-```bash
-docker --version
-docker compose version
-```
-
-### Install Node.js (for Angular)
-```bash
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-sudo apt install -y nodejs
-node --version   # should be 20.x
-npm --version
-```
-
-### Install Angular CLI
-```bash
-npm install -g @angular/cli
-ng version
-```
-
-### Install Python (for running services without Docker if needed)
-```bash
-sudo apt install -y python3.11 python3.11-venv python3-pip
-```
+1. [Prerequisites](#1-prerequisites)
+2. [Quick Start (TL;DR)](#2-quick-start-tldr)
+3. [PostgreSQL Setup](#3-postgresql-setup)
+4. [Infrastructure Setup (Docker)](#4-infrastructure-setup-docker)
+5. [Backend Services Setup](#5-backend-services-setup)
+6. [Frontend Setup](#6-frontend-setup)
+7. [Health Verification](#7-health-verification)
+8. [Common Issues & Troubleshooting](#8-common-issues--troubleshooting)
+9. [Environment Variables Reference](#9-environment-variables-reference)
+10. [Useful Commands](#10-useful-commands)
 
 ---
 
-## Step 1 — Create Project Folder Structure
+## 1. Prerequisites
 
-```bash
-mkdir -p job-portal/services
-mkdir -p job-portal/nginx
-mkdir -p job-portal/docs
-cd job-portal
-```
+### Required Software
 
----
+| Software | Version | Purpose | Installation Check |
+|----------|---------|---------|-------------------|
+| **Python** | 3.10+ | Backend runtime | `python3 --version` |
+| **Node.js** | 20+ | Frontend runtime | `node --version` |
+| **PostgreSQL** | 16+ | Database | `psql --version` |
+| **Docker** | 24+ | Infrastructure containers | `docker --version` |
+| **Docker Compose** | 2.x | Container orchestration | `docker compose version` |
+| **Angular CLI** | 20+ | Frontend development | `ng version` |
 
-## Step 2 — Docker Compose File
+### Optional but Recommended
 
-Create `job-portal/docker-compose.yml`:
+| Tool | Purpose |
+|------|---------|
+| **pgAdmin** or **DBeaver** | Database GUI for inspecting schemas |
+| **Redis Insight** | Redis GUI for viewing cache/keys |
+| **Kafka UI** (e.g., Kafdrop, AKHQ) | Kafka topic management |
+| **Postman** or **Bruno** | API testing |
+| **Python virtualenv** | Isolated Python environments |
 
-```yaml
-version: '3.9'
+### Port Requirements
 
-services:
+Ensure these ports are free (not used by other services):
 
-  # ─── Infrastructure ───────────────────────────────────────
-
-  postgres:
-    image: pgvector/pgvector:pg16
-    container_name: jobportal_postgres
-    environment:
-      POSTGRES_DB: jobportal_db
-      POSTGRES_USER: jobportal_user
-      POSTGRES_PASSWORD: jobportal_pass
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./scripts/init_db.sql:/docker-entrypoint-initdb.d/init_db.sql
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U jobportal_user -d jobportal_db"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  redis:
-    image: redis:7-alpine
-    container_name: jobportal_redis
-    ports:
-      - "6379:6379"
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  zookeeper:
-    image: confluentinc/cp-zookeeper:7.6.0
-    container_name: jobportal_zookeeper
-    environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
-
-  kafka:
-    image: confluentinc/cp-kafka:7.6.0
-    container_name: jobportal_kafka
-    depends_on:
-      - zookeeper
-    ports:
-      - "9092:9092"
-    environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
-
-  # ─── Backend Services ──────────────────────────────────────
-
-  auth_service:
-    build: ./services/auth_service
-    container_name: jobportal_auth
-    env_file: ./services/auth_service/.env
-    ports:
-      - "8001:8001"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    command: python manage.py runserver 0.0.0.0:8001
-
-  profile_service:
-    build: ./services/profile_service
-    container_name: jobportal_profile
-    env_file: ./services/profile_service/.env
-    ports:
-      - "8002:8002"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      kafka:
-        condition: service_started
-    command: python manage.py runserver 0.0.0.0:8002
-
-  job_service:
-    build: ./services/job_service
-    container_name: jobportal_job
-    env_file: ./services/job_service/.env
-    ports:
-      - "8003:8003"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      kafka:
-        condition: service_started
-    command: python manage.py runserver 0.0.0.0:8003
-
-  application_service:
-    build: ./services/application_service
-    container_name: jobportal_application
-    env_file: ./services/application_service/.env
-    ports:
-      - "8004:8004"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      kafka:
-        condition: service_started
-    command: python manage.py runserver 0.0.0.0:8004
-
-  matching_service:
-    build: ./services/matching_service
-    container_name: jobportal_matching
-    env_file: ./services/matching_service/.env
-    ports:
-      - "8005:8005"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      kafka:
-        condition: service_started
-    command: python manage.py runserver 0.0.0.0:8005
-
-  notification_service:
-    build: ./services/notification_service
-    container_name: jobportal_notification
-    env_file: ./services/notification_service/.env
-    ports:
-      - "8006:8006"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      kafka:
-        condition: service_started
-    command: python manage.py runserver 0.0.0.0:8006
-
-  chat_service:
-    build: ./services/chat_service
-    container_name: jobportal_chat
-    env_file: ./services/chat_service/.env
-    ports:
-      - "8007:8007"
-    depends_on:
-      postgres:
-        condition: service_healthy
-    command: python manage.py runserver 0.0.0.0:8007
-
-  # ─── Nginx ────────────────────────────────────────────────
-
-  nginx:
-    image: nginx:alpine
-    container_name: jobportal_nginx
-    ports:
-      - "80:80"
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-    depends_on:
-      - auth_service
-      - profile_service
-      - job_service
-      - application_service
-      - matching_service
-      - notification_service
-
-volumes:
-  postgres_data:
-```
+| Port | Service | Purpose |
+|------|---------|---------|
+| 5432 | PostgreSQL | Database |
+| 6379 | Redis | Cache, broker, rate limiting |
+| 9092 | Kafka | Event bus |
+| 2181 | Zookeeper | Kafka coordination |
+| 80 | Nginx | API Gateway |
+| 4200 | Angular Dev Server | Frontend (dev) |
+| 8001-8007 | Backend Services | 7 Django services |
 
 ---
 
-## Step 3 — Database Initialization Script
-
-Create `job-portal/scripts/init_db.sql`:
-
-```sql
--- Enable pgvector extension
-CREATE EXTENSION IF NOT EXISTS vector;
-
--- Create all schemas
-CREATE SCHEMA IF NOT EXISTS auth_schema;
-CREATE SCHEMA IF NOT EXISTS profile_schema;
-CREATE SCHEMA IF NOT EXISTS job_schema;
-CREATE SCHEMA IF NOT EXISTS app_schema;
-CREATE SCHEMA IF NOT EXISTS match_schema;
-CREATE SCHEMA IF NOT EXISTS notification_schema;
-CREATE SCHEMA IF NOT EXISTS chat_schema;
-
--- Grant permissions to our user
-GRANT ALL ON SCHEMA auth_schema TO jobportal_user;
-GRANT ALL ON SCHEMA profile_schema TO jobportal_user;
-GRANT ALL ON SCHEMA job_schema TO jobportal_user;
-GRANT ALL ON SCHEMA app_schema TO jobportal_user;
-GRANT ALL ON SCHEMA match_schema TO jobportal_user;
-GRANT ALL ON SCHEMA notification_schema TO jobportal_user;
-GRANT ALL ON SCHEMA chat_schema TO jobportal_user;
-```
-
----
-
-## Step 4 — Nginx Config
-
-Create `job-portal/nginx/nginx.conf`:
-
-```nginx
-events {
-    worker_connections 1024;
-}
-
-http {
-    upstream auth_service      { server auth_service:8001; }
-    upstream profile_service   { server profile_service:8002; }
-    upstream job_service       { server job_service:8003; }
-    upstream application_service { server application_service:8004; }
-    upstream matching_service  { server matching_service:8005; }
-    upstream notification_service { server notification_service:8006; }
-    upstream chat_service      { server chat_service:8007; }
-
-    server {
-        listen 80;
-
-        location /api/auth/        { proxy_pass http://auth_service; }
-        location /api/profile/     { proxy_pass http://profile_service; }
-        location /api/jobs/        { proxy_pass http://job_service; }
-        location /api/applications/{ proxy_pass http://application_service; }
-        location /api/match/       { proxy_pass http://matching_service; }
-        location /api/notifications/{ proxy_pass http://notification_service; }
-        location /api/chat/        { proxy_pass http://chat_service; }
-
-        # Proxy headers for all locations
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    }
-}
-```
-
----
-
-## Step 5 — Django Service Template
-
-Every service follows this same pattern. Here is the template for **auth_service** — repeat for others changing the schema name and apps.
-
-### Folder structure for one service
-```
-services/auth_service/
-├── Dockerfile
-├── requirements.txt
-├── .env
-├── manage.py
-└── auth_service/
-    ├── settings.py
-    ├── urls.py
-    └── wsgi.py
-```
-
-### Dockerfile (same for all services)
-```dockerfile
-FROM python:3.11-slim
-
-WORKDIR /app
-
-RUN apt-get update && apt-get install -y libpq-dev gcc && rm -rf /var/lib/apt/lists/*
-
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-COPY . .
-
-EXPOSE 8001
-```
-
-### requirements.txt (auth_service)
-```
-django==4.2
-djangorestframework==3.15
-djangorestframework-simplejwt==5.3
-psycopg2-binary==2.9
-django-redis==5.4
-redis==5.0
-kafka-python==2.0
-python-decouple==3.8
-django-cors-headers==4.3
-```
-
-### .env (auth_service)
-```env
-SECRET_KEY=your-secret-key-change-this-in-production
-DEBUG=True
-DB_NAME=jobportal_db
-DB_USER=jobportal_user
-DB_PASSWORD=jobportal_pass
-DB_HOST=postgres
-DB_PORT=5432
-DB_SCHEMA=auth_schema
-REDIS_URL=redis://redis:6379/0
-KAFKA_BOOTSTRAP_SERVERS=kafka:29092
-EMAIL_HOST=smtp.gmail.com
-EMAIL_PORT=587
-EMAIL_HOST_USER=yourproject@gmail.com
-EMAIL_HOST_PASSWORD=your-gmail-app-password
-```
-
-### settings.py (auth_service)
-```python
-from decouple import config
-
-SECRET_KEY = config('SECRET_KEY')
-DEBUG = config('DEBUG', cast=bool)
-ALLOWED_HOSTS = ['*']
-
-INSTALLED_APPS = [
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-    'rest_framework',
-    'corsheaders',
-    'accounts',  # your app name
-]
-
-MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',
-    'django.middleware.security.SecurityMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
-]
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': config('DB_NAME'),
-        'USER': config('DB_USER'),
-        'PASSWORD': config('DB_PASSWORD'),
-        'HOST': config('DB_HOST'),
-        'PORT': config('DB_PORT'),
-        'OPTIONS': {
-            'options': f"-c search_path={config('DB_SCHEMA')}"
-        },
-    }
-}
-
-CACHES = {
-    'default': {
-        'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': config('REDIS_URL'),
-        'OPTIONS': {'CLIENT_CLASS': 'django_redis.client.DefaultClient'},
-    }
-}
-
-REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
-    ),
-}
-
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = config('EMAIL_HOST')
-EMAIL_PORT = config('EMAIL_PORT', cast=int)
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = config('EMAIL_HOST_USER')
-EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
-DEFAULT_FROM_EMAIL = f"Job Portal <{config('EMAIL_HOST_USER')}>"
-
-CORS_ALLOW_ALL_ORIGINS = True  # restrict in production
-
-STATIC_URL = '/static/'
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-```
-
----
-
-## Step 6 — Gmail App Password Setup (Avoid Spam)
-
-1. Go to your Google Account → Security
-2. Enable 2-Step Verification (required)
-3. Go to Security → App Passwords
-4. Select app: Mail, device: Other → type "Job Portal"
-5. Copy the 16-character password
-6. Put it in `.env` as `EMAIL_HOST_PASSWORD`
-
-This is different from your Gmail password. Emails sent this way are authenticated and won't go to spam for normal transactional emails.
-
----
-
-## Step 7 — Create the Kafka Topics
-
-After starting Docker Compose, create topics manually:
+## 2. Quick Start (TL;DR)
 
 ```bash
-# Wait for Kafka to start, then run:
-docker exec jobportal_kafka kafka-topics --create \
-  --bootstrap-server localhost:9092 \
-  --topic user.registered \
-  --partitions 1 --replication-factor 1
+# 1. Clone
+git clone <repo-url>
+cd job-buddy
 
-docker exec jobportal_kafka kafka-topics --create \
-  --bootstrap-server localhost:9092 \
-  --topic resume.uploaded \
-  --partitions 1 --replication-factor 1
+# 2. Database
+psql -U postgres -c "CREATE DATABASE jobportal_db;"
+psql -U postgres -d jobportal_db -f scripts/init_db.sql
 
-docker exec jobportal_kafka kafka-topics --create \
-  --bootstrap-server localhost:9092 \
-  --topic job.published \
-  --partitions 1 --replication-factor 1
+# 3. Infrastructure
+docker-compose up -d
 
-docker exec jobportal_kafka kafka-topics --create \
-  --bootstrap-server localhost:9092 \
-  --topic application.stage_changed \
-  --partitions 1 --replication-factor 1
-
-docker exec jobportal_kafka kafka-topics --create \
-  --bootstrap-server localhost:9092 \
-  --topic interview.scheduled \
-  --partitions 1 --replication-factor 1
-
-# Verify topics exist
-docker exec jobportal_kafka kafka-topics --list --bootstrap-server localhost:9092
-```
-
----
-
-## Step 8 — Run Migrations for Each Service
-
-```bash
-# Run inside each service container
-docker exec jobportal_auth python manage.py migrate
-docker exec jobportal_profile python manage.py migrate
-docker exec jobportal_job python manage.py migrate
-docker exec jobportal_application python manage.py migrate
-docker exec jobportal_matching python manage.py migrate
-docker exec jobportal_notification python manage.py migrate
-docker exec jobportal_chat python manage.py migrate
-```
-
----
-
-## Step 9 — Load Sample Data
-
-Create `job-portal/scripts/sample_data.sql` and run it:
-
-```sql
--- Switch to auth_schema
-SET search_path = auth_schema;
-
-INSERT INTO users (id, email, password_hash, role, is_active, is_verified) VALUES
-('a1b2c3d4-0000-0000-0000-000000000001', 'rahul@gmail.com',    'hashed_pw_here', 'seeker',    true, true),
-('a1b2c3d4-0000-0000-0000-000000000002', 'priya@techcorp.com', 'hashed_pw_here', 'recruiter', true, true),
-('a1b2c3d4-0000-0000-0000-000000000003', 'admin@portal.com',   'hashed_pw_here', 'admin',     true, true);
-
--- Switch to profile_schema
-SET search_path = profile_schema;
-
-INSERT INTO seeker_profiles (id, user_id, first_name, last_name, current_title, summary) VALUES
-('b1b2c3d4-0000-0000-0000-000000000001',
- 'a1b2c3d4-0000-0000-0000-000000000001',
- 'Rahul', 'Sharma', 'Full Stack Developer',
- '2 years of experience in Django and Angular. Passionate about building scalable web apps.');
-
-INSERT INTO recruiter_profiles (id, user_id, company_name, industry, hq_location, company_size) VALUES
-('c1b2c3d4-0000-0000-0000-000000000001',
- 'a1b2c3d4-0000-0000-0000-000000000002',
- 'TechCorp India', 'Software', 'Bangalore', '51-200');
-
-INSERT INTO skills (id, name) VALUES
-('s0000001-0000-0000-0000-000000000001', 'Python'),
-('s0000001-0000-0000-0000-000000000002', 'Django'),
-('s0000001-0000-0000-0000-000000000003', 'Angular'),
-('s0000001-0000-0000-0000-000000000004', 'PostgreSQL'),
-('s0000001-0000-0000-0000-000000000005', 'React'),
-('s0000001-0000-0000-0000-000000000006', 'Docker');
-
-INSERT INTO seeker_skills (id, seeker_id, skill_id, years_of_experience) VALUES
-('sk000001-0000-0000-0000-000000000001', 'b1b2c3d4-0000-0000-0000-000000000001', 's0000001-0000-0000-0000-000000000001', 2),
-('sk000001-0000-0000-0000-000000000002', 'b1b2c3d4-0000-0000-0000-000000000001', 's0000001-0000-0000-0000-000000000002', 2),
-('sk000001-0000-0000-0000-000000000003', 'b1b2c3d4-0000-0000-0000-000000000001', 's0000001-0000-0000-0000-000000000003', 1);
-
--- Switch to job_schema
-SET search_path = job_schema;
-
-INSERT INTO job_categories (id, name) VALUES
-('cat00001-0000-0000-0000-000000000001', 'Software Engineering'),
-('cat00001-0000-0000-0000-000000000002', 'Data Science'),
-('cat00001-0000-0000-0000-000000000003', 'DevOps');
-
-INSERT INTO jobs (id, recruiter_id, category_id, title, slug, description, location_type, salary_min, salary_max, experience_required, status) VALUES
-('job00001-0000-0000-0000-000000000001',
- 'c1b2c3d4-0000-0000-0000-000000000001',
- 'cat00001-0000-0000-0000-000000000001',
- 'Backend Developer - Django',
- 'backend-developer-django-techcorp',
- 'We are looking for a Django developer with experience in REST APIs, PostgreSQL, and Docker. You will build and maintain our core platform services.',
- 'remote', 40000, 70000, '1-3 years', 'published');
-
--- Switch to app_schema
-SET search_path = app_schema;
-
-INSERT INTO applications (id, job_id, seeker_id, resume_id, cover_letter, current_stage) VALUES
-('app00001-0000-0000-0000-000000000001',
- 'job00001-0000-0000-0000-000000000001',
- 'b1b2c3d4-0000-0000-0000-000000000001',
- 'res00001-0000-0000-0000-000000000001',
- 'I am very interested in this role and believe my Django experience makes me a strong fit.',
- 'applied');
-```
-
-Run it:
-```bash
-docker exec -i jobportal_postgres psql -U jobportal_user -d jobportal_db < scripts/sample_data.sql
-```
-
----
-
-## Step 10 — Start Everything
-
-```bash
-cd job-portal
-
-# Start all infrastructure and services
-docker compose up -d
-
-# Check all containers are running
-docker compose ps
-
-# View logs for a specific service
-docker compose logs -f auth_service
-
-# View logs for all services
-docker compose logs -f
-```
-
----
-
-## Step 11 — Angular Frontend Setup
-
-```bash
-cd job-portal
-ng new frontend --routing --style=scss
-cd frontend
-npm install
-
-# Install HTTP client and JWT helper
-npm install @auth0/angular-jwt
-
-# Start dev server
-ng serve --port 4200
-```
-
-Angular will run on `http://localhost:4200` and call `http://localhost/api/...` through Nginx.
-
-In `frontend/src/environments/environment.ts`:
-```typescript
-export const environment = {
-  production: false,
-  apiUrl: 'http://localhost/api'
-};
-```
-
----
-
-## Step 12 — Verify Everything is Working
-
-```bash
-# Test Auth Service
-curl http://localhost/api/auth/health/
-# Expected: {"status": "ok", "service": "auth"}
-
-# Test Job Service
-curl http://localhost/api/jobs/
-# Expected: list of jobs
-
-# Check PostgreSQL schemas exist
-docker exec jobportal_postgres psql -U jobportal_user -d jobportal_db \
-  -c "\dn"
-# Should show: auth_schema, profile_schema, job_schema, app_schema, match_schema, notification_schema, chat_schema
-
-# Check pgvector is installed
-docker exec jobportal_postgres psql -U jobportal_user -d jobportal_db \
-  -c "SELECT * FROM pg_extension WHERE extname = 'vector';"
-```
-
----
-
-## Useful Commands Reference
-
-```bash
-# Stop everything
-docker compose down
-
-# Stop and delete all data (fresh start)
-docker compose down -v
-
-# Rebuild a specific service after code change
-docker compose up -d --build auth_service
-
-# Open a shell inside a service
-docker exec -it jobportal_auth bash
-
-# Open PostgreSQL shell
-docker exec -it jobportal_postgres psql -U jobportal_user -d jobportal_db
-
-# Check Kafka topics
-docker exec jobportal_kafka kafka-topics --list --bootstrap-server localhost:9092
-
-# Monitor Kafka messages on a topic
-docker exec jobportal_kafka kafka-console-consumer \
-  --bootstrap-server localhost:9092 \
-  --topic application.stage_changed \
-  --from-beginning
-```
-
----
-
-## Without Docker (If Needed)
-
-If Docker is not available, run each service manually:
-
-```bash
-# Install PostgreSQL
-sudo apt install -y postgresql postgresql-contrib
-
-# Install pgvector
-sudo apt install -y postgresql-16-pgvector
-
-# Install Redis
-sudo apt install -y redis-server
-
-# Install Kafka (download from kafka.apache.org)
-# Or use a simpler alternative: run Kafka via the binary
-
-# For each service:
-cd services/auth_service
+# 4. Set up ONE backend service (example: auth)
+cd backend/auth_service
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
+cp .env.example .env  # edit if needed
 python manage.py migrate
-python manage.py runserver 8001
-```
+python manage.py runserver 0.0.0.0:8001 &
 
-Run each service in a separate terminal tab.
+# 5. Repeat step 4 for all 7 services (or use start_backends.sh)
+
+# 6. Frontend
+cd frontend
+npm install
+ng serve
+
+# 7. Verify
+curl http://localhost:80/api/auth/health/
+# → {"status": "healthy"}
+```
 
 ---
 
-## Development Order Recommendation
+## 3. PostgreSQL Setup
 
-Build in this order to avoid blockers:
+### 3.1 Install PostgreSQL (Ubuntu/Debian)
 
-1. Set up Docker Compose + PostgreSQL + Redis + Kafka (infrastructure first)
-2. Auth Service (everything depends on JWT from here)
-3. Profile Service (seekers and recruiters need profiles)
-4. Job Service (jobs need recruiter profiles)
-5. Application Service (applications need jobs and profiles)
-6. Notification Service (needs Kafka events from Application Service)
-7. Matching Service (needs resumes and jobs to exist)
-8. Chat Service (placeholder, add last)
-9. Angular Frontend (build pages as each backend service is ready)
+```bash
+# Add PostgreSQL repository
+sudo sh -c 'echo "deb https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+wget -qO- https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo tee /etc/apt/trusted.gpg.d/pgdg.asc
+
+sudo apt update
+sudo apt install -y postgresql-16 postgresql-client-16 postgresql-16-pgvector
+
+# Start PostgreSQL
+sudo systemctl enable postgresql
+sudo systemctl start postgresql
+```
+
+### 3.2 Install PostgreSQL (macOS)
+
+```bash
+brew install postgresql@16 pgvector
+brew services start postgresql@16
+```
+
+### 3.3 Install PostgreSQL (Windows)
+
+Download from [EnterpriseDB](https://www.postgresql.org/download/windows/) and install. Ensure pgvector is installed via Stack Builder or manually.
+
+### 3.4 Create Database and User
+
+```bash
+# Switch to postgres user
+sudo -u postgres psql
+
+# In psql shell:
+CREATE USER admin WITH PASSWORD 'job@123';
+CREATE DATABASE jobportal_db OWNER admin;
+\c jobportal_db
+
+# Verify pgvector extension is available
+SELECT * FROM pg_available_extensions WHERE name = 'vector';
+-- If not available, install it:
+-- CREATE EXTENSION vector;
+
+\q
+```
+
+### 3.5 Initialize Schemas
+
+```bash
+# Run from the project root
+psql -U admin -d jobportal_db -f scripts/init_db.sql
+```
+
+This creates:
+- 7 schemas: `auth_schema`, `profile_schema`, `job_schema`, `app_schema`, `match_schema`, `notification_schema`, `chat_schema`
+- Grants all privileges to the `admin` user
+- Enables pgvector extension
+
+### 3.6 Verify Database Setup
+
+```bash
+# Run the diagnostic script
+python check_db_connection.py
+```
+
+Expected output:
+```
+============================================================
+  Job-Buddy Backend Database Connectivity Check
+============================================================
+
+============================================================
+  1. PostgreSQL Connection Check
+============================================================
+✓ Connected to PostgreSQL
+  Version: PostgreSQL 16.x
+
+============================================================
+  2. Schema Verification
+============================================================
+✓ auth_service               → auth_schema
+✓ profile_service            → profile_schema
+✓ job_service                → job_schema
+✓ application_service        → app_schema
+✓ notification_service       → notification_schema
+✓ chat_service               → chat_schema
+✓ matching_service           → match_schema
+
+============================================================
+  4. Environment Files Check
+============================================================
+✗ auth_service               → .env file NOT found
+...
+```
 
 ---
 
-## Sentence Transformers Setup (Matching Service)
+## 4. Infrastructure Setup (Docker)
 
-The AI model downloads automatically on first run. Add to matching_service requirements.txt:
+### 4.1 Start Infrastructure
 
-```
-sentence-transformers==2.7.0
-torch==2.2.0
-```
-
-In your matching service code:
-```python
-from sentence_transformers import SentenceTransformer
-
-# This downloads the model once (~80MB), then uses local cache
-model = SentenceTransformer('all-MiniLM-L6-v2')
-
-def get_embedding(text: str) -> list:
-    return model.encode(text).tolist()
+```bash
+# From project root
+docker-compose up -d
 ```
 
-The model is cached at `~/.cache/huggingface/` after first download. No internet needed after that.
+This starts:
+- **Redis** (port 6379) — caching, Celery broker, rate limiting
+- **Zookeeper** (port 2181) — Kafka coordination
+- **Kafka** (port 9092) — event bus
+- **Nginx** (port 80) — API gateway
+
+### 4.2 Verify Infrastructure
+
+```bash
+# Check all containers are running
+docker ps
+
+# Expected output (4 containers):
+# jobportal_nginx, jobportal_kafka, jobportal_zookeeper, jobportal_redis
+
+# Check Redis
+redis-cli ping
+# → PONG
+
+# Check Kafka (via Kafka CLI or netcat)
+nc -z localhost 9092 && echo "Kafka OK"
+
+# Check Nginx
+curl -s -o /dev/null -w "%{http_code}" http://localhost:80
+# → 000 (no routing match, but Nginx is listening)
+
+# Check Nginx health more directly
+curl -s http://localhost:80/api/auth/health/
+# → If auth service not running yet: 502 Bad Gateway (Nginx is working)
+```
+
+### 4.3 Stop Infrastructure
+
+```bash
+docker-compose down
+```
+
+### 4.4 View Logs
+
+```bash
+# All services
+docker-compose logs -f
+
+# Specific service
+docker-compose logs -f kafka
+docker-compose logs -f redis
+
+# Follow Kafka messages (requires kcat/kafkacat)
+kcat -C -b localhost:9092 -t resume.uploaded
+```
 
 ---
 
-## Ports Summary
+## 5. Backend Services Setup
 
-| Service | Port | URL |
-|---|---|---|
-| Nginx (entry point) | 80 | http://localhost |
-| Auth Service | 8001 | http://localhost/api/auth/ |
-| Profile Service | 8002 | http://localhost/api/profile/ |
-| Job Service | 8003 | http://localhost/api/jobs/ |
-| Application Service | 8004 | http://localhost/api/applications/ |
-| Matching Service | 8005 | http://localhost/api/match/ |
-| Notification Service | 8006 | http://localhost/api/notifications/ |
-| Chat Service | 8007 | http://localhost/api/chat/ |
-| PostgreSQL | 5432 | internal |
-| Redis | 6379 | internal |
-| Kafka | 9092 | internal |
-| Angular Dev Server | 4200 | http://localhost:4200 |
+### 5.1 Setup Script (Automated)
+
+```bash
+# Start all 7 backend services
+bash scripts/start_backends.sh
+
+# Stop all 7 backend services
+bash scripts/stop_backends.sh
+```
+
+### 5.2 Manual Setup (Per Service)
+
+Repeat these steps for each of the 7 services. **Order matters** for migrations (apply migrations from most independent to most dependent).
+
+**Suggested order**: auth → profile → job → application → matching → notification → chat
+
+```bash
+# Step 1: Navigate to service directory
+cd backend/auth_service
+
+# Step 2: Create virtual environment
+python3 -m venv venv
+
+# Step 3: Activate virtual environment
+source venv/bin/activate  # Linux/macOS
+# .\venv\Scripts\activate  # Windows
+
+# Step 4: Install dependencies
+pip install --upgrade pip
+pip install -r requirements.txt
+
+# Step 5: Create .env file
+cp .env.example .env
+# Edit .env with your configuration (see section 9)
+
+# Step 6: Run database migrations
+python manage.py migrate
+
+# Step 7: Start the service
+python manage.py runserver 0.0.0.0:8001
+
+# Step 8: Verify
+curl http://localhost:8001/api/auth/health/
+```
+
+### 5.3 Service Port Map
+
+| Service | Directory | Port | Schema | Migrate Order |
+|---------|-----------|------|--------|---------------|
+| Auth | `backend/auth_service/` | 8001 | `auth_schema` | 1st |
+| Profile | `backend/profile_service/` | 8002 | `profile_schema` | 2nd |
+| Job | `backend/job_service/` | 8003 | `job_schema` | 3rd |
+| Application | `backend/application_service/` | 8004 | `app_schema` | 4th |
+| Matching | `backend/matching_service/` | 8005 | `match_schema` | 5th |
+| Notification | `backend/notification_service/` | 8006 | `notification_schema` | 6th |
+| Chat | `backend/chat_service/` | 8007 | `chat_schema` | 7th |
+
+### 5.4 Requirements Files
+
+Each service has its own `requirements.txt`. Common packages across all services:
+
+```
+django==5.2.12
+djangorestframework==3.17.1
+django-cors-headers
+django-pgvector
+psycopg2-binary
+python-decouple
+redis
+kafka-python==2.3.0
+celery==5.4.0
+PyJWT==2.10.1
+```
+
+Service-specific packages:
+
+| Service | Additional Packages |
+|---------|-------------------|
+| Auth | `djangorestframework-simplejwt` |
+| Profile | `PyMuPDF`, `boto3` |
+| Job | (common only) |
+| Application | (common only) |
+| Matching | `sentence-transformers`, `google-generativeai`, `numpy` |
+| Notification | (common only) |
+| Chat | `channels` (ASGI/WebSocket) |
+
+### 5.5 Starting Kafka Consumers
+
+Two services run long-running Kafka consumer processes:
+
+```bash
+# Terminal 1: Matching Service consumer (for embedding generation)
+cd backend/matching_service
+source venv/bin/activate
+python manage.py consume_events &
+
+# Terminal 2: Notification Service consumer (for event processing)
+cd backend/notification_service
+source venv/bin/activate
+python manage.py consume_events &
+```
+
+### 5.6 Starting Celery Workers
+
+```bash
+# Start Celery worker for a specific service
+cd backend/auth_service
+source venv/bin/activate
+celery -A auth_service worker -l info &
+
+# Or for all services (in separate terminals)
+celery -A auth_service worker -l info &
+celery -A profile_service worker -l info &
+celery -A job_service worker -l info &
+celery -A application_service worker -l info &
+celery -A chat_service worker -l info &
+```
+
+### 5.7 Seeding Dummy Data
+
+```bash
+# Create dummy job listings (for testing)
+cd backend/job_service
+source venv/bin/activate
+python create_dummy_jobs.py
+
+# Sync missing embeddings for existing jobs
+cd backend/matching_service
+source venv/bin/activate
+python sync_embeddings.py
+```
+
+---
+
+## 6. Frontend Setup
+
+### 6.1 Install Angular CLI
+
+```bash
+# Install Angular CLI globally (if not already)
+npm install -g @angular/cli
+
+# Verify
+ng version
+# → Angular CLI: 20.x.x
+# → Node: 20.x.x
+```
+
+### 6.2 Install Frontend Dependencies
+
+```bash
+cd frontend
+npm install
+```
+
+### 6.3 Start Development Server
+
+```bash
+cd frontend
+ng serve
+```
+
+This starts the Angular dev server on `http://localhost:4200`.
+
+### 6.4 Proxy Configuration
+
+The frontend uses a proxy configuration (`proxy.conf.json`) to forward API requests to Nginx:
+
+```json
+{
+  "/api/": {
+    "target": "http://localhost:80",
+    "pathRewrite": { "^/api/": "/api/" },
+    "changeOrigin": true,
+    "secure": false,
+    "logLevel": "debug",
+    "ws": true
+  }
+}
+```
+
+This is configured in `angular.json`:
+```json
+"serve": {
+  "builder": "@angular/build:dev-server",
+  "options": {
+    "proxyConfig": "proxy.conf.json"
+  }
+}
+```
+
+### 6.5 Production Build
+
+```bash
+cd frontend
+ng build --configuration production
+```
+
+Output goes to `frontend/dist/`. Serve with Nginx or any static file server.
+
+---
+
+## 7. Health Verification
+
+### 7.1 Run Health Check Script
+
+```bash
+bash health_check.sh
+```
+
+This checks:
+1. Database connectivity per schema (table count)
+2. Service port status (running or not)
+3. `.env` file presence
+4. Redis, Kafka, PostgreSQL connectivity
+
+### 7.2 Verify Individual Service Health
+
+```bash
+curl http://localhost:8001/api/auth/health/
+curl http://localhost:8002/api/profile/health/
+curl http://localhost:8003/api/jobs/health/
+curl http://localhost:8004/api/applications/health/
+curl http://localhost:8005/api/match/health/
+curl http://localhost:8006/api/notifications/health/
+curl http://localhost:8007/api/chat/health/
+```
+
+Each should return: `{"status": "healthy"}` or similar.
+
+### 7.3 Verify via Nginx Gateway
+
+```bash
+curl http://localhost:80/api/auth/health/
+curl http://localhost:80/api/jobs/health/
+curl http://localhost:80/api/chat/health/
+```
+
+### 7.4 Run Database Diagnostic
+
+```bash
+python check_db_connection.py
+```
+
+### 7.5 Verify Full Stack Flow
+
+```bash
+# 1. Register a user
+curl -X POST http://localhost:80/api/auth/register/ \
+  -H "Content-Type: application/json" \
+  -d '{"email": "test@example.com", "password": "Test@123", "role": "seeker"}'
+
+# 2. Login
+curl -X POST http://localhost:80/api/auth/login/ \
+  -H "Content-Type: application/json" \
+  -d '{"email": "test@example.com", "password": "Test@123"}'
+```
+
+---
+
+## 8. Common Issues & Troubleshooting
+
+### 8.1 Database Connection Issues
+
+```
+Error: could not connect to server: Connection refused
+    Is the server running on host "localhost" (::1) and accepting
+    TCP/IP connections on port 5432?
+```
+
+**Solutions**:
+```bash
+# Check if PostgreSQL is running
+sudo systemctl status postgresql
+
+# Check PostgreSQL port
+sudo ss -tlnp | grep 5432
+
+# Check pg_hba.conf for TCP/IP connections
+sudo grep -n "listen_addresses" /etc/postgresql/16/main/postgresql.conf
+# Should be: listen_addresses = '*'
+
+# Check pg_hba.conf for password auth
+sudo grep -n "host" /etc/postgresql/16/main/pg_hba.conf
+# Should include: host all all 127.0.0.1/32 md5
+```
+
+### 8.2 Docker Infrastructure Not Starting
+
+```bash
+# Check logs
+docker-compose logs
+
+# Common fix: restart Docker daemon
+sudo systemctl restart docker
+
+# Rebuild containers
+docker-compose down -v
+docker-compose up -d
+```
+
+### 8.3 Kafka Connection Issues
+
+```
+Error: NoBrokersAvailable
+```
+
+**Solutions**:
+```bash
+# Check if Kafka container is running
+docker ps | grep kafka
+
+# Check Kafka logs
+docker-compose logs kafka
+
+# Verify listener configuration
+# The docker-compose.yml uses:
+# KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+# Services connecting from host should use localhost:9092
+```
+
+### 8.4 Redis Connection Issues
+
+```
+Error: Error 111 connecting to localhost:6379. Connection refused.
+```
+
+**Solutions**:
+```bash
+# Check if Redis container is running
+docker ps | grep redis
+
+# Check Redis logs
+docker-compose logs redis
+
+# Try connecting directly
+redis-cli ping
+```
+
+### 8.5 Migration Errors
+
+```
+django.db.utils.ProgrammingError: relation "users" does not exist
+```
+
+**Solutions**:
+```bash
+# Ensure migrations are run in the correct order
+cd backend/auth_service && python manage.py migrate
+cd backend/profile_service && python manage.py migrate
+# ... etc
+
+# If a migration failed, try:
+python manage.py migrate --fake-initial
+# Or reset the schema and start fresh
+```
+
+### 8.6 Port Conflicts
+
+```
+Error: That port is already in use
+```
+
+**Solutions**:
+```bash
+# Find what's using the port
+sudo lsof -i :8001
+
+# Kill the process
+kill -9 <PID>
+
+# Or use a different port
+python manage.py runserver 0.0.0.0:8001
+```
+
+### 8.7 Sentence Transformers Download Issues
+
+```
+Error: Connection error downloading all-MiniLM-L6-v2
+```
+
+**Solutions**:
+```bash
+# The model will be downloaded on first use. If behind a proxy:
+export HTTP_PROXY=http://proxy:port
+export HTTPS_PROXY=http://proxy:port
+
+# Or download manually and place in ~/.cache/huggingface/
+```
+
+### 8.8 Virtual Environment Issues
+
+```
+Error: No module named 'django'
+```
+
+**Solutions**:
+```bash
+# Ensure virtual environment is activated
+which python
+# Should point to: .../venv/bin/python
+
+# If not activated:
+source venv/bin/activate
+
+# Reinstall requirements
+pip install -r requirements.txt
+```
+
+### 8.9 Angular Build Issues
+
+```
+Error: node_modules/@angular/material/...
+```
+
+**Solutions**:
+```bash
+# Clean install
+rm -rf node_modules package-lock.json
+npm cache clean --force
+npm install
+
+# Check Node.js version matches requirements
+node --version  # Should be 20+
+```
+
+---
+
+## 9. Environment Variables Reference
+
+### 9.1 Common .env Template
+
+Each service needs a `.env` file. Below is a composite of all variables across services:
+
+```bash
+# ── Database ───────────────────────────────────────────
+DB_NAME=jobportal_db
+DB_USER=admin
+DB_PASSWORD=job@123
+DB_HOST=localhost
+DB_PORT=5432
+
+# ── Django ─────────────────────────────────────────────
+DJANGO_SECRET_KEY=your-secret-key-here-change-in-production
+DJANGO_DEBUG=True
+DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1
+
+# ── JWT ────────────────────────────────────────────────
+JWT_SECRET_KEY=your-jwt-secret-key-shared-across-services
+JWT_ACCESS_TOKEN_LIFETIME=60  # minutes
+JWT_REFRESH_TOKEN_LIFETIME=7  # days
+
+# ── Redis ──────────────────────────────────────────────
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_DB=0
+
+# ── Celery ─────────────────────────────────────────────
+CELERY_BROKER_URL=redis://localhost:6379/0
+
+# ── Kafka ──────────────────────────────────────────────
+KAFKA_BOOTSTRAP_SERVERS=localhost:9092
+
+# ── Email (Gmail SMTP) ─────────────────────────────────
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USE_TLS=True
+EMAIL_HOST_USER=your-email@gmail.com
+EMAIL_HOST_PASSWORD=your-app-password
+
+# ── File Storage ───────────────────────────────────────
+# Set to 's3' for AWS S3, 'local' for local filesystem
+STORAGE_BACKEND=local
+
+# ── AWS S3 (if STORAGE_BACKEND=s3) ─────────────────────
+AWS_ACCESS_KEY_ID=your-access-key
+AWS_SECRET_ACCESS_KEY=your-secret-key
+AWS_STORAGE_BUCKET_NAME=job-buddy-resumes
+AWS_S3_REGION_NAME=us-east-1
+
+# ── AI Provider ────────────────────────────────────────
+# Options: gemini, openai, openrouter, opencode
+AI_PROVIDER=gemini
+
+# ── Google Gemini ──────────────────────────────────────
+GEMINI_API_KEY=your-gemini-api-key
+
+# ── OpenAI / OpenRouter ────────────────────────────────
+OPENAI_API_KEY=your-openai-api-key
+OPENAI_API_BASE=https://api.openai.com/v1  # For OpenAI
+# OPENAI_API_BASE=https://openrouter.ai/api/v1  # For OpenRouter
+OPENAI_MODEL=gpt-4o-mini  # or gpt-4o, claude-3-sonnet, etc.
+
+# ── Service URLs (for internal service-to-service calls)─
+JOB_SERVICE_URL=http://localhost:8003/api/jobs
+```
+
+### 9.2 Environment Variables Per Service
+
+| Service | Required Variables | Optional Variables |
+|---------|-------------------|-------------------|
+| Auth | DB, Django, JWT, Redis, Kafka, Email | Celery |
+| Profile | DB, Django, JWT, Redis, Kafka | Storage, AWS, Celery |
+| Job | DB, Django, JWT, Redis, Kafka | Celery |
+| Application | DB, Django, JWT, Redis, Kafka, JOB_SERVICE_URL | Celery |
+| Matching | DB, Django, JWT, Redis, Kafka, AI | Celery |
+| Notification | DB, Django, JWT, Redis, Kafka, Email | Celery |
+| Chat | DB, Django, JWT, Redis, Kafka | Celery |
+
+---
+
+## 10. Useful Commands
+
+### 10.1 Database Commands
+
+```bash
+# Connect to database
+psql -U admin -d jobportal_db
+
+# List all schemas
+\dn
+
+# List tables in a schema
+\dt auth_schema.*
+
+# Describe a table
+\d+ auth_schema.users
+
+# Show migrations
+cd backend/auth_service && python manage.py showmigrations
+
+# Create migrations
+python manage.py makemigrations
+
+# Apply migrations
+python manage.py migrate
+
+# Rollback a migration
+python manage.py migrate <app_name> <previous_migration>
+
+# Reset a schema (WARNING: drops all tables)
+psql -U admin -d jobportal_db -c "DROP SCHEMA auth_schema CASCADE;"
+psql -U admin -d jobportal_db -f scripts/init_db.sql
+python manage.py migrate
+
+# Backup database
+pg_dump -U admin -d jobportal_db > backup.sql
+
+# Restore database
+psql -U admin -d jobportal_db < backup.sql
+```
+
+### 10.2 Redis Commands
+
+```bash
+# Connect to Redis
+redis-cli
+
+# List all keys
+KEYS *
+
+# Get a value
+GET <key>
+
+# Delete a key
+DEL <key>
+
+# Delete keys by pattern
+redis-cli --scan --pattern 'jobs:list:*' | xargs redis-cli DEL
+
+# Check TTL
+TTL <key>
+
+# Monitor all commands
+MONITOR
+
+# Flush all (WARNING: clears all cache)
+FLUSHALL
+```
+
+### 10.3 Kafka Commands
+
+```bash
+# List topics (requires Kafka binaries)
+kafka-topics.sh --bootstrap-server localhost:9092 --list
+
+# Create a topic
+kafka-topics.sh --bootstrap-server localhost:9092 \
+  --create --topic test-topic --partitions 1 --replication-factor 1
+
+# Consume messages
+kafka-console-consumer.sh --bootstrap-server localhost:9092 \
+  --topic resume.uploaded --from-beginning
+
+# Produce a test message
+echo '{"event_type": "test"}' | \
+  kafka-console-producer.sh --bootstrap-server localhost:9092 \
+  --topic test-topic
+
+# View consumer groups
+kafka-consumer-groups.sh --bootstrap-server localhost:9092 --list
+
+# View consumer group details
+kafka-consumer-groups.sh --bootstrap-server localhost:9092 \
+  --group matching-group --describe
+
+# Using kcat (alternative CLI)
+kcat -C -b localhost:9092 -t resume.uploaded
+kcat -P -b localhost:9092 -t test-topic
+```
+
+### 10.4 Docker Commands
+
+```bash
+# Start infrastructure
+docker-compose up -d
+
+# Stop infrastructure
+docker-compose down
+
+# Restart a specific service
+docker-compose restart kafka
+
+# View logs
+docker-compose logs -f redis
+
+# Rebuild containers
+docker-compose up -d --build
+
+# Check resource usage
+docker stats
+
+# Execute command in container
+docker exec -it jobportal_redis redis-cli ping
+```
+
+### 10.5 Backend Management Commands
+
+```bash
+# Django shell (interactive Python)
+cd backend/auth_service && python manage.py shell
+
+# Create superuser
+python manage.py createsuperuser
+
+# Check for problems
+python manage.py check
+
+# Collect static files
+python manage.py collectstatic
+
+# Dump data (fixtures)
+python manage.py dumpdata > data.json
+
+# Load data (fixtures)
+python manage.py loaddata data.json
+
+# Test email configuration
+python manage.py sendtestemail test@example.com
+
+# List all URL patterns
+python manage.py show_urls
+```
+
+### 10.6 Frontend Commands
+
+```bash
+# Start development server
+ng serve
+
+# Build for production
+ng build --configuration production
+
+# Run tests
+ng test
+
+# Run linting
+ng lint
+
+# Generate a new component
+ng generate component features/my-feature/my-component
+
+# Generate a new service
+ng generate service core/services/my-service
+
+# Analyze bundle size
+ng build --stats-json
+# Then analyze with webpack-bundle-analyzer
+```
+
+### 10.7 Git Commands
+
+```bash
+# Quick status check
+git status
+git diff --stat
+
+# View log
+git log --oneline -20 --graph
+
+# Stash changes
+git stash
+git stash pop
+
+# Undo local changes (WARNING: permanent)
+git checkout -- <file>
+git reset --hard HEAD
+```
+
+---
+
+*This setup guide is part of the Job Buddy project. See [README.md](../README.md) for the full project overview.*
